@@ -1,0 +1,43 @@
+{
+  "nome": "Sertão 32 (proposta)",
+  "cores": {
+    "preto":          "#0d0b0f",
+    "sombra":         "#2a1f2d",
+    "roxo_noite":     "#3f2d4f",
+    "cinza_escuro":   "#4a4552",
+    "cinza":          "#7d7884",
+    "cinza_claro":    "#b8b3ba",
+    "branco":         "#f4efe6",
+
+    "couro_escuro":   "#4b2b1e",
+    "couro":          "#7a4527",
+    "couro_claro":    "#a8673a",
+    "pele_escura":    "#8c5434",
+    "pele":           "#c98a5b",
+    "pele_clara":     "#e8b98c",
+
+    "terra_escura":   "#6e3a22",
+    "terra":          "#a65a2e",
+    "barro":          "#cf7f3e",
+    "areia":          "#e3b366",
+    "palha":          "#f2d892",
+
+    "ceu_fundo":      "#e8c88a",
+    "ceu":            "#f0a960",
+    "sol":            "#fff1a8",
+    "ceu_azul":       "#6fa8c9",
+
+    "caatinga_esc":   "#3b4a2a",
+    "caatinga":       "#647a3a",
+    "mandacaru":      "#8fa24c",
+
+    "vermelho_esc":   "#7a1f22",
+    "vermelho":       "#c8352b",
+    "laranja_fogo":   "#f07a26",
+    "amarelo_fogo":   "#ffd23e",
+
+    "alien_esc":      "#1f6b4f",
+    "alien":          "#3fd17a",
+    "alien_brilho":   "#b6ff6a"
+  }
+}
