@@ -2,10 +2,10 @@ import { LARGURA, ALTURA } from '../config.js';
 import { P, hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 
-// Cena de conferência da etapa 1: paleta, escala sem borrar, física e fps.
-export class TesteScene extends Phaser.Scene {
+// Mostra a paleta (toque numa cor para ver o nome) e confere escala, física e fps.
+export class PaletaScene extends Phaser.Scene {
   constructor() {
-    super('Teste');
+    super('Paleta');
   }
 
   create() {
@@ -21,8 +21,8 @@ export class TesteScene extends Phaser.Scene {
         .setInteractive()
         .on('pointerdown', () => this.nomeCor.setText(nome.toUpperCase()));
     });
-    this.add.text(4, 4, 'PALETA (PROPOSTA)', estiloTexto(hex('cinza_claro')));
-    this.nomeCor = this.add.text(LARGURA - 4, 4, '', estiloTexto(hex('palha'))).setOrigin(1, 0);
+    this.add.text(4, 4, 'PALETA', estiloTexto(hex('cinza_claro')));
+    this.nomeCor = this.add.text(LARGURA - 4, 4, '', estiloTexto(hex('amarelo_fogo'))).setOrigin(1, 0);
 
     // Chão e caixas caindo: confere a física Arcade e o reaproveitamento de objetos.
     const chao = this.add.rectangle(0, ALTURA - 16, LARGURA, 16, P.terra).setOrigin(0);
@@ -34,6 +34,8 @@ export class TesteScene extends Phaser.Scene {
 
     this.info = this.add.text(4, ALTURA - 13, '', estiloTexto(hex('branco')));
 
+    this.add.text(LARGURA - 4, ALTURA - 13, 'VOLTAR', estiloTexto(hex('branco'))).setOrigin(1, 0)
+      .setInteractive().on('pointerdown', () => this.scene.start('Menu'));
     this.input.keyboard.once('keydown-ESC', () => this.scene.start('Menu'));
   }
 

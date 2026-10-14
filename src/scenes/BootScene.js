@@ -1,4 +1,5 @@
 import { carregarPaleta } from '../paleta.js';
+import { gerarSprites } from '../sprites.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,13 +12,7 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     carregarPaleta(this.cache.json.get('paleta'));
-
-    // Textura de 1 pixel branco, base para retângulos e partículas provisórias.
-    const g = this.make.graphics({ x: 0, y: 0 }, false);
-    g.fillStyle(0xffffff, 1).fillRect(0, 0, 1, 1);
-    g.generateTexture('px', 1, 1);
-    g.destroy();
-
+    gerarSprites(this);
     this.scene.start('Menu');
   }
 }

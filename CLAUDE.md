@@ -93,7 +93,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 - Pixel art original. Não copiar sprites, personagens ou cenários do Metal Slug (são da SNK).
 - Spritesheets PNG geradas por script.
-- Paleta de cores fixa e limitada, para tudo combinar.
+- Paleta de cores fixa e limitada, para tudo combinar: `assets/paleta.json` (32 cores). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.
 - Sprites de tamanho médio e animações com poucos quadros bem escolhidos, onde a consistência entre quadros se mantém.
 - Renderizar e conferir visualmente cada sprite antes de usar.
 - Cenário em camadas com parallax.
@@ -146,6 +146,6 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 9. **Acabamento:** tela de título, seleção de personagem, pausa, game over com "continuar?", progresso salvo no celular.
 10. **Mais conteúdo:** fases 2 a 6, repetindo as etapas 4 a 6.
 
-**Próximo passo:** etapa 1.
+**Próximo passo:** etapa 2 (controle e sensação) em teste no iPhone e no PC.
 
 

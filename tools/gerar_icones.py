@@ -17,8 +17,8 @@ def desenhar(margem=0):
     img = Image.new("RGB", (32, 32), CORES["ceu"])
     d = ImageDraw.Draw(img)
     # Chão de terra.
-    d.rectangle([0, 22, 31, 31], fill=CORES["terra"])
-    d.line([0, 22, 31, 22], fill=CORES["terra_escura"])
+    d.rectangle([0, 22, 31, 31], fill=CORES["areia"])
+    d.line([0, 22, 31, 22], fill=CORES["barro"])
     # Mandacaru.
     d.rectangle([6, 12, 8, 21], fill=CORES["caatinga"])
     d.rectangle([3, 14, 4, 17], fill=CORES["caatinga"])
@@ -27,7 +27,7 @@ def desenhar(margem=0):
     d.rectangle([8, 16, 10, 17], fill=CORES["caatinga"])
     # Disco voador com feixe.
     d.polygon([(17, 12), (27, 12), (30, 21), (14, 21)], fill=CORES["alien_brilho"])
-    d.ellipse([18, 4, 26, 10], fill=CORES["ceu_azul"])
+    d.ellipse([18, 4, 26, 10], fill=CORES["horizonte"])
     d.ellipse([13, 8, 31, 13], fill=CORES["cinza"])
     d.line([15, 11, 29, 11], fill=CORES["cinza_escuro"])
     for x in (16, 21, 26):
