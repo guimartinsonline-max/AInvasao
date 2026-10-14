@@ -1,0 +1,45 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0b0f;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#jogo {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#jogo canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#girar {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 2;
+  background: #0d0b0f;
+  color: #f4efe6;
+  font: 14px "Press Start 2P", monospace;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  #girar { display: flex; }
+}
