@@ -147,3 +147,5 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 10. **Mais conteúdo:** fases 2 a 6, repetindo as etapas 4 a 6.
 
 **Próximo passo:** etapa 1.
+
+
