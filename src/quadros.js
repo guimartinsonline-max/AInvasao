@@ -19,6 +19,11 @@ export const INIMIGOS = {
     parado: 0, atira: 1, panico: 2, morte: 2, andar: ANDAR, cano: [15, 14] },
 };
 
+export const REFEM = { largura: 32, altura: 36, peX: 15, peY: 35, amarrado: [0, 1], continencia: 2, corrida: [3, 4, 5, 6] };
+export const DISCO = { largura: 48, altura: 24 };
+export const FEIXE = { largura: 26, altura: 120 };
+export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };
+
 export const ALIEN = { largura: 40, altura: 44, peX: 20, peY: 42, aberto: 0, fechado: 1 };
 
 export const TOUCEIRA = { largura: 14, altura: 10, quantidade: 4 };

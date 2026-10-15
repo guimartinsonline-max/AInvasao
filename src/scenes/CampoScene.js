@@ -5,6 +5,8 @@ import { Inimigo } from '../objetos/Inimigo.js';
 import { BalasInimigas } from '../objetos/BalasInimigas.js';
 import { Balas } from '../objetos/Balas.js';
 import { ARMAS } from '../armas.js';
+import { Refem } from '../objetos/Refem.js';
+import { Disco, Bode } from '../objetos/Disco.js';
 
 const LARGURA_MUNDO = LARGURA * 3;
 const CHAO_Y = 192;
@@ -48,7 +50,16 @@ export class CampoScene extends Phaser.Scene {
       this.alvos.add(inimigo);
       inimigo.ajustarCorpo();
     }
-    this.physics.add.collider(this.alvos, this.solidos);
+    // Refém (pode ser atingido pelas balas do Lampião, que soltam a corda) e o bode Fubá.
+    this.refem = new Refem(this, 340, c);
+    this.alvos.add(this.refem);
+    this.refem.reiniciar();
+    this.bode = new Bode(this, 720, c);
+    this.physics.add.collider(this.bode, this.solidos);
+    this.disco = new Disco(this, 560, [this.refem, this.bode]);
+    this.alvos.add(this.disco);
+    this.disco.body.allowGravity = false;
+    this.physics.add.collider(this.alvos, this.solidos, null, (a) => a !== this.disco);
 
     this.balas = new Balas(this, this.solidos, this.alvos, (alvo, bala) => {
       alvo.levarDano(bala.tipo.dano, bala.x, false, bala.tipo.morte);
@@ -157,6 +168,13 @@ export class CampoScene extends Phaser.Scene {
       caixa.refreshBody();
       caixa.arma = arma;
     }
+    this.caixasTemp = [];
+    for (let k = 0; k < 3; k++) {
+      const caixa = this.caixasArma.create(-100, -100, 'caixa_M').setOrigin(0.5, 1).setDepth(7);
+      caixa.temporaria = true;
+      caixa.disableBody(true, true);
+      this.caixasTemp.push(caixa);
+    }
     this.physics.add.overlap(this.jogador.corpo, this.caixasArma, (corpo, caixa) => {
       if (!caixa.active || this.jogador.morto) return;
       this.pegarArma(caixa);
@@ -169,7 +187,28 @@ export class CampoScene extends Phaser.Scene {
     caixa.disableBody(true, true);
     this.efeitos.faisca(caixa.x, caixa.y - 8, 10);
     this.events.emit('arma', arma.nome);
-    this.time.delayedCall(8000, () => caixa.enableBody(false, 0, 0, true, true));
+    if (!caixa.temporaria) this.time.delayedCall(8000, () => caixa.enableBody(false, 0, 0, true, true));
+  }
+
+  // Caixa deixada por um refém (pool de caixas temporárias).
+  soltarCaixa(x, y, arma) {
+    const caixa = this.caixasTemp.find((cx) => !cx.active) || this.caixasTemp[0];
+    caixa.setTexture(`caixa_${ARMAS[arma].letra}`);
+    caixa.arma = arma;
+    const chao = this.chaoAbaixo(x, y);
+    caixa.enableBody(true, x, chao, true, true);
+    caixa.refreshBody();
+    // Cai do ponto onde o refém estava até o chão.
+    caixa.y = y;
+    this.tweens.add({ targets: caixa, y: chao, duration: Math.max(80, (chao - y) * 4), ease: 'Quad.easeIn' });
+  }
+
+  // Primeira superfície sólida abaixo de (x, y).
+  chaoAbaixo(x, y) {
+    for (let yy = Math.floor(y); yy < ALTURA; yy += 2) {
+      if (this.physics.overlapRect(x - 1, yy, 2, 2, false, true).length) return yy;
+    }
+    return CHAO_Y + 2;
   }
 
   update(t, dt) {

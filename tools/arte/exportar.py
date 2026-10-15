@@ -39,6 +39,12 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
                     "xeremita": ["parado", "atira", "grito", "anda1", "anda2", "anda3", "anda4"]}.items():
     d = pixel.ler(f"{nome}.txt")
     folha([d[n] for n in ordem], SAIDA / f"{nome}.png")
+d = pixel.ler("refem.txt")
+folha([d[n] for n in ["amarrado1", "amarrado2", "continencia", "corre1", "corre2", "corre3", "corre4"]], SAIDA / "refem.png")
+import inimigos as ini  # noqa: E402
+folha([ini.disco(0), ini.disco(1)], SAIDA / "disco.png")
+folha([ini.feixe(0, h=120), ini.feixe(1, h=120)], SAIDA / "feixe.png")
+folha([ini.bode("parado"), ini.bode("mastiga"), ini.bode("abduzido")], SAIDA / "bode.png")
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
 
