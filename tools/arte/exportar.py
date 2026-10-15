@@ -46,5 +46,12 @@ for nome, tela in {
     tela.imagem().save(SAIDA / f"{nome}.png", optimize=True)
 folha([cn.touceira(k) for k in range(4)], SAIDA / "touceiras.png")
 
+# Aumenta a versão dos assets para o navegador não usar cópias velhas.
+config = RAIZ / "src/config.js"
+texto = config.read_text()
+import re  # noqa: E402
+versao = int(re.search(r"VERSAO = (\d+)", texto).group(1)) + 1
+config.write_text(re.sub(r"VERSAO = \d+", f"VERSAO = {versao}", texto))
+
 total = sum(f.stat().st_size for f in SAIDA.glob("*.png"))
-print(f"Sprites em {SAIDA} ({total // 1024} KB)")
+print(f"Sprites em {SAIDA} ({total // 1024} KB), versão {versao}")

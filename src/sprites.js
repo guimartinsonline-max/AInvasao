@@ -1,17 +1,18 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
 import { TOUCEIRA } from './quadros.js';
+import { VERSAO } from './config.js';
 
 // Personagens e cenário vêm de PNGs gerados por tools/arte/exportar.py.
 // Aqui ficam só as texturas pequenas de efeitos, desenhadas em código.
 
 export function carregarSprites(cena) {
-  const s = 'assets/sprites/';
-  cena.load.spritesheet('lampiao', s + 'lampiao.png', { frameWidth: 56, frameHeight: 52 });
-  cena.load.spritesheet('alien', s + 'alien.png', { frameWidth: 40, frameHeight: 44 });
-  cena.load.image('maria_bonita', s + 'maria_bonita.png');
-  cena.load.spritesheet('touceiras', s + 'touceiras.png', { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
+  const s = (nome) => `assets/sprites/${nome}.png?v=${VERSAO}`;
+  cena.load.spritesheet('lampiao', s('lampiao'), { frameWidth: 56, frameHeight: 52 });
+  cena.load.spritesheet('alien', s('alien'), { frameWidth: 40, frameHeight: 44 });
+  cena.load.image('maria_bonita', s('maria_bonita'));
+  cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
   for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
-    cena.load.image(nome, s + nome + '.png');
+    cena.load.image(nome, s(nome));
   }
 }
 

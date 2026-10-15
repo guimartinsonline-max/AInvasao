@@ -79,6 +79,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
   - `assets/`: sprites, sons, mapas
 - **Resolução:** baixa e fixa (cerca de 384×216), ampliada sem borrar (modo pixel art).
 - **Desempenho:** meta de 60 fps estáveis no iPhone. Reaproveitar balas, inimigos e partículas (object pooling), sem criar e destruir objetos durante o jogo.
+- **Cache:** todo arquivo de `assets/` é carregado com `?v=VERSAO` (`src/config.js`). Ao mudar qualquer asset, aumentar a versão (`tools/arte/exportar.py` já faz isso).
 - **Fases:** feitas por Claude em código ou dados. Tiled pode ser adotado depois, se eu quiser desenhar fases.
 
 ### Coop online
