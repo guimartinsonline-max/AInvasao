@@ -148,12 +148,9 @@ export class Jogador {
     this.esticar(1.25, 0.75);
   }
 
-  esticar(sx, sy) {
-    const tw = this.cena.tweens;
-    tw.killTweensOf(this.visual);
-    this.visual.setScale(sx, sy);
-    tw.add({ targets: this.visual, scaleX: 1, scaleY: 1, duration: 140, ease: 'Quad.easeOut' });
-  }
+  // Pixel art não pode ser esticado em escala quebrada (os pixels deformam);
+  // o impacto do pulo e da queda fica por conta da poeira.
+  esticar() {}
 
   animar(dt) {
     const v = this.visual;

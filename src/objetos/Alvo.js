@@ -88,8 +88,6 @@ export class Alvo extends Phaser.Physics.Arcade.Sprite {
     if (this.caindo && this.body.blocked.down) {
       this.caindo = false;
       this.scene.efeitos.poeira(this.x, this.y, 8);
-      this.setScale(1.3, 0.7);
-      this.scene.tweens.add({ targets: this, scaleX: 1, scaleY: 1, duration: 160, ease: 'Back.easeOut' });
     }
   }
 }

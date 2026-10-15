@@ -23,7 +23,9 @@ const config = {
   },
   physics: {
     default: 'arcade',
-    arcade: { gravity: { y: 900 }, debug: false },
+    // Passo variável: a física anda junto com cada quadro da tela, então nada
+    // treme em monitores de 120/144/240 Hz.
+    arcade: { gravity: { y: 900 }, debug: false, fixedStep: false },
   },
   fps: { target: 60 },
   scene: [BootScene, MenuScene, CampoScene, HudScene, PaletaScene],

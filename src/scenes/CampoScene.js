@@ -157,8 +157,12 @@ export class CampoScene extends Phaser.Scene {
     }
 
     // A câmera olha um pouco para onde o Lampião está virado.
+    // Suavizações independentes da taxa de quadros (60, 144 ou 240 Hz).
     const cam = this.cameras.main;
-    this.olhar += (this.jogador.direcao * -40 - this.olhar) * 0.04;
+    const k = dt / (1000 / 60);
+    const lerp = 1 - Math.pow(1 - 0.12, k);
+    cam.setLerp(lerp, lerp);
+    this.olhar += (this.jogador.direcao * -40 - this.olhar) * (1 - Math.pow(1 - 0.04, k));
     cam.setFollowOffset(Math.round(this.olhar), 0);
 
     this.ventoNuvens += dt * 0.004;
