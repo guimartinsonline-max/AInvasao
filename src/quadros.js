@@ -10,6 +10,15 @@ LAMPIAO.corrida = ['corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6'];
 // Boca do cano em relação ao pé (x para a frente, y para cima).
 LAMPIAO.cano = { frente: [29, 15], agachado: [29, 10], cima: [10, 45] };
 
+// Inimigos pixel a pixel (tools/arte/pixel/*.txt), ordem de tools/arte/exportar.py.
+const ANDAR = [3, 4, 5, 6];
+export const INIMIGOS = {
+  volante: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 34,
+    parado: 0, atira: 1, panico: 2, morte: 2, andar: ANDAR, cano: [29, 15] },
+  xeremita: { largura: 44, altura: 46, peX: 15, peY: 45, corpoL: 12, corpoA: 32,
+    parado: 0, atira: 1, panico: 2, morte: 2, andar: ANDAR, cano: [15, 14] },
+};
+
 export const ALIEN = { largura: 40, altura: 44, peX: 20, peY: 42, aberto: 0, fechado: 1 };
 
 export const TOUCEIRA = { largura: 14, altura: 10, quantidade: 4 };

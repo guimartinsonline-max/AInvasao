@@ -2,7 +2,7 @@ import { LARGURA, ALTURA } from '../config.js';
 import { hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { pedirTelaCheia } from '../escala.js';
-import { LAMPIAO, ALIEN } from '../quadros.js';
+import { LAMPIAO, INIMIGOS } from '../quadros.js';
 
 const AVISOS = {
   toque: 'TOQUE PARA COMEÇAR',
@@ -27,7 +27,10 @@ export class MenuScene extends Phaser.Scene {
     this.add.image(324, 122, 'caatinga').setOrigin(0);
     this.add.tileSprite(0, 192, LARGURA, 24, 'chao').setOrigin(0);
         this.add.image(196, 194, 'lampiao', LAMPIAO.parado).setOrigin(LAMPIAO.peX / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
-    this.add.image(300, 194, 'alien', ALIEN.aberto).setOrigin(20 / 40, 42 / 44).setFlipX(false);
+    for (const [x, tipo] of [[270, 'xeremita'], [320, 'volante']]) {
+      const q = INIMIGOS[tipo];
+      this.add.image(x, 194, tipo, q.parado).setFlipX(true).setOrigin((q.largura - q.peX) / q.largura, q.peY / q.altura);
+    }
 
     this.add.text(LARGURA / 2 + 2, 50, 'A INVASÃO', estiloTexto(hex('azul_sombra'), 24)).setOrigin(0.5);
     this.add.text(LARGURA / 2, 48, 'A INVASÃO', estiloTexto(hex('amarelo_fogo'), 24)).setOrigin(0.5);

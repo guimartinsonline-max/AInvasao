@@ -34,6 +34,11 @@ QUADROS_LAMPIAO = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4",
                    "pulo", "agachado", "mira_cima", "susto"]
 desenhos = pixel.ler("lampiao.txt")
 folha([desenhos[n] for n in QUADROS_LAMPIAO], SAIDA / "lampiao.png")
+# Inimigos pixel a pixel (fonte: tools/arte/pixel/volante.txt e xeremita.txt).
+for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4"],
+                    "xeremita": ["parado", "atira", "grito", "anda1", "anda2", "anda3", "anda4"]}.items():
+    d = pixel.ler(f"{nome}.txt")
+    folha([d[n] for n in ordem], SAIDA / f"{nome}.png")
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
 

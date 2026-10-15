@@ -170,7 +170,7 @@ export class HudScene extends Phaser.Scene {
     for (const p of this.input.manager.pointers) {
       if (this.dedos.has(p.id) && !p.isDown) this.soltar(p);
     }
-    this.granadas.setText(`GRANADAS ${this.jogador.granadas}`);
+    this.granadas.setText(`VIDAS ${this.jogador.vidas}  GRANADAS ${this.jogador.granadas}`);
     this.fps.setText(`${Math.round(this.game.loop.actualFps)}`);
   }
 }

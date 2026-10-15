@@ -1,5 +1,5 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA, LAMPIAO } from './quadros.js';
+import { TOUCEIRA, LAMPIAO, INIMIGOS } from './quadros.js';
 import { VERSAO } from './config.js';
 
 // Personagens e cenário vêm de PNGs gerados por tools/arte/exportar.py.
@@ -9,6 +9,9 @@ export function carregarSprites(cena) {
   const s = (nome) => `assets/sprites/${nome}.png?v=${VERSAO}`;
   cena.load.spritesheet('lampiao', s('lampiao'), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
   cena.load.spritesheet('alien', s('alien'), { frameWidth: 40, frameHeight: 44 });
+  for (const [nome, q] of Object.entries(INIMIGOS)) {
+    cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
+  }
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
   for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
@@ -25,6 +28,8 @@ export function gerarSprites(cena) {
 
   // Bala alongada com núcleo branco, como um rastro.
   texturaDeTexto(cena, 'bala', ['..oyyyW.', 'oyyWWWWW', '..oyyyW.'], { o: 'laranja_fogo', y: 'amarelo_fogo', W: 'branco' });
+  // Raio verde do xeremita.
+  texturaDeTexto(cena, 'raio', ['..0!??*.', '90!?*WW*', '..0!??*.'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });
   texturaDeTexto(cena, 'granada', ['.g.', 'GGG', 'GgG', 'GGG'], { g: 'cinza', G: 'caatinga_esc' });
   // Clarão do cano, voltado para a direita (a origem fica na boca do cano).

@@ -1,14 +1,15 @@
 import { LARGURA, ALTURA } from '../config.js';
 import { Efeitos } from '../efeitos.js';
 import { Jogador } from '../objetos/Jogador.js';
-import { Alvo } from '../objetos/Alvo.js';
+import { Inimigo } from '../objetos/Inimigo.js';
+import { BalasInimigas } from '../objetos/BalasInimigas.js';
 import { Balas } from '../objetos/Balas.js';
 
 const LARGURA_MUNDO = LARGURA * 3;
 const CHAO_Y = 192;
 const RAIO_GRANADA = 44;
 
-// Campo de treino da etapa 2: correr, pular, atirar e explodir alvos parados.
+// Campo de treino: correr, pular, atirar e enfrentar soldados da Volante e xeremitas.
 export class CampoScene extends Phaser.Scene {
   constructor() {
     super('Campo');
@@ -40,11 +41,11 @@ export class CampoScene extends Phaser.Scene {
     this.efeitos = new Efeitos(this, this.solidos);
 
     this.alvos = this.physics.add.group({ runChildUpdate: false });
-    for (const [x, y] of [[300, c], [624, 150], [930, c]]) {
-      const alvo = new Alvo(this, x, y);
-      alvo.setDepth(9);
-      this.alvos.add(alvo);
-      alvo.ajustarCorpo();
+    for (const [x, y, tipo] of [[320, c, 'xeremita'], [624, 150, 'volante'], [880, c, 'volante'], [1060, c, 'xeremita']]) {
+      const inimigo = new Inimigo(this, x, y, tipo);
+      inimigo.setDepth(9);
+      this.alvos.add(inimigo);
+      inimigo.ajustarCorpo();
     }
     this.physics.add.collider(this.alvos, this.solidos);
 
@@ -63,6 +64,7 @@ export class CampoScene extends Phaser.Scene {
 
     this.jogador = new Jogador(this, 60, c - 20);
     this.physics.add.collider(this.jogador.corpo, this.solidos);
+    this.balasInimigas = new BalasInimigas(this, this.solidos, this.jogador);
 
     this.corte = this.add.image(0, 0, 'corte').setVisible(false).setDepth(20);
 
@@ -150,6 +152,7 @@ export class CampoScene extends Phaser.Scene {
 
     if (!this.efeitos.congelado) this.jogador.atualizar(dt, c);
     this.balas.atualizar();
+    this.balasInimigas.atualizar();
     this.efeitos.atualizar();
 
     for (const g of this.granadas.getChildren()) {

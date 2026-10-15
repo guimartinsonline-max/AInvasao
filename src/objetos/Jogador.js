@@ -15,6 +15,8 @@ const ALCANCE_PEIXEIRA = 26;
 const ALTURA_EM_PE = 36;
 const ALTURA_AGACHADO = 28;
 const GRANADAS = 10;
+const VIDAS = 3;
+const INVULNERAVEL = 2000; // ms piscando depois de renascer
 
 export class Jogador {
   constructor(cena, x, y) {
@@ -32,6 +34,9 @@ export class Jogador {
     this.passo = 0;
     this.recuo = 0;
     this.miraCima = false;
+    this.morto = false;
+    this.invulneravel = false;
+    this.vidas = VIDAS;
     this.granadas = GRANADAS;
     this.desdeGranada = 1000;
   }
@@ -41,6 +46,13 @@ export class Jogador {
 
   atualizar(dt, c) {
     const corpo = this.corpo.body;
+    if (this.morto) {
+      if (corpo.blocked.down) corpo.setVelocityX(corpo.velocity.x * 0.85);
+      this.visual.setFrame(LAMPIAO.susto);
+      this.visual.setPosition(Math.round(this.x), Math.round(this.pe));
+      return;
+    }
+    if (this.invulneravel) this.visual.setVisible(Math.floor(this.cena.time.now / 70) % 2 === 0);
     const estavaNoChao = this.noChao;
     this.noChao = corpo.blocked.down;
 
@@ -98,6 +110,33 @@ export class Jogador {
 
     this.miraCima = c.estado.cima && !this.agachado;
     this.animar(dt);
+  }
+
+  // Um tiro mata, como no Metal Slug: careta de susto, voa para trás e renasce piscando.
+  morrer(vxBala = 0) {
+    if (this.morto || this.invulneravel) return;
+    const cena = this.cena;
+    this.morto = true;
+    this.vidas--;
+    const lado = Math.sign(vxBala) || -this.direcao;
+    this.corpo.body.setVelocity(lado * 90, -240);
+    cena.efeitos.parar(120);
+    cena.efeitos.tremer(0.01, 220);
+    cena.efeitos.faisca(this.x, this.pe - 24, 10);
+    cena.time.delayedCall(1300, () => this.renascer());
+  }
+
+  renascer() {
+    const corpo = this.corpo.body;
+    if (this.vidas <= 0) this.vidas = VIDAS; // campo de treino: recomeça as vidas
+    this.morto = false;
+    this.invulneravel = true;
+    this.granadas = Math.max(this.granadas, 3);
+    corpo.reset(this.x, this.cena.cameras.main.worldView.y - 20);
+    this.cena.time.delayedCall(INVULNERAVEL, () => {
+      this.invulneravel = false;
+      this.visual.setVisible(true);
+    });
   }
 
   atirar(c) {
