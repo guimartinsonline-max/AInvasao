@@ -1,5 +1,7 @@
-// Lampião (provisório). A física usa um corpo invisível; o sprite visível só
-// acompanha, para poder esticar e amassar sem mexer na colisão.
+import { LAMPIAO } from '../quadros.js';
+
+// Lampião. A física usa um corpo invisível; o sprite visível só acompanha,
+// para poder esticar e amassar sem mexer na colisão.
 
 const VEL_CORRER = 100;
 const VEL_AGACHADO = 36;
@@ -9,15 +11,17 @@ const TOLERANCIA_BEIRADA = 100; // ms para ainda pular depois de sair da beirada
 const MEMORIA_PULO = 110; // ms que um pulo apertado antes de tocar o chão fica guardado
 const INTERVALO_TIRO = 150; // segurando o botão
 const INTERVALO_TIRO_TOQUE = 70; // apertando repetido
-const ALCANCE_PEIXEIRA = 22;
+const ALCANCE_PEIXEIRA = 26;
+const ALTURA_EM_PE = 36;
+const ALTURA_AGACHADO = 28;
 const GRANADAS = 10;
 
 export class Jogador {
   constructor(cena, x, y) {
     this.cena = cena;
     this.corpo = cena.physics.add.image(x, y, 'px').setVisible(false);
-    this.corpo.body.setSize(10, 20).setMaxVelocityY(420);
-    this.visual = cena.add.sprite(x, y, 'lamp_parado').setOrigin(0.5, 1).setDepth(10);
+    this.corpo.body.setSize(14, ALTURA_EM_PE).setMaxVelocityY(420);
+    this.visual = cena.add.sprite(x, y, 'lampiao', LAMPIAO.parado).setDepth(10);
 
     this.direcao = 1;
     this.beirada = 0;
@@ -27,6 +31,7 @@ export class Jogador {
     this.agachado = false;
     this.passo = 0;
     this.recuo = 0;
+    this.miraCima = false;
     this.granadas = GRANADAS;
     this.desdeGranada = 1000;
   }
@@ -52,7 +57,7 @@ export class Jogador {
     const querAgachar = this.noChao && c.estado.baixo;
     if (querAgachar !== this.agachado) {
       this.agachado = querAgachar;
-      this.ajustarAltura(this.agachado ? 14 : 20);
+      this.ajustarAltura(this.agachado ? ALTURA_AGACHADO : ALTURA_EM_PE);
     }
 
     // Correr.
@@ -65,7 +70,7 @@ export class Jogador {
       this.beirada = 0;
       if (this.agachado) {
         this.agachado = false;
-        this.ajustarAltura(20);
+        this.ajustarAltura(ALTURA_EM_PE);
       }
       corpo.setVelocityY(VEL_PULO);
       this.cena.efeitos.poeira(this.x, this.pe, 6);
@@ -88,9 +93,10 @@ export class Jogador {
     if (c.apertou('granada') && this.granadas > 0 && this.desdeGranada > 300) {
       this.desdeGranada = 0;
       this.granadas--;
-      this.cena.lancarGranada(this.x + this.direcao * 6, this.pe - 18, this.direcao, corpo.velocity.x);
+      this.cena.lancarGranada(this.x + this.direcao * 6, this.pe - 36, this.direcao, corpo.velocity.x);
     }
 
+    this.miraCima = c.estado.cima && !this.agachado;
     this.animar(dt);
   }
 
@@ -105,33 +111,33 @@ export class Jogador {
 
     // Peixeira automática quando o inimigo está colado.
     if (mira === 'frente') {
-      const alvo = cena.alvoProximo(this.x, this.pe - 10, d, ALCANCE_PEIXEIRA);
+      const alvo = cena.alvoProximo(this.x, this.pe - 18, d, ALCANCE_PEIXEIRA);
       if (alvo) {
-        cena.peixeirada(this.x + d * 12, this.pe - 12, d, alvo);
+        cena.peixeirada(this.x + d * 16, this.pe - 20, d, alvo);
         return;
       }
     }
 
     let x, y, ang;
     if (mira === 'cima') {
-      x = this.x + d * 2; y = this.pe - 26; ang = -Math.PI / 2;
+      x = this.x + d * 4; y = this.pe - 51; ang = -Math.PI / 2;
     } else if (mira === 'baixo') {
       x = this.x; y = this.pe + 2; ang = Math.PI / 2;
     } else {
-      x = this.x + d * 12;
-      y = this.pe - (this.agachado ? 6 : 10) + Phaser.Math.Between(-1, 1);
+      x = this.x + d * 28;
+      y = this.pe - (this.agachado ? 16 : 21) + Phaser.Math.Between(-1, 1);
       ang = d > 0 ? 0 : Math.PI;
     }
     cena.balas.disparar(x, y, ang);
     ef.disparo(x, y, ang);
-    ef.capsula(this.x + d * 3, this.pe - 12, d);
+    ef.capsula(this.x + d * 8, this.pe - 22, d);
     this.recuo = 50;
   }
 
   // Muda a altura do corpo mantendo o pé no mesmo lugar (o corpo é centrado).
   ajustarAltura(altura) {
     const diferenca = this.corpo.body.height - altura;
-    this.corpo.body.setSize(10, altura);
+    this.corpo.body.setSize(14, altura);
     this.corpo.y += diferenca / 2;
   }
 
@@ -150,24 +156,29 @@ export class Jogador {
   animar(dt) {
     const v = this.visual;
     const corpo = this.corpo.body;
-    let quadro = 'lamp_parado';
-    if (this.agachado) quadro = 'lamp_agachado';
-    else if (!this.noChao) quadro = 'lamp_pulo';
+    const cima = this.miraCima ? '_cima' : '';
+    let quadro;
+    if (this.agachado) quadro = 'agachado';
+    else if (!this.noChao) quadro = 'pulo' + cima;
     else if (corpo.velocity.x !== 0) {
       this.passo += dt;
-      quadro = Math.floor(this.passo / 110) % 2 ? 'lamp_corre2' : 'lamp_corre1';
+      quadro = LAMPIAO.corrida[Math.floor(this.passo / 110) % LAMPIAO.corrida.length] + cima;
       if (Math.floor(this.passo / 220) !== Math.floor((this.passo - dt) / 220)) {
         this.cena.efeitos.poeira(this.x - this.direcao * 4, this.pe, 2);
       }
     } else {
       this.passo = 0;
+      // Careta de grito logo depois de atirar parado.
+      quadro = !cima && this.desdeTiro < 120 ? 'grito' : 'parado' + cima;
     }
-    if (v.texture.key !== quadro) v.setTexture(quadro);
+    v.setFrame(LAMPIAO[quadro]);
     v.setFlipX(this.direcao < 0);
+    // O pé fica na origem; ao virar, o desenho espelha e o centro muda de lado.
+    const ox = this.direcao > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX;
+    v.setOrigin(ox / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
 
-    // O sprite tem a arma para a frente; desloca para o corpo ficar centrado.
     const recuo = this.recuo > 0 ? -this.direcao : 0;
     this.recuo -= dt;
-    v.setPosition(Math.round(this.x + this.direcao * 2 + recuo), Math.round(this.pe));
+    v.setPosition(Math.round(this.x + recuo), Math.round(this.pe));
   }
 }

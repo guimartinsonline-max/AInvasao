@@ -1,5 +1,5 @@
 import { carregarPaleta } from '../paleta.js';
-import { gerarSprites } from '../sprites.js';
+import { carregarSprites, gerarSprites } from '../sprites.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +8,7 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.json('paleta', 'assets/paleta.json');
+    carregarSprites(this);
   }
 
   create() {

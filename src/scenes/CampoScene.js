@@ -1,12 +1,11 @@
 import { LARGURA, ALTURA } from '../config.js';
-import { P } from '../paleta.js';
 import { Efeitos } from '../efeitos.js';
 import { Jogador } from '../objetos/Jogador.js';
 import { Alvo } from '../objetos/Alvo.js';
 import { Balas } from '../objetos/Balas.js';
 
 const LARGURA_MUNDO = LARGURA * 3;
-const CHAO_Y = 196;
+const CHAO_Y = 192;
 const RAIO_GRANADA = 44;
 
 // Campo de treino da etapa 2: correr, pular, atirar e explodir alvos parados.
@@ -23,24 +22,29 @@ export class CampoScene extends Phaser.Scene {
 
     this.solidos = this.physics.add.staticGroup();
     this.add.tileSprite(0, CHAO_Y, LARGURA_MUNDO, ALTURA - CHAO_Y, 'chao').setOrigin(0).setDepth(5);
-    this.solido(0, CHAO_Y, LARGURA_MUNDO, ALTURA - CHAO_Y);
-    for (const [x, y] of [[176, 180], [412, 180], [436, 180], [424, 164], [860, 180]]) {
-      this.add.image(x, y, 'caixote').setOrigin(0).setDepth(6);
-      this.solido(x, y, 24, 16);
+    this.solido(0, CHAO_Y + 2, LARGURA_MUNDO, ALTURA - CHAO_Y);
+    // Capim seco na beira do chão.
+    for (let x = 8; x < LARGURA_MUNDO; x += Phaser.Math.Between(30, 70)) {
+      this.add.image(x, CHAO_Y + 3, 'touceiras', Phaser.Math.Between(0, 3)).setOrigin(0.5, 1).setDepth(6);
     }
-    for (const [x, y, n] of [[560, 148, 4], [740, 160, 2], [980, 140, 3]]) {
-      this.add.tileSprite(x, y, 32 * n, 12, 'pedra').setOrigin(0).setDepth(6);
+    const c = CHAO_Y + 2;
+    for (const [x, y] of [[176, c - 18], [412, c - 18], [436, c - 18], [424, c - 36], [860, c - 18]]) {
+      this.add.image(x, y, 'caixote').setOrigin(0).setDepth(6);
+      this.solido(x, y, 24, 18);
+    }
+    for (const [x, y, n] of [[560, 150, 4], [740, 162, 2], [980, 146, 3]]) {
+      this.add.tileSprite(x, y, 32 * n, 12, 'laje').setOrigin(0).setDepth(6);
       this.solido(x, y, 32 * n, 12);
     }
 
     this.efeitos = new Efeitos(this, this.solidos);
 
     this.alvos = this.physics.add.group({ runChildUpdate: false });
-    for (const [x, y] of [[300, CHAO_Y], [624, 148], [930, CHAO_Y]]) {
+    for (const [x, y] of [[300, c], [624, 150], [930, c]]) {
       const alvo = new Alvo(this, x, y);
       alvo.setDepth(9);
       this.alvos.add(alvo);
-      alvo.body.setSize(10, 16).setOffset(3, 2);
+      alvo.ajustarCorpo();
     }
     this.physics.add.collider(this.alvos, this.solidos);
 
@@ -57,7 +61,7 @@ export class CampoScene extends Phaser.Scene {
       if (g.active && alvo.vivo) this.explodirGranada(g);
     });
 
-    this.jogador = new Jogador(this, 60, CHAO_Y - 20);
+    this.jogador = new Jogador(this, 60, c - 20);
     this.physics.add.collider(this.jogador.corpo, this.solidos);
 
     this.corte = this.add.image(0, 0, 'corte').setVisible(false).setDepth(20);
@@ -79,31 +83,26 @@ export class CampoScene extends Phaser.Scene {
   }
 
   criarFundo() {
-    // Céu em faixas (sem degradê, para manter a paleta).
-    const faixas = [[0, 'ceu_escuro'], [40, 'ceu'], [96, 'ceu_claro'], [128, 'horizonte']];
-    faixas.forEach(([y, cor], i) => {
-      const fim = i + 1 < faixas.length ? faixas[i + 1][0] : ALTURA;
-      this.add.rectangle(0, y, LARGURA, fim - y, P[cor]).setOrigin(0).setScrollFactor(0);
-    });
-    this.nuvens = [];
-    for (const [x, y] of [[30, 30], [180, 18], [300, 50], [420, 26]]) {
-      this.nuvens.push(this.add.image(x, y, 'nuvem').setScrollFactor(0.05, 0));
-    }
+    // Camadas em parallax: quanto mais longe, mais devagar acompanham a câmera.
+    this.add.image(0, 0, 'ceu').setOrigin(0).setScrollFactor(0);
+    const camada = (chave, y, fator) => [this.add.tileSprite(0, y, LARGURA, this.textures.get(chave).source[0].height, chave)
+      .setOrigin(0).setScrollFactor(0), fator];
+    this.nuvens = camada('nuvens', 6, 0.03);
     this.camadas = [
-      [this.add.tileSprite(0, 92, LARGURA, 60, 'serras').setOrigin(0).setScrollFactor(0), 0.15],
-      [this.add.tileSprite(0, 122, LARGURA, 50, 'morros').setOrigin(0).setScrollFactor(0), 0.35],
+      this.nuvens,
+      camada('serras', 96, 0.08),
+      camada('paredoes', 86, 0.2),
+      camada('planicie', 168, 0.35),
+      camada('caatinga', 122, 0.5),
     ];
-    this.add.rectangle(0, 170, LARGURA, CHAO_Y - 170, P.areia_clara).setOrigin(0).setScrollFactor(0);
-    this.camadas.push(
-      [this.add.tileSprite(0, CHAO_Y - 38, LARGURA, 40, 'mato').setOrigin(0).setScrollFactor(0), 0.65],
-    );
+    this.ventoNuvens = 0;
   }
 
   alvoProximo(x, y, direcao, alcance) {
     for (const alvo of this.alvos.getChildren()) {
       if (!alvo.vivo) continue;
       const dx = (alvo.x - x) * direcao;
-      if (dx > -4 && dx < alcance && Math.abs(alvo.y - 8 - y) < 18) return alvo;
+      if (dx > -6 && dx < alcance && Math.abs(alvo.y - 18 - y) < 22) return alvo;
     }
     return null;
   }
@@ -113,7 +112,7 @@ export class CampoScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.corte);
     this.tweens.add({ targets: this.corte, alpha: 0, duration: 120, onComplete: () => this.corte.setVisible(false) });
     alvo.levarDano(5, this.jogador.x, true);
-    this.efeitos.faisca(alvo.x, alvo.y - 10, 6);
+    this.efeitos.faisca(alvo.x, alvo.y - 20, 6);
     this.efeitos.tremer(0.004, 80);
   }
 
@@ -135,7 +134,7 @@ export class CampoScene extends Phaser.Scene {
     g.body.reset(-100, -100);
     this.efeitos.explosao(x, y - 4, 1);
     for (const alvo of this.alvos.getChildren()) {
-      if (alvo.vivo && Phaser.Math.Distance.Between(x, y, alvo.x, alvo.y - 8) < RAIO_GRANADA) {
+      if (alvo.vivo && Phaser.Math.Distance.Between(x, y, alvo.x, alvo.y - 18) < RAIO_GRANADA) {
         alvo.levarDano(10, x, true);
       }
     }
@@ -162,6 +161,8 @@ export class CampoScene extends Phaser.Scene {
     this.olhar += (this.jogador.direcao * -40 - this.olhar) * 0.04;
     cam.setFollowOffset(Math.round(this.olhar), 0);
 
+    this.ventoNuvens += dt * 0.004;
     for (const [camada, fator] of this.camadas) camada.tilePositionX = Math.round(cam.scrollX * fator);
+    this.nuvens[0].tilePositionX = Math.round(cam.scrollX * this.nuvens[1] + this.ventoNuvens);
   }
 }

@@ -35,7 +35,7 @@ export class Efeitos {
       gravityY: 500, tint: [P.alien, P.alien_brilho, P.alien_esc],
     });
 
-    this.clarao = cena.add.image(0, 0, 'clarao').setVisible(false).setDepth(20);
+    this.clarao = cena.add.image(0, 0, 'clarao').setOrigin(0.1, 0.5).setVisible(false).setDepth(20);
     this.flashes = this.pool(4, () => cena.add.image(0, 0, 'disco').setVisible(false).setDepth(19));
 
     this.capsulas = cena.physics.add.group({ defaultKey: 'capsula', maxSize: 24 });
