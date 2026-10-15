@@ -29,11 +29,16 @@ const config = {
   scene: [BootScene, MenuScene, CampoScene, HudScene, PaletaScene],
 };
 
-// Espera a fonte pixel carregar para o texto não aparecer com a fonte errada.
+// Espera a fonte pixel carregar (no máximo 3 s) para o texto não sair com a fonte errada.
 const fonte = document.fonts ? document.fonts.load('8px "Press Start 2P"') : Promise.resolve();
-fonte.catch(() => {}).finally(() => {
+const limite = new Promise((ok) => setTimeout(ok, 3000));
+Promise.race([fonte, limite]).catch(() => {}).finally(() => {
   const game = new Phaser.Game(config);
   game.controles = new Controles();
-  game.events.once('ready', () => ligarEscala(game));
+  game.events.once('ready', () => {
+    ligarEscala(game);
+    const aviso = document.getElementById('aviso');
+    if (aviso.className !== 'erro') aviso.style.display = 'none';
+  });
   window.jogo = game;
 });

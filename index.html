@@ -20,7 +20,26 @@
 <body>
   <div id="jogo"></div>
   <div id="girar">Gire o aparelho<br>para jogar</div>
+  <div id="aviso">CARREGANDO...</div>
+  <script>
+    // Mostra qualquer erro na tela (ajuda a testar no iPhone, sem console).
+    function mostrarErro(msg) {
+      var el = document.getElementById('aviso');
+      el.style.display = 'block';
+      el.className = 'erro';
+      el.textContent += '\n' + msg;
+    }
+    window.addEventListener('error', function (e) {
+      mostrarErro('ERRO: ' + e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      mostrarErro('ERRO: ' + (e.reason && e.reason.message || e.reason));
+    });
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/phaser@4.2.1/dist/phaser.min.js"></script>
+  <script>
+    if (!window.Phaser) mostrarErro('Phaser não carregou da CDN (jsdelivr).');
+  </script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

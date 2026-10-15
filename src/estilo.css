@@ -43,3 +43,21 @@ html, body {
 @media (orientation: portrait) and (pointer: coarse) {
   #girar { display: flex; }
 }
+
+#aviso {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  white-space: pre-wrap;
+  color: #bcc2cc;
+  font: 12px monospace;
+  pointer-events: none;
+}
+
+#aviso.erro {
+  color: #f3f1ea;
+  background: #7a2130;
+  padding: 8px;
+}
