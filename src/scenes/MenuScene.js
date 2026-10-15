@@ -26,8 +26,7 @@ export class MenuScene extends Phaser.Scene {
     this.add.image(-60, 122, 'caatinga').setOrigin(0);
     this.add.image(324, 122, 'caatinga').setOrigin(0);
     this.add.tileSprite(0, 192, LARGURA, 24, 'chao').setOrigin(0);
-    this.add.image(150, 194, 'maria_bonita').setOrigin(24 / 56, 50 / 52);
-    this.add.image(196, 194, 'lampiao', LAMPIAO.parado).setOrigin(24 / 56, 50 / 52);
+        this.add.image(196, 194, 'lampiao', LAMPIAO.parado).setOrigin(LAMPIAO.peX / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
     this.add.image(300, 194, 'alien', ALIEN.aberto).setOrigin(20 / 40, 42 / 44).setFlipX(false);
 
     this.add.text(LARGURA / 2 + 2, 50, 'A INVASÃO', estiloTexto(hex('azul_sombra'), 24)).setOrigin(0.5);

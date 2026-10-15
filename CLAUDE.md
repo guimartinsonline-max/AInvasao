@@ -39,7 +39,8 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 ## Personagens jogáveis
 
 - **Lampião** e **Maria Bonita**, caricatos no estilo Metal Slug: corpo atarracado, expressões exageradas, animações cômicas.
-- O visual ainda não foi aprovado. Propor antes de produzir os sprites finais.
+- Por enquanto só o **Lampião** é jogável; Maria Bonita fica para depois.
+- Visual em construção: desenhado **pixel a pixel** (`tools/arte/pixel/lampiao.txt`, gerado por `tools/arte/lampiao_px.py`), estilo Metal Slug: base agachada, inclinado para a frente, poucos acessórios. O mais importante é o **rosto expressivo** e as **poses**.
 - Ataque corpo a corpo: peixeira (equivalente à faca do Metal Slug).
 
 ## Fases (rascunho aprovado)
@@ -94,7 +95,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 - Pixel art original. Não copiar sprites, personagens ou cenários do Metal Slug (são da SNK).
 - Spritesheets PNG geradas por script.
-- Paleta de cores fixa e limitada, para tudo combinar: `assets/paleta.json` (32 cores). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.
+- Paleta de cores fixa: `assets/paleta.json` (64 cores: as 32 originais e degraus intermediários). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.
 - Sprites de tamanho médio e animações com poucos quadros bem escolhidos, onde a consistência entre quadros se mantém.
 - Renderizar e conferir visualmente cada sprite antes de usar.
 - Cenário em camadas com parallax.

@@ -1,5 +1,5 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA } from './quadros.js';
+import { TOUCEIRA, LAMPIAO } from './quadros.js';
 import { VERSAO } from './config.js';
 
 // Personagens e cenário vêm de PNGs gerados por tools/arte/exportar.py.
@@ -7,7 +7,7 @@ import { VERSAO } from './config.js';
 
 export function carregarSprites(cena) {
   const s = (nome) => `assets/sprites/${nome}.png?v=${VERSAO}`;
-  cena.load.spritesheet('lampiao', s('lampiao'), { frameWidth: 56, frameHeight: 52 });
+  cena.load.spritesheet('lampiao', s('lampiao'), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
   cena.load.spritesheet('alien', s('alien'), { frameWidth: 40, frameHeight: 44 });
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });

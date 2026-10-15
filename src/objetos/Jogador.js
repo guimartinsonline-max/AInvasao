@@ -120,17 +120,19 @@ export class Jogador {
 
     let x, y, ang;
     if (mira === 'cima') {
-      x = this.x + d * 4; y = this.pe - 51; ang = -Math.PI / 2;
+      const [cx, cy] = LAMPIAO.cano.cima;
+      x = this.x + d * (cx - 2); y = this.pe - cy; ang = -Math.PI / 2;
     } else if (mira === 'baixo') {
       x = this.x; y = this.pe + 2; ang = Math.PI / 2;
     } else {
-      x = this.x + d * 28;
-      y = this.pe - (this.agachado ? 16 : 21) + Phaser.Math.Between(-1, 1);
+      const [cx, cy] = LAMPIAO.cano[this.agachado ? 'agachado' : 'frente'];
+      x = this.x + d * cx;
+      y = this.pe - cy + Phaser.Math.Between(-1, 1);
       ang = d > 0 ? 0 : Math.PI;
     }
     cena.balas.disparar(x, y, ang);
     ef.disparo(x, y, ang);
-    ef.capsula(this.x + d * 8, this.pe - 22, d);
+    ef.capsula(this.x + d * 10, this.pe - 17, d);
     this.recuo = 50;
   }
 
@@ -156,20 +158,20 @@ export class Jogador {
   animar(dt) {
     const v = this.visual;
     const corpo = this.corpo.body;
-    const cima = this.miraCima ? '_cima' : '';
     let quadro;
     if (this.agachado) quadro = 'agachado';
-    else if (!this.noChao) quadro = 'pulo' + cima;
+    else if (this.miraCima) quadro = 'mira_cima';
+    else if (!this.noChao) quadro = 'pulo';
     else if (corpo.velocity.x !== 0) {
       this.passo += dt;
-      quadro = LAMPIAO.corrida[Math.floor(this.passo / 110) % LAMPIAO.corrida.length] + cima;
-      if (Math.floor(this.passo / 220) !== Math.floor((this.passo - dt) / 220)) {
+      quadro = LAMPIAO.corrida[Math.floor(this.passo / 80) % LAMPIAO.corrida.length];
+      if (Math.floor(this.passo / 240) !== Math.floor((this.passo - dt) / 240)) {
         this.cena.efeitos.poeira(this.x - this.direcao * 4, this.pe, 2);
       }
     } else {
       this.passo = 0;
-      // Careta de grito logo depois de atirar parado.
-      quadro = !cima && this.desdeTiro < 120 ? 'grito' : 'parado' + cima;
+      // Grita ao atirar parado.
+      quadro = this.desdeTiro < 160 ? 'atirando' : 'parado';
     }
     v.setFrame(LAMPIAO[quadro]);
     v.setFlipX(this.direcao < 0);

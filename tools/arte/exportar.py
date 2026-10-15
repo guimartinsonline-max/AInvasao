@@ -28,7 +28,12 @@ def lampiao():
     return quadros
 
 
-folha(lampiao(), SAIDA / "lampiao.png")
+# Lampião desenhado pixel a pixel (fonte: tools/arte/pixel/lampiao.txt).
+import pixel  # noqa: E402
+QUADROS_LAMPIAO = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4", "corre5", "corre6",
+                   "pulo", "agachado", "mira_cima", "susto"]
+desenhos = pixel.ler("lampiao.txt")
+folha([desenhos[n] for n in QUADROS_LAMPIAO], SAIDA / "lampiao.png")
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
 
