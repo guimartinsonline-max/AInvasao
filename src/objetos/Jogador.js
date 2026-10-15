@@ -1,4 +1,5 @@
 import { LAMPIAO } from '../quadros.js';
+import { ARMAS } from '../armas.js';
 
 // Lampião. A física usa um corpo invisível; o sprite visível só acompanha,
 // para poder esticar e amassar sem mexer na colisão.
@@ -9,8 +10,6 @@ const VEL_PULO = -310;
 const CORTE_PULO = -110; // soltar o botão no meio do pulo corta a subida
 const TOLERANCIA_BEIRADA = 100; // ms para ainda pular depois de sair da beirada
 const MEMORIA_PULO = 110; // ms que um pulo apertado antes de tocar o chão fica guardado
-const INTERVALO_TIRO = 150; // segurando o botão
-const INTERVALO_TIRO_TOQUE = 70; // apertando repetido
 const ALCANCE_PEIXEIRA = 26;
 const ALTURA_EM_PE = 36;
 const ALTURA_AGACHADO = 28;
@@ -37,6 +36,8 @@ export class Jogador {
     this.morto = false;
     this.invulneravel = false;
     this.vidas = VIDAS;
+    this.arma = 'padrao';
+    this.municao = Infinity;
     this.granadas = GRANADAS;
     this.desdeGranada = 1000;
   }
@@ -93,7 +94,8 @@ export class Jogador {
     // Atirar.
     this.desdeTiro += dt;
     const apertou = c.apertou('atirar');
-    if ((apertou && this.desdeTiro >= INTERVALO_TIRO_TOQUE) || (c.estado.atirar && this.desdeTiro >= INTERVALO_TIRO)) {
+    const arma = ARMAS[this.arma];
+    if ((apertou && this.desdeTiro >= arma.toque) || (c.estado.atirar && this.desdeTiro >= arma.cadencia)) {
       this.desdeTiro = 0;
       this.atirar(c);
     }
@@ -110,6 +112,11 @@ export class Jogador {
 
     this.miraCima = c.estado.cima && !this.agachado;
     this.animar(dt);
+  }
+
+  trocarArma(nome) {
+    this.arma = nome;
+    this.municao = ARMAS[nome].municao;
   }
 
   // Um tiro mata, como no Metal Slug: careta de susto, voa para trás e renasce piscando.
@@ -132,6 +139,7 @@ export class Jogador {
     this.morto = false;
     this.invulneravel = true;
     this.granadas = Math.max(this.granadas, 3);
+    this.trocarArma('padrao');
     corpo.reset(this.x, this.cena.cameras.main.worldView.y - 20);
     this.cena.time.delayedCall(INVULNERAVEL, () => {
       this.invulneravel = false;
@@ -169,10 +177,18 @@ export class Jogador {
       y = this.pe - cy + Phaser.Math.Between(-1, 1);
       ang = d > 0 ? 0 : Math.PI;
     }
-    cena.balas.disparar(x, y, ang);
+    const arma = ARMAS[this.arma];
+    for (let k = 0; k < arma.tiros; k++) {
+      let a = ang;
+      if (arma.leque) a += (k / (arma.tiros - 1) - 0.5) * arma.leque;
+      if (arma.espalha) a += Phaser.Math.FloatBetween(-arma.espalha, arma.espalha);
+      cena.balas.disparar(x, y, a, arma.bala);
+    }
     ef.disparo(x, y, ang);
-    ef.capsula(this.x + d * 10, this.pe - 17, d);
+    if (arma.bala !== 'rojao' && arma.bala !== 'desintegra') ef.capsula(this.x + d * 10, this.pe - 17, d);
+    if (arma.tranco && this.noChao) this.corpo.x -= d * arma.tranco;
     this.recuo = 50;
+    if (this.arma !== 'padrao' && --this.municao <= 0) this.trocarArma('padrao');
   }
 
   // Muda a altura do corpo mantendo o pé no mesmo lugar (o corpo é centrado).

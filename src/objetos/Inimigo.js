@@ -59,7 +59,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.body.setOffset(ox - q.corpoL / 2, q.peY - q.corpoA);
   }
 
-  levarDano(dano, origemX, forte = false) {
+  levarDano(dano, origemX, forte = false, morte = null) {
     if (!this.vivo) return;
     const ef = this.scene.efeitos;
     this.vida -= dano;
@@ -68,14 +68,31 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const lado = Math.sign(this.x - origemX) || 1;
     this.x += lado;
     if (forte) ef.parar(60);
-    if (this.vida <= 0) this.morrer(lado, forte);
+    if (this.vida <= 0) this.morrer(lado, forte, morte);
   }
 
-  morrer(lado, forte) {
+  morrer(lado, forte, morte = null) {
     const cena = this.scene;
     const ef = cena.efeitos;
     this.vivo = false;
     this.clearTint();
+    if (morte === 'derrete') {
+      // Raio desintegrador: fica verde, treme e vira gosma no lugar.
+      this.setFrame(this.q.morte).setTint(P.alien).setTintMode(Phaser.TintModes.FILL);
+      this.body.setVelocity(0, 0);
+      this.body.checkCollision.none = true;
+      this.body.allowGravity = false;
+      this.grito.setText('BZZZT!').setPosition(this.x, this.y - 50).setVisible(true).setAlpha(1);
+      cena.tweens.add({ targets: this.grito, y: this.y - 66, alpha: 0, duration: 700, onComplete: () => this.grito.setVisible(false) });
+      cena.time.delayedCall(260, () => {
+        ef.gosma(this.x, this.y - 18, 40);
+        this.setVisible(false);
+        this.body.enable = false;
+        this.body.allowGravity = true;
+      });
+      cena.time.delayedCall(2600, () => this.renascer());
+      return;
+    }
     this.setFrame(this.q.morte);
     this.body.checkCollision.none = true;
     this.body.setVelocity(lado * (forte ? 150 : 80), forte ? -320 : -220);

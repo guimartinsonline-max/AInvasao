@@ -35,6 +35,17 @@ export class HudScene extends Phaser.Scene {
     this.fps = this.add.text(LARGURA - 4, 4, '', estiloTexto(hex('branco'))).setOrigin(1, 0).setAlpha(0.6);
     this.dica = this.add.text(LARGURA / 2, ALTURA - 10, '', estiloTexto(hex('branco'))).setOrigin(0.5);
 
+    // Nome da arma "gritado" no meio da tela ao pegar, como no Metal Slug.
+    this.anuncio = this.add.text(LARGURA / 2, 60, '', estiloTexto(hex('amarelo_fogo'), 16)).setOrigin(0.5).setVisible(false);
+    const campo = this.scene.get('Campo');
+    const anunciar = (nome) => {
+      this.anuncio.setText(nome + '!').setVisible(true).setScale(2).setAlpha(1);
+      this.tweens.killTweensOf(this.anuncio);
+      this.tweens.add({ targets: this.anuncio, scale: 1, duration: 160, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: this.anuncio, alpha: 0, delay: 1300, duration: 300 });
+    };
+    campo.events.on('arma', anunciar);
+    this.events.once('shutdown', () => campo.events.off('arma', anunciar));
     this.criarToque();
     this.mostrarFonte(this.controles.fonte);
     const desligar = this.controles.aoMudarFonte((f) => this.mostrarFonte(f));
@@ -170,7 +181,9 @@ export class HudScene extends Phaser.Scene {
     for (const p of this.input.manager.pointers) {
       if (this.dedos.has(p.id) && !p.isDown) this.soltar(p);
     }
-    this.granadas.setText(`VIDAS ${this.jogador.vidas}  GRANADAS ${this.jogador.granadas}`);
+    const j = this.jogador;
+    const municao = j.arma === 'padrao' ? 'INF' : j.municao;
+    this.granadas.setText(`VIDAS ${j.vidas}  GRANADAS ${j.granadas}\nARMA ${municao}`);
     this.fps.setText(`${Math.round(this.game.loop.actualFps)}`);
   }
 }

@@ -4,6 +4,7 @@ import { Jogador } from '../objetos/Jogador.js';
 import { Inimigo } from '../objetos/Inimigo.js';
 import { BalasInimigas } from '../objetos/BalasInimigas.js';
 import { Balas } from '../objetos/Balas.js';
+import { ARMAS } from '../armas.js';
 
 const LARGURA_MUNDO = LARGURA * 3;
 const CHAO_Y = 192;
@@ -50,7 +51,7 @@ export class CampoScene extends Phaser.Scene {
     this.physics.add.collider(this.alvos, this.solidos);
 
     this.balas = new Balas(this, this.solidos, this.alvos, (alvo, bala) => {
-      alvo.levarDano(1, bala.x);
+      alvo.levarDano(bala.tipo.dano, bala.x, false, bala.tipo.morte);
       this.efeitos.faisca(bala.x, bala.y, 4);
     });
 
@@ -65,6 +66,7 @@ export class CampoScene extends Phaser.Scene {
     this.jogador = new Jogador(this, 60, c - 20);
     this.physics.add.collider(this.jogador.corpo, this.solidos);
     this.balasInimigas = new BalasInimigas(this, this.solidos, this.jogador);
+    this.criarCaixasDeArma(c);
 
     this.corte = this.add.image(0, 0, 'corte').setVisible(false).setDepth(20);
 
@@ -134,12 +136,40 @@ export class CampoScene extends Phaser.Scene {
     g.setActive(false).setVisible(false);
     g.body.stop();
     g.body.reset(-100, -100);
-    this.efeitos.explosao(x, y - 4, 1);
+    this.explodir(x, y - 4, RAIO_GRANADA, 10, 1);
+  }
+
+  // Explosão com dano em área (granada, rojão).
+  explodir(x, y, raio, dano, tamanho = 1) {
+    this.efeitos.explosao(x, y, tamanho);
     for (const alvo of this.alvos.getChildren()) {
-      if (alvo.vivo && Phaser.Math.Distance.Between(x, y, alvo.x, alvo.y - 18) < RAIO_GRANADA) {
-        alvo.levarDano(10, x, true);
+      if (alvo.vivo && Phaser.Math.Distance.Between(x, y, alvo.x, alvo.y - 18) < raio) {
+        alvo.levarDano(dano, x, true);
       }
     }
+  }
+
+  // Caixas de arma espalhadas pelo campo de treino; voltam depois de um tempo.
+  criarCaixasDeArma(chao) {
+    this.caixasArma = this.physics.add.staticGroup();
+    for (const [x, arma] of [[240, 'madsen'], [520, 'bacamarte'], [780, 'rojao'], [1010, 'desintegrador']]) {
+      const caixa = this.caixasArma.create(x, chao, `caixa_${ARMAS[arma].letra}`).setOrigin(0.5, 1).setDepth(7);
+      caixa.refreshBody();
+      caixa.arma = arma;
+    }
+    this.physics.add.overlap(this.jogador.corpo, this.caixasArma, (corpo, caixa) => {
+      if (!caixa.active || this.jogador.morto) return;
+      this.pegarArma(caixa);
+    });
+  }
+
+  pegarArma(caixa) {
+    const arma = ARMAS[caixa.arma];
+    this.jogador.trocarArma(caixa.arma);
+    caixa.disableBody(true, true);
+    this.efeitos.faisca(caixa.x, caixa.y - 8, 10);
+    this.events.emit('arma', arma.nome);
+    this.time.delayedCall(8000, () => caixa.enableBody(false, 0, 0, true, true));
   }
 
   update(t, dt) {
@@ -151,7 +181,7 @@ export class CampoScene extends Phaser.Scene {
     }
 
     if (!this.efeitos.congelado) this.jogador.atualizar(dt, c);
-    this.balas.atualizar();
+    this.balas.atualizar(dt);
     this.balasInimigas.atualizar();
     this.efeitos.atualizar();
 

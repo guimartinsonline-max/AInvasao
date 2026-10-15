@@ -30,6 +30,11 @@ export function gerarSprites(cena) {
   texturaDeTexto(cena, 'bala', ['..oyyyW.', 'oyyWWWWW', '..oyyyW.'], { o: 'laranja_fogo', y: 'amarelo_fogo', W: 'branco' });
   // Raio verde do xeremita.
   texturaDeTexto(cena, 'raio', ['..0!??*.', '90!?*WW*', '..0!??*.'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
+  // Balas das armas pickup.
+  texturaDeTexto(cena, 'chumbo', ['xC', 'CW'], { x: 'cinza_medio', C: 'cinza_claro', W: 'branco' });
+  texturaDeTexto(cena, 'rojao', ['..ddRRTTU.', 'adddRTTTUH', '..ddRRTTU.'], { a: 'couro_escuro', d: 'couro', R: 'vermelho_esc', T: 'vermelho', U: 'laranja_fogo', H: 'amarelo_claro' });
+  texturaDeTexto(cena, 'desintegra', ['..00!!??**W.', '0!!??**WWWWW', '..00!!??**W.'], { 0: 'alien_medio', '!': 'alien', '?': 'alien_luz', '*': 'alien_brilho', W: 'branco' });
+  gerarCaixasDeArma(cena);
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });
   texturaDeTexto(cena, 'granada', ['.g.', 'GGG', 'GgG', 'GGG'], { g: 'cinza', G: 'caatinga_esc' });
   // Clarão do cano, voltado para a direita (a origem fica na boca do cano).
@@ -55,4 +60,46 @@ export function gerarSprites(cena) {
 
   texturaDesenhada(cena, 'disco', 16, 16, (ctx) => disco(ctx, 8, 8, 7, '#ffffff'));
   texturaDesenhada(cena, 'bola', 6, 6, (ctx) => disco(ctx, 3, 3, 2, '#ffffff'));
+}
+
+// Caixa de madeira com a letra da arma (como as caixas de arma do Metal Slug).
+const LETRAS = {
+  M: ['X...X', 'XX.XX', 'X.X.X', 'X...X', 'X...X'],
+  B: ['XXXX.', 'X...X', 'XXXX.', 'X...X', 'XXXX.'],
+  R: ['XXXX.', 'X...X', 'XXXX.', 'X..X.', 'X...X'],
+  D: ['XXXX.', 'X...X', 'X...X', 'X...X', 'XXXX.'],
+  G: ['.XXX.', 'X....', 'X.XXX', 'X...X', '.XXX.'],
+  L: ['X....', 'X....', 'X....', 'X....', 'XXXXX'],
+  F: ['XXXXX', 'X....', 'XXXX.', 'X....', 'X....'],
+  O: ['.XXX.', 'X...X', 'X...X', 'X...X', '.XXX.'],
+  C: ['.XXXX', 'X....', 'X....', 'X....', '.XXXX'],
+};
+
+function gerarCaixasDeArma(cena) {
+  const base = [
+    'OOOOOOOOOOOOOO',
+    'OcvvvvvvvvvvxO',
+    'OvhggggggggfxO',
+    'OvgffffffffdxO',
+    'OvgffffffffdxO',
+    'OvgffffffffdxO',
+    'OvgffffffffdxO',
+    'OvgffffffffdxO',
+    'OvgffffffffdxO',
+    'OvgddddddddsxO',
+    'OcxxxxxxxxxxXO',
+    'OOOOOOOOOOOOOO',
+  ];
+  const mapa = { O: 'sombra', c: 'cinza', v: 'cinza_claro', x: 'cinza_escuro', X: 'cinza_medio', h: 'couro_luz',
+    g: 'couro_claro', f: 'couro_medio', d: 'couro', s: 'couro_escuro', W: 'amarelo_fogo', K: 'couro_profundo' };
+  for (const [letra, glifo] of Object.entries(LETRAS)) {
+    const linhas = base.map((l) => l.split(''));
+    glifo.forEach((l, y) => [...l].forEach((ch, x) => {
+      if (ch === 'X') {
+        linhas[3 + y][5 + x] = 'W';
+        linhas[4 + y][6 + x] = linhas[4 + y][6 + x] === 'W' ? 'W' : 'K';
+      }
+    }));
+    texturaDeTexto(cena, `caixa_${letra}`, linhas.map((l) => l.join('')), mapa);
+  }
 }
