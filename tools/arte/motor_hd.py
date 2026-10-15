@@ -11,22 +11,22 @@ from motor import BAYER4, IDX, VAZIO, Tela
 
 # Rampas do escuro para o claro, com mais degraus.
 RAMPAS_HD = {
-    "pele": ["pele_escura", "pele", "pele", "pele_clara", "pele_clara"],
-    "caqui": ["terra", "barro", "areia", "areia", "areia_clara"],
-    "couro": ["couro_escuro", "couro", "couro", "couro_claro", "barro"],
-    "chapeu": ["couro", "couro_claro", "couro_claro", "barro", "areia"],
-    "mescla": ["azul_sombra", "cinza_escuro", "cinza_escuro", "cinza", "cinza_claro"],
-    "metal": ["preto", "sombra", "cinza_escuro", "cinza", "cinza_claro", "branco"],
-    "madeira": ["couro_escuro", "couro", "couro", "couro_claro", "barro"],
-    "vermelho": ["sombra", "vermelho_esc", "vermelho", "laranja_fogo", "amarelo_fogo"],
-    "ouro": ["couro", "laranja_fogo", "amarelo_fogo", "branco"],
-    "cabelo": ["preto", "sombra", "azul_sombra", "cinza_escuro"],
-    "azul": ["sombra", "azul_sombra", "ceu_escuro", "ceu", "ceu_claro"],
-    "oliva": ["sombra", "caatinga_esc", "caatinga", "mandacaru", "areia_clara"],
-    "alien": ["sombra", "alien_esc", "alien", "alien_brilho", "branco"],
-    "branco": ["azul_sombra", "cinza", "cinza_claro", "branco"],
-    "vidro": ["ceu_escuro", "ceu", "ceu_claro", "horizonte", "branco"],
-    "preto": ["preto", "sombra", "azul_sombra"],
+    "pele": ["pele_sombra", "pele_escura", "pele_media", "pele", "pele_luz", "pele_clara", "pele_brilho"],
+    "caqui": ["terra", "terra_media", "barro", "areia_media", "areia", "areia_luz", "areia_clara"],
+    "couro": ["couro_profundo", "couro_escuro", "couro", "couro_medio", "couro_claro", "couro_luz"],
+    "chapeu": ["couro_escuro", "couro", "couro_medio", "couro_claro", "couro_luz", "barro", "areia"],
+    "mescla": ["sombra_media", "azul_sombra", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz"],
+    "metal": ["sombra", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz", "cinza_claro", "aco_brilho", "branco"],
+    "madeira": ["couro_profundo", "couro_escuro", "couro", "couro_medio", "couro_claro"],
+    "vermelho": ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_escuro", "laranja_fogo"],
+    "ouro": ["couro", "laranja_fogo", "ouro_escuro", "amarelo_fogo", "amarelo_claro"],
+    "cabelo": ["preto", "marrom_noite", "sombra", "sombra_media"],
+    "azul": ["sombra", "azul_sombra", "azul_medio", "ceu_escuro", "ceu", "ceu_medio"],
+    "oliva": ["sombra", "caatinga_esc", "caatinga_media", "caatinga", "mandacaru", "mandacaru_luz"],
+    "alien": ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz", "alien_brilho"],
+    "branco": ["cinza", "cinza_luz", "cinza_claro", "aco_brilho", "branco"],
+    "vidro": ["ceu_escuro", "ceu", "ceu_medio", "ceu_claro", "ceu_luz", "horizonte", "branco"],
+    "preto": ["preto", "sombra", "sombra_media"],
 }
 
 
