@@ -119,6 +119,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - **Ramos:**
   - `dev`: todo o desenvolvimento. O Netlify publica como branch deploy, grátis e ilimitado.
   - `main`: versão oficial. Só recebe o `dev` nos marcos (fim de cada etapa).
+- Claude envia as mudanças direto para o `dev` (autorizado), além do ramo de trabalho da sessão.
 - Cada deploy de produção (`main`) custa 15 créditos do Netlify. Tenho 1.000 créditos por mês no plano Personal, compartilhados com outros projetos. Nunca publicar direto no `main` durante o desenvolvimento.
 - No Netlify:
   - Ativar branch deploys para o ramo `dev`.
