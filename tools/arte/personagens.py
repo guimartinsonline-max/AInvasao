@@ -161,21 +161,29 @@ def arma(t, ox, y, mira):
 
 
 def maria_bonita(pose=None):
-    p = {"dx": 0, "dy": 0}
+    p = {"dx": 0, "dy": 0, "pernas": "parado", "mira": "frente", "boca": "sorriso"}
     p.update(pose or {})
     t = Tela(W, H)
-    ox, yo = 24 + p["dx"], p["dy"]
-    for k, (jx, px) in enumerate(((-3, -4), (3, 4))):
+    ox = 24 + p["dx"]
+    agachado = p["pernas"] == "agachado"
+    no_ar = p["pernas"] == "pulo"
+    yo = p["dy"] + (5 if agachado else 0)
+    # Pernas com botas de couro (as mesmas posições do Lampião).
+    for k, (quadril, joelho, pe) in enumerate(PERNAS[p["pernas"]]):
         d = -1 if k == 0 else 0
-        t.cel(t.capsula(ox + jx, 42, ox + px, PE - 2.5, 2.3, 2.1), COURO, deslocar=d, sombra=1)
-        t.cel(t.elipse(ox + px + 1.5, PE - 1.2, 3.5, 1.8), COURO, deslocar=d - 1, sombra=1)
-    # Cabelo comprido atrás.
-    t.cel(t.elipse(ox - 3, 24 + yo, 4.8, 8), CABELO, sombra=1)
-    # Saia rodada azul com pregas.
-    t.cel(t.poligono([(ox - 6, 32 + yo), (ox + 7, 32 + yo), (ox + 10, 44 + yo), (ox - 10, 44 + yo)]), AZUL, sombra=2)
+        (jx, jy), (px, py) = (ox + joelho[0], joelho[1]), (ox + pe[0], pe[1])
+        t.cel(t.capsula(ox + quadril[0], quadril[1] + 2, jx, jy, 2.3, 2.1), PELE, deslocar=d, sombra=1)
+        t.cel(t.capsula(jx, jy, px, py - 2.5, 2.3, 2.1), COURO, deslocar=d, sombra=1)
+        t.cel(t.elipse(px + 1.5, py - 1.2, 3.5, 1.8), COURO, deslocar=d - 1, sombra=1)
+    # Cabelo comprido atrás (balança no pulo).
+    t.cel(t.elipse(ox - 3 - (2 if no_ar else 0), 24 + yo - (1 if no_ar else 0), 4.8, 8), CABELO, sombra=1)
+    # Saia rodada azul com pregas; abre no pulo.
+    abre = 3 if no_ar else 0
+    fundo = 44 + yo - (3 if no_ar else 0)
+    t.cel(t.poligono([(ox - 6, 32 + yo), (ox + 7, 32 + yo), (ox + 10 + abre, fundo), (ox - 10 - abre, fundo)]), AZUL, sombra=2)
     for k in range(4):
-        t.linha(int(ox - 5 + k * 4), int(35 + yo), int(ox - 7 + k * 5), int(43 + yo), "azul_sombra")
-    t.chapado(t.retangulo(ox - 10, 43 + yo, 20, 1), "ceu")
+        t.linha(int(ox - 5 + k * 4), int(35 + yo), int(ox - 7 - abre + k * (5 + abre * 0.6)), int(fundo - 1), "azul_sombra")
+    t.chapado(t.retangulo(ox - 10 - abre, fundo - 1, 20 + abre * 2, 1), "ceu")
     # Blusa cáqui e cartucheira.
     t.cel(t.elipse(ox, 28 + yo, 6.4, 5.8), CAQUI_CLARO, sombra=2)
     t.cel(t.capsula(ox - 5, 24 + yo, ox + 5, 33 + yo, 1.3), COURO, sombra=1, luz=0)
@@ -191,7 +199,11 @@ def maria_bonita(pose=None):
     t.chapado(t.elipse(hx + 3, hy - 0.3, 1.5, 2), "branco")
     t.chapado(t.retangulo(hx + 3, hy - 1, 2, 2), "sombra")
     t.pontos([(int(hx + 2), int(hy - 3)), (int(hx + 3), int(hy - 3)), (int(hx + 5), int(hy - 3))], "preto")
-    t.chapado(t.retangulo(hx + 3, hy + 4, 3, 1), "vermelho")
+    if p["boca"] == "grito":
+        t.chapado(t.retangulo(hx + 3, hy + 3, 3, 3), "sombra")
+        t.chapado(t.retangulo(hx + 3, hy + 3, 3, 1), "vermelho")
+    else:
+        t.chapado(t.retangulo(hx + 3, hy + 4, 3, 1), "vermelho")
     t.ponto(int(hx + 1), int(hy + 2), "couro")
     t.ponto(int(hx + 1), int(hy + 1), "pele_clara")
     # Franja escura.
@@ -201,24 +213,36 @@ def maria_bonita(pose=None):
     t.pontos([(int(cx + 1), int(cy - 2)), (int(cx), int(cy - 1)), (int(cx + 2), int(cy - 1)), (int(cx + 1), int(cy))], "amarelo_fogo")
     # Braço com revólver.
     y = 27 + yo
-    t.cel(t.capsula(ox + 1, y - 2, ox + 7, y + 2, 2.4, 2.1), CAQUI, sombra=1)
-    t.cel(t.retangulo(ox + 8, y - 0.5, 8, 2.2), ACO, sombra=1)
-    t.cel(t.retangulo(ox + 7, y + 1, 3, 4), MADEIRA, sombra=1)
-    t.cel(t.elipse(ox + 8, y + 2, 2.1, 2), PELE, sombra=1)
+    if p["mira"] == "cima":
+        t.cel(t.capsula(ox + 1, y - 1, ox + 5, y - 7, 2.4, 2.1), CAQUI, sombra=1)
+        t.cel(t.retangulo(ox + 4.5, y - 17, 2.2, 9), ACO, sombra=1)
+        t.cel(t.retangulo(ox + 3, y - 9, 4, 3), MADEIRA, sombra=1)
+        t.cel(t.elipse(ox + 5, y - 8, 2.1, 2), PELE, sombra=1)
+    else:
+        t.cel(t.capsula(ox + 1, y - 2, ox + 7, y + 2, 2.4, 2.1), CAQUI, sombra=1)
+        t.cel(t.retangulo(ox + 8, y - 0.5, 8, 2.2), ACO, sombra=1)
+        t.cel(t.retangulo(ox + 7, y + 1, 3, 4), MADEIRA, sombra=1)
+        t.cel(t.elipse(ox + 8, y + 2, 2.1, 2), PELE, sombra=1)
     t.contorno("sombra")
     return t
 
 
 def alien(pose=None):
-    p = {"dy": 0, "olho": "aberto"}
+    """Soldado xeremita, virado para a esquerda.
+
+    pose: dy (sobe/desce o corpo), olho (aberto/fechado), boca (normal/grito),
+    pes [(dx, ergue), (dx, ergue)] das pernas de trás e da frente, tiro (brilho no cano).
+    """
+    p = {"dy": 0, "olho": "aberto", "boca": "normal", "pes": [(0, 0), (0, 0)], "tiro": False}
     p.update(pose or {})
     t = Tela(40, 44)
     ox, oy = 20, p["dy"]
     base = 42
     for k, x in enumerate((ox + 3, ox - 4)):
         d = -1 if k == 0 else 0
-        t.cel(t.capsula(x, 30 + oy, x + 1, base - 2, 1.8, 1.5), ALIEN, deslocar=d, sombra=1)
-        t.cel(t.elipse(x - 1, base - 1, 3.2, 1.6), ALIEN, deslocar=d - 1, sombra=1)
+        dx, ergue = p["pes"][k]
+        t.cel(t.capsula(x, 30 + oy, x + 1 + dx, base - 2 - ergue, 1.8, 1.5), ALIEN, deslocar=d, sombra=1)
+        t.cel(t.elipse(x - 1 + dx, base - 1 - ergue, 3.2, 1.6), ALIEN, deslocar=d - 1, sombra=1)
     # Corpo com macacão metálico e luz no peito.
     t.cel(t.elipse(ox, 27 + oy, 6, 6.2), METAL_ALIEN, sombra=2)
     t.cel(t.retangulo(ox - 5, 28 + oy, 10, 2), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=1)
@@ -228,6 +252,9 @@ def alien(pose=None):
     t.cel(t.capsula(ox, 24 + oy, ox - 7, 28 + oy, 1.7, 1.5), ALIEN, sombra=1)
     t.cel(t.retangulo(ox - 13, 26.5 + oy, 7, 2.6), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=1)
     t.chapado(t.retangulo(ox - 14, 27 + oy, 1, 1.6), "alien_brilho")
+    if p["tiro"]:
+        t.chapado(t.elipse(ox - 15, 27.8 + oy, 2.2, 2.2), "alien_brilho")
+        t.ponto(ox - 15, 27 + oy, "branco")
     t.cel(t.elipse(ox - 7, 28 + oy, 1.8, 1.7), ALIEN, sombra=1)
     # Cabeçona.
     hx, hy = ox, 12 + oy
@@ -241,7 +268,10 @@ def alien(pose=None):
             t.ponto(ex - 1, hy, "alien_brilho")
         else:
             t.chapado(t.retangulo(ex - 3, hy + 1, 6, 1), "preto")
-    t.chapado(t.retangulo(hx - 3, hy + 6, 3, 1), "alien_esc")
+    if p["boca"] == "grito":
+        t.chapado(t.elipse(hx - 2, hy + 6.5, 2, 1.8), "preto")
+    else:
+        t.chapado(t.retangulo(hx - 3, hy + 6, 3, 1), "alien_esc")
     t.linha(hx + 1, hy - 9, hx + 3, hy - 13, "alien_esc")
     t.chapado(t.elipse(hx + 3.5, hy - 13.5, 1.5, 1.5), "alien_brilho")
     t.contorno("sombra")
