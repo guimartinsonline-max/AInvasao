@@ -1,10 +1,12 @@
 [build]
   publish = "."
 
+# Durante o desenvolvimento o navegador sempre confere se há versão nova
+# (resposta 304 quando nada mudou, então quase não gasta tráfego).
 [[headers]]
-  for = "/assets/*"
+  for = "/*"
   [headers.values]
-    Cache-Control = "public, max-age=604800"
+    Cache-Control = "no-cache"
 
 [[headers]]
   for = "/manifest.webmanifest"
