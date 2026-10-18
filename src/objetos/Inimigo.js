@@ -279,15 +279,20 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       }
       return;
     }
-    if (dist > cfg.distancia && dist < cfg.alcance * 1.4 && !j.morto && this.temChaoAFrente()) {
-      this.body.setVelocityX(this.direcao * cfg.velocidade * (this.vidaEscudo > 0 ? 0.6 : 1));
+    // Fora da tela, entra andando (até pulando de uma pedra) antes de parar ou atirar.
+    const v = cena.cameras.main.worldView;
+    const foraDaTela = this.x < v.x + 14 || this.x > v.right - 14;
+    if (foraDaTela && !j.morto) this.virar(this.x < v.x + 14 ? 1 : -1);
+    const anda = foraDaTela || (dist > cfg.distancia && dist < cfg.alcance * 1.4 && !j.morto && this.temChaoAFrente());
+    if (anda) {
+      this.body.setVelocityX(this.direcao * cfg.velocidade * (this.vidaEscudo > 0 ? 0.6 : 1) * (foraDaTela ? 1.5 : 1));
       this.passo += dt;
       this.setFrame(q.andar[Math.floor(this.passo / 150) % q.andar.length]);
     } else {
       this.body.setVelocityX(0);
       this.setFrame(q.parado);
     }
-    if (dist < cfg.alcance && !j.morto && t > this.proximoTiro && this.body.blocked.down) {
+    if (!foraDaTela && dist < cfg.alcance && !j.morto && t > this.proximoTiro && this.body.blocked.down) {
       this.atirar(t);
     }
   }
