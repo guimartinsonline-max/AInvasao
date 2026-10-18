@@ -72,23 +72,20 @@ def contornar(g, mascara):
 
 
 def braco(g, ombro, cotovelo, mao, escurecer=0):
-    """Braço de manga de algodão em dois segmentos, com a mão fechada na ponta."""
+    """Braço de manga de algodão em dois segmentos (sem a mão). Vai atrás da
+    arma; a mão fechada é pintada depois, por cima do punho da arma."""
     forma = (lp.H, lp.W)
-    c1, l1 = lp.segmento(forma, (ombro[0] + 0.5, ombro[1] + 0.5), (cotovelo[0] + 0.5, cotovelo[1] + 0.5), 2.3)
-    c2, l2 = lp.segmento(forma, (cotovelo[0] + 0.5, cotovelo[1] + 0.5), (mao[0] + 0.5, mao[1] + 0.5), 2.0)
+    c1, l1 = lp.segmento(forma, (ombro[0] + 0.5, ombro[1] + 0.5), (cotovelo[0] + 0.5, cotovelo[1] + 0.5), 1.9)
+    c2, l2 = lp.segmento(forma, (cotovelo[0] + 0.5, cotovelo[1] + 0.5), (mao[0] + 0.5, mao[1] + 0.5), 1.6)
     lp.pintar_tons(g, c1, l1, MANGA, escurecer)
     lp.pintar_tons(g, c2 & ~c1, l2, MANGA, escurecer)
-    yy, xx = np.mgrid[0:forma[0], 0:forma[1]]
-    punho = ((xx + 0.5 - (mao[0] + 0.5)) / 1.8) ** 2 + ((yy + 0.5 - (mao[1] + 0.5)) / 1.6) ** 2 <= 1
-    for y, x in zip(*np.where(punho)):
-        g[y][x] = "5" if y <= mao[1] - 1 else ("4" if x <= mao[0] else "3")
-    contornar(g, c1 | c2 | punho)
+    contornar(g, c1 | c2)
 
 
-def mao_solta(g, x, y):
-    """Só a mão (a do braço escondido atrás da arma), segurando por baixo."""
-    for k, l in enumerate(["O56O", "O443O", ".OOO"]):
-        lp.pintar(g, y + k, x, l)
+def punho_fechado(g, x, y):
+    """Mão fechada em volta da arma: dedos por cima, com contorno."""
+    for k, l in enumerate(["OOOO", "O556O", "O344O", ".OOO"]):
+        lp.pintar(g, y - 1 + k, x - 1, l)
 
 
 def base(nome):
@@ -127,10 +124,12 @@ def quadro(nome, arma, bocas=None):
         linhas = linhas_da_arma(tela, girar=True, recorte=pose.get("recorte"))
         gx, gy = py, ar.W - 1 - px  # o punho depois de girar
         mx, my = 23, 14 + dy
+        braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (15, 25 + dy), (mx - 1, my + 6), escurecer=1)
+        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (21, 23 + dy), (mx, my))
         for k, l in enumerate(linhas):
             lp.pintar(g, my - gy + k, mx - gx, l)
-        braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (15, 24 + dy), (mx - 1, my + 6))
-        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (21, 22 + dy), (mx, my))
+        punho_fechado(g, mx, my)
+        punho_fechado(g, mx - 1, my + 6)
         if bocas is not None:
             # Boca depois de girar: (by, W - 1 - bx).
             bocas["cima"] = [mx - gx + by - PE[0], PE[1] - (my - gy + ar.W - 1 - bx)]
@@ -151,29 +150,34 @@ def quadro(nome, arma, bocas=None):
         # Alça de couro atravessando o peito.
         for k in range(9):
             g[20 + dy + k][9 + k] = "s" if k % 3 else "d"
+    # Braços primeiro (ficam atrás da arma); as mãos fechadas vêm por cima dela.
+    maos = [(gx, gy)]
     if not pose.get("um_braco"):
         braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (pose["cot_tras"][0], pose["cot_tras"][1] + dy), (gx, gy),
               escurecer=1)
+        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (pose["cot_frente"][0], pose["cot_frente"][1] + dy),
+              (ox + ax, oy + ay))
+        maos.append((ox + ax, oy + ay))
+    else:
+        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (pose["cot_frente"][0], pose["cot_frente"][1] + dy), (gx, gy))
+        if pose.get("puxa"):
+            pxa, pya = pose["puxa"]
+            braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (13, 26 + dy), (pxa, pya + dy), escurecer=1)
+            maos.append((pxa, pya + dy))
     linhas = linhas_da_arma(tela, recorte=pose.get("recorte"))
     for k, l in enumerate(linhas):
         lp.pintar(g, oy + k, ox, l)
-    if pose.get("um_braco"):
-        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (pose["cot_frente"][0], pose["cot_frente"][1] + dy), (gx, gy))
-        if pose.get("puxa"):
-            # Baladeira: a outra mão puxa a liga até perto do rosto.
-            pxa, pya = pose["puxa"]
-            braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (13, 26 + dy), (pxa, pya + dy), escurecer=1)
-            for tx, ty in ((ox + 9, oy + 1), (ox + 15, oy + 1)):
-                n = max(abs(tx - pxa), abs(ty - pya - dy))
-                for s in range(1, n):
-                    x = round(pxa + (tx - pxa) * s / n)
-                    y = round(pya + dy + (ty - pya - dy) * s / n)
-                    if g[y][x] not in "O5434":
-                        g[y][x] = "E"
-    else:
-        # A mão da frente segura o apoio da arma, com o braço vindo do ombro.
-        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (pose["cot_frente"][0], pose["cot_frente"][1] + dy),
-              (ox + ax, oy + ay))
+    if pose.get("puxa"):
+        # Baladeira: liga de borracha da forquilha até a mão que puxa.
+        pxa, pya = pose["puxa"]
+        for tx, ty in ((ox + 9, oy + 1), (ox + 15, oy + 1)):
+            n = max(abs(tx - pxa), abs(ty - pya - dy))
+            for st in range(1, n):
+                x = round(pxa + (tx - pxa) * st / n)
+                y = round(pya + dy + (ty - pya - dy) * st / n)
+                g[y][x] = "E"
+    for mx, my in maos:
+        punho_fechado(g, mx, my)
     if bocas is not None:
         chave = "agachado" if nome == "agachado" else ("frente" if nome == "parado" else None)
         if chave:
