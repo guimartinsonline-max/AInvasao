@@ -49,7 +49,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Jumento blindado** (`tools/arte/jumento.py`, `src/objetos/Jumento.js`): o "tanque" do Lampião. Espera com a placa SUBA!; monta pulando em cima ou apertando para baixo encostado. Metralhadora giratória (frente, diagonal, cima, baixo no ar), canhão no botão de granada (10 bombas no painel), blindagem de 6 tiros (barra JUMENTO no painel). Estourou: o Lampião é jogado para cima e o jumento foge zurrando. Desce com baixo + pulo. Na fase 1 espera no fim da caatinga (x 2680).
 - **Mirando para cima** inclina a cabeça para trás e olha para o alto (rosto "cima"); no pulo para baixo, curva a cabeça olhando o chão.
 - Arma inicial: **pistola Mauser semiautomática** (um tiro por toque), numa mão só.
-- **Cada arma tem o jeito próprio de segurar** (quadros em `tools/arte/lampiao_armas.py`, folhas `lampiao_<arma>.png`): Madsen no quadril, Bacamarte baixo na cintura, Papo-amarelo no ombro mirando, Rojão apoiado no ombro, Desintegrador numa mão só, Candeeiro com a lata nas costas, Baladeira puxando a liga, Buscapé no peito. Braços atrás da arma, só as mãos por cima. Armas no tamanho do fuzil (30x12). Boca do cano gerada em `src/maos.js`.
+- **Cada arma tem o jeito próprio de segurar** (quadros em `tools/arte/lampiao_armas.py`, folhas `lampiao_<arma>.png`): Madsen no quadril, Bacamarte baixo na cintura, Papo-amarelo no ombro mirando, Rojão apoiado no ombro, Desintegrador numa mão só, Candeeiro com a lata nas costas, Baladeira puxando a liga, Buscapé no peito. Braços atrás da arma, só as mãos por cima. **Armas desenhadas à mão, pixel a pixel**, em `tools/arte/pixel/armas_mao.txt` (40x16, com coronha, ferrolho, gatilho, pente, braçadeiras e brilho, no tamanho das armas do Metal Slug); âncoras de mão e boca em `tools/arte/armas.py`. Boca do cano gerada em `src/maos.js`.
 
 ## Inimigos e refém
 
@@ -99,6 +99,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são **caixas quadradas de chapa com a letra da arma** no meio, no estilo Metal Slug. Drop de armas reduzido: caixote solta arma em ~17% das vezes (e comida em ~25%); refém dá arma (30%), granadas (25%) ou comida (45%).
 - **Armas aprovadas:** M Metralhadora Madsen, B Bacamarte, R Rojão de São João, D Raio Desintegrador, C Candeeiro (lança-chamas; deixa o inimigo pegando fogo), P Papo-amarelo (atravessa a fila), E Baladeira (pedras que quicam), F Fogos Buscapé (perseguem o inimigo). Item G dá granadas. Tabela em `src/armas.js`.
 - Painel de munição no canto (ARMA e GRANADA), como no Metal Slug.
+- Caixas de arma no chão dão um clarão leve de tempos em tempos (não ficam brancas).
 - **Arma grande:** pegar a mesma arma de novo deixa ela SUPER (tiro 1,5x maior e mais forte, munição somada).
 - **Pontos:** sobem no lugar de cada inimigo (100 a 300), disco 1000, refém 500, caixote 10, barril 50. No fim da missão: pontos, reféns salvos x 1000 e total. Sem ranking.
 - **Tempo:** 60 por trecho (anda devagar, como no fliperama); zerou, perde uma vida. Recomeça a cada onda vencida.
@@ -145,7 +146,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - **Nível de detalhe do cenário:** o das referências do Metal Slug que o Guilherme mandou (MS2/MS3): volume em tudo, textura, rachaduras, líquen, chão em corte com camadas e pedras, várias camadas de parallax e uma de frente.
 - **Estilo exatamente igual ao do Metal Slug** (proporções, contorno escuro, volume com vários tons, rostos expressivos, poses exageradas). O que muda é a **paleta** e o tema (sertão), não o estilo.
 - Pixel art original. Não copiar sprites, personagens ou cenários do Metal Slug (são da SNK): mesmo estilo, desenhos nossos.
-- Personagens e inimigos são desenhados pixel a pixel em `tools/arte/pixel/*.txt` (um caractere por cor, legenda em `tools/arte/pixel.py`). Quadros: Lampião 60x54 (pé em 14,53), inimigos e refém 52x46, com folga para as armas não cortarem.
+- Personagens e inimigos são desenhados pixel a pixel em `tools/arte/pixel/*.txt` (um caractere por cor, legenda em `tools/arte/pixel.py`). Quadros: Lampião 60x72 (pé em 14,63), inimigos e refém 52x46, com folga para as armas (mirando para cima e para baixo) não cortarem.
 - Spritesheets PNG geradas por script (`tools/arte/exportar.py`).
 - Efeitos de tiro desenhados quadro a quadro em `tools/arte/efeitos_tiro.py`: clarão do cano, balas, impacto, explosão em 8 quadros, fumaça, chama.
 - Paleta de cores fixa: `assets/paleta.json` (64 cores: as 32 originais e degraus intermediários). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.

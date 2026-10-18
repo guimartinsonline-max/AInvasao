@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 import pixel  # noqa: E402
 
 # Quadro folgado: as armas compridas (e o cano apontado para o céu) não saem cortadas.
-W, H = 60, 54
-MARGEM = 12  # espaço em cima para a arma apontada para o céu
+W, H = 60, 72
+MARGEM = 22  # espaço em cima para a arma apontada para o céu
 
 # ---------------------------------------------------------------- cabeça
 # Bloco de 20 colunas colocado em x=6. Chapéu de couro em meia-lua.

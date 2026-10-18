@@ -80,7 +80,7 @@ folha([ini.bode("parado"), ini.bode("mastiga"), ini.bode("abduzido")], SAIDA / "
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
 
-# Armas (tools/arte/armas.py -> pixel/armas.txt) e efeitos de tiro (tools/arte/efeitos_tiro.py).
+# Armas (pixel/armas_mao.txt, lidas por tools/arte/armas.py) e efeitos de tiro (tools/arte/efeitos_tiro.py).
 import efeitos_tiro as ef  # noqa: E402
 # Lampião segurando cada arma pesada (tools/arte/lampiao_armas.py), mesma ordem de quadros do lampiao.png.
 import lampiao_armas as la  # noqa: E402

@@ -20,18 +20,23 @@ export class CampoScene extends CenaJogo {
 
   criarFundo() {
     // Camadas em parallax: quanto mais longe, mais devagar acompanham a câmera.
-    this.add.image(0, 0, 'ceu').setOrigin(0).setScrollFactor(0);
+    this.add.image(0, 0, 'ceu').setOrigin(0).setScrollFactor(0).setDepth(-10);
     const camada = (chave, y, fator) => [this.add.tileSprite(0, y, LARGURA, this.textures.get(chave).source[0].height, chave)
-      .setOrigin(0).setScrollFactor(0), fator];
+      .setOrigin(0).setScrollFactor(0).setDepth(-8), fator];
     this.nuvens = camada('nuvens', 6, 0.03);
     this.camadas = [
       this.nuvens,
       camada('serras', DY - 32, 0.08),
       camada('paredoes', 46 + DY, 0.2),
-      camada('planicie', 168 + DY, 0.35),
-      camada('caatinga', 122 + DY, 0.5),
     ];
     this.ventoNuvens = 0;
+    // Mesmos morros e caatinga pintados da fase 1 (o primeiro pedaço de cada camada).
+    const d = this.cache.json.get('fase1').camadas;
+    for (const [chave, c, prof] of [['f1_meio', d.meio, -3], ['f1_perto', d.perto, -2]]) {
+      const img = `${chave}_0`;
+      const h = this.textures.get(img).source[0].height;
+      this.add.image(0, c.base - h + DY, img).setOrigin(0).setScrollFactor(c.fator, 0).setDepth(prof);
+    }
   }
 
   montarCenario() {

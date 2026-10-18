@@ -25,7 +25,7 @@ import armas as ar  # noqa: E402
 import lampiao_px as lp  # noqa: E402
 import pixel  # noqa: E402
 
-PE = (14, 53)  # pé do Lampião no quadro
+PE = (14, 63)  # pé do Lampião no quadro
 MANGA = "uyytte"  # tons da manga (claro -> escuro)
 OMBRO_FRENTE = (17, 22)
 OMBRO_TRAS = (11, 22)
@@ -64,16 +64,16 @@ def arremesso_base():
 # cot_tras / cot_frente: cotovelos. apoio: se a mão da frente segura o apoio da arma.
 # recorte: (x0, x1) parte do desenho da arma que vai na mão; costas: parte nas costas.
 POSES = {
-    "pistola": {"punho": (27, 22), "cot_frente": (22, 24), "um_braco": True},
-    "madsen": {"punho": (25, 27), "cot_tras": (15, 28), "cot_frente": (22, 27), "apoio": True},
-    "bacamarte": {"punho": (22, 29), "cot_tras": (13, 29), "cot_frente": (20, 29), "apoio": True},
-    "papo_amarelo": {"punho": (19, 22), "cot_tras": (13, 27), "cot_frente": (22, 26), "apoio": True},
-    "rojao": {"punho": (14, 26), "cot_tras": (10, 28), "cot_frente": (19, 27), "apoio": True},
-    "desintegrador": {"punho": (23, 23), "cot_frente": (20, 24), "um_braco": True},
-    "candeeiro": {"punho": (24, 28), "cot_tras": (15, 28), "cot_frente": (21, 28), "apoio": True,
-                  "recorte": (9, 30), "costas": (1, 10)},
-    "estilingue": {"punho": (27, 21), "cot_frente": (22, 22), "um_braco": True, "puxa": (19, 19), "recorte": (8, 17)},
-    "buscape": {"punho": (22, 25), "cot_tras": (14, 28), "cot_frente": (20, 27), "apoio": True},
+    "pistola": {"punho": (27, 25), "cot_frente": (22, 25), "um_braco": True},
+    "madsen": {"punho": (26, 33), "cot_tras": (16, 32), "cot_frente": (22, 31), "apoio": True},
+    "bacamarte": {"punho": (25, 32), "cot_tras": (14, 31), "cot_frente": (21, 31), "apoio": True},
+    "papo_amarelo": {"punho": (24, 26), "cot_tras": (14, 28), "cot_frente": (23, 28), "apoio": True},
+    "rojao": {"punho": (13, 26), "cot_tras": (10, 28), "cot_frente": (19, 27), "apoio": True},
+    "desintegrador": {"punho": (27, 27), "cot_frente": (22, 26), "um_braco": True},
+    "candeeiro": {"punho": (29, 30), "cot_tras": (16, 30), "cot_frente": (23, 30), "apoio": True,
+                  "recorte": (10, 40), "costas": (0, 10)},
+    "estilingue": {"punho": (28, 22), "cot_frente": (22, 22), "um_braco": True, "puxa": (19, 19)},
+    "buscape": {"punho": (22, 31), "cot_tras": (14, 30), "cot_frente": (21, 30), "apoio": True},
 }
 
 
@@ -179,7 +179,7 @@ def quadro_morte(nome):
     cheio = rot != "."
     linhas, colunas = np.where(cheio)
     saida = np.full((lp.H, lp.W), ".", dtype=rot.dtype)
-    desce = (lp.H - 1) - linhas.max()
+    desce = (lp.MARGEM + 41) - linhas.max()  # deitado com as costas na linha do pé
     esq = (lp.W - (colunas.max() - colunas.min() + 1)) // 2 - colunas.min()
     for y, x in zip(linhas, colunas):
         ny, nx = y + desce, x + esq
@@ -249,6 +249,8 @@ def quadro(nome, arma, bocas=None):
         linhas = linhas_da_arma(tela, girar="baixo", recorte=pose.get("recorte"))
         gx, gy = ar.H - 1 - py, px  # o punho depois de girar
         mx, my = 21, 27 + dy
+        # Arma comprida: sobe as mãos até a boca do cano caber no quadro.
+        my -= max(0, (my - gy + len(linhas) - 1) - (lp.H - 2))
         braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (14, 27 + dy), (mx - 1, my - 4), escurecer=1)
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (22, 24 + dy), (mx, my))
         for k, l in enumerate(linhas):
@@ -333,10 +335,11 @@ def quadro(nome, arma, bocas=None):
     if pose.get("puxa") and not arremesso and not facada:
         # Baladeira: liga de borracha da forquilha até a mão que puxa (solta, ela volta reta entre as pontas).
         pxa, pya = puxa_baladeira(nome, pose)
+        (l1x, l1y), (l2x, l2y) = ar.LIGA
         if nome == "atirando":
-            for x in range(ox + 9, ox + 16):
-                g[oy + 1][x] = "E"
-        for tx, ty in (((ox + 9, oy + 1), (ox + 15, oy + 1)) if nome != "atirando" else ()):
+            for x in range(ox + l1x, ox + l2x + 1):
+                g[oy + l1y][x] = "E"
+        for tx, ty in (((ox + l1x, oy + l1y), (ox + l2x, oy + l2y)) if nome != "atirando" else ()):
             n = max(abs(tx - pxa), abs(ty - pya - dy))
             for st in range(1, n):
                 x = round(pxa + (tx - pxa) * st / n)

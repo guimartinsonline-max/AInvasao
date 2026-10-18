@@ -1,4 +1,3 @@
-import { P } from '../paleta.js';
 import { CAIXA_ITEM } from '../sprites.js';
 
 // Itens de arma no chão, como os do Metal Slug: caixa quadrada com a letra da
@@ -52,9 +51,9 @@ export class Itens {
   atualizar(t) {
     for (const item of this.grupo.getChildren()) {
       if (!item.active) continue;
-      // Brilho branco de tempos em tempos, para chamar atenção.
+      // Clarão leve de tempos em tempos, para chamar atenção (sem apagar o desenho).
       const ciclo = (t + item.fase) % PISCA;
-      if (ciclo < 60) item.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
+      if (ciclo < 90) item.setTint(0x6a6a6a).setTintMode(Phaser.TintModes.ADD);
       else item.clearTint();
     }
   }

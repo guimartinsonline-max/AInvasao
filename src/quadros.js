@@ -5,9 +5,9 @@ const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'co
   'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada', 'facada1', 'mira_baixo', 'recarga',
   'morte1', 'morte2', 'morte3'];
 
-export const LAMPIAO = { largura: 60, altura: 54, peX: 14, peY: 53 };
+export const LAMPIAO = { largura: 60, altura: 72, peX: 14, peY: 63 };
 // Lampião gordo (comeu demais): mesmas folhas esticadas 5 px no meio do corpo.
-export const LAMPIAO_GORDO = { largura: 65, altura: 54, peX: 16, peY: 53 };
+export const LAMPIAO_GORDO = { largura: 65, altura: 72, peX: 16, peY: 63 };
 // Comidas que dão pontos (tools/arte/comidas.py), da mais comum à mais rara.
 export const COMIDAS = { caja: 100, rapadura: 300, queijo: 500, galinha: 800, cuscuz: 1000, buchada: 2000 };
 QUADROS_LAMPIAO.forEach((nome, i) => { LAMPIAO[nome] = i; });
