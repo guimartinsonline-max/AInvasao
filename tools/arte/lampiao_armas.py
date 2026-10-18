@@ -64,16 +64,16 @@ def arremesso_base():
 # cot_tras / cot_frente: cotovelos. apoio: se a mão da frente segura o apoio da arma.
 # recorte: (x0, x1) parte do desenho da arma que vai na mão; costas: parte nas costas.
 POSES = {
-    "pistola": {"punho": (27, 25), "cot_frente": (22, 25), "um_braco": True},
-    "madsen": {"punho": (26, 33), "cot_tras": (16, 32), "cot_frente": (22, 31), "apoio": True},
-    "bacamarte": {"punho": (25, 32), "cot_tras": (14, 31), "cot_frente": (21, 31), "apoio": True},
-    "papo_amarelo": {"punho": (24, 26), "cot_tras": (14, 28), "cot_frente": (23, 28), "apoio": True},
-    "rojao": {"punho": (13, 26), "cot_tras": (10, 28), "cot_frente": (19, 27), "apoio": True},
-    "desintegrador": {"punho": (27, 27), "cot_frente": (22, 26), "um_braco": True},
-    "candeeiro": {"punho": (29, 30), "cot_tras": (16, 30), "cot_frente": (23, 30), "apoio": True,
-                  "recorte": (10, 40), "costas": (0, 10)},
-    "estilingue": {"punho": (28, 22), "cot_frente": (22, 22), "um_braco": True, "puxa": (19, 19)},
-    "buscape": {"punho": (22, 31), "cot_tras": (14, 30), "cot_frente": (21, 30), "apoio": True},
+    "pistola": {"punho": (24, 25), "cot_frente": (22, 24), "um_braco": True},
+    "madsen": {"punho": (24, 28), "cot_tras": (15, 28), "cot_frente": (22, 27), "apoio": True},
+    "bacamarte": {"punho": (20, 32), "cot_tras": (13, 29), "cot_frente": (20, 29), "apoio": True},
+    "papo_amarelo": {"punho": (17, 23), "cot_tras": (13, 27), "cot_frente": (22, 26), "apoio": True},
+    "rojao": {"punho": (12, 27), "cot_tras": (10, 28), "cot_frente": (19, 27), "apoio": True},
+    "desintegrador": {"punho": (22, 25), "cot_frente": (20, 24), "um_braco": True},
+    "candeeiro": {"punho": (24, 28), "cot_tras": (15, 28), "cot_frente": (21, 28), "apoio": True,
+                  "recorte": (8, 32), "costas": (0, 8)},
+    "estilingue": {"punho": (27, 21), "cot_frente": (22, 22), "um_braco": True, "puxa": (19, 19)},
+    "buscape": {"punho": (19, 32), "cot_tras": (14, 28), "cot_frente": (20, 27), "apoio": True},
 }
 
 
@@ -278,7 +278,7 @@ def quadro(nome, arma, bocas=None):
         x0, x1 = pose["costas"]
         lata = linhas_da_arma(tela, recorte=(x0, x1))
         for k, l in enumerate(lata):
-            lp.pintar(g, 17 + dy + k, 1 - x0, l)
+            lp.pintar(g, 17 + dy + k, 3 - x0, l)
     cabeca(g, dy, rosto)
     if pose.get("costas"):
         # Alça de couro atravessando o peito.

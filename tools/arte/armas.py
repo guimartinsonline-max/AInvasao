@@ -1,5 +1,5 @@
 """Armas vistas de lado (cano para a direita), desenhadas pixel a pixel em
-tools/arte/pixel/armas_mao.txt (40x16), no tamanho e detalhe das armas do
+tools/arte/pixel/armas_mao.txt (até 32x15), no tamanho e detalhe das armas do
 Metal Slug: coronha, ferrolho, gatilho, pente, braçadeiras e brilho.
 
 Uso: python3 tools/arte/armas.py
@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from motor import Tela  # noqa: E402
 import pixel  # noqa: E402
 
-W, H = 40, 16
+W, H = 32, 15
 
 # Rampas curtas (linha interna, sombra, base, luz).
 MADEIRA = ["couro_profundo", "couro", "couro_medio", "couro_luz"]
@@ -36,18 +36,18 @@ BOCA = {}
 # Âncoras de cada arma no desenho de tools/arte/pixel/armas_mao.txt:
 # punho (mão de trás no cabo), apoio (mão da frente por baixo) e boca do cano.
 ANCORAS = {
-    "pistola": ((4, 10), (4, 10), (29, 4)),
-    "madsen": ((13, 12), (25, 10), (39, 7)),
-    "bacamarte": ((10, 11), (22, 10), (38, 7)),
-    "papo_amarelo": ((12, 10), (25, 10), (37, 4)),
-    "rojao": ((11, 9), (21, 9), (35, 4)),
-    "desintegrador": ((7, 10), (20, 9), (35, 7)),
-    "candeeiro": ((17, 9), (28, 10), (37, 8)),
-    "estilingue": ((13, 10), (13, 10), (13, 2)),
-    "buscape": ((8, 12), (21, 12), (30, 6)),
+    "pistola": ((3, 8), (3, 8), (22, 2)),
+    "madsen": ((11, 10), (21, 9), (31, 6)),
+    "bacamarte": ((7, 10), (17, 9), (29, 5)),
+    "papo_amarelo": ((10, 8), (19, 8), (31, 3)),
+    "rojao": ((9, 8), (18, 8), (30, 3)),
+    "desintegrador": ((5, 10), (14, 9), (27, 6)),
+    "candeeiro": ((14, 9), (22, 9), (30, 7)),
+    "estilingue": ((9, 9), (9, 9), (9, 1)),
+    "buscape": ((6, 13), (16, 13), (25, 5)),
 }
 # Pontas da forquilha da baladeira (onde a liga prende).
-LIGA = [(9, 3), (17, 3)]
+LIGA = [(6, 2), (13, 2)]
 
 
 def _carregar():
