@@ -120,7 +120,7 @@ for nome, tela in {
     "planicie": cn.planicie(),
     "caatinga": cn.caatinga(),
     "chao": cn.chao_tile(),
-    "caixote": cn.caixote(),
+    "caixote": fase1.caixote_detalhado(),
     "laje": cn.laje(),
 }.items():
     tela.imagem().save(SAIDA / f"{nome}.png", optimize=True)

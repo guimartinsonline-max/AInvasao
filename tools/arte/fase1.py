@@ -53,6 +53,111 @@ def cortar(t):
     return n
 
 
+# ================================================================ acabamento
+def _mapa_escuro():
+    """Para cada cor da paleta, a cor mais parecida que seja mais escura (sombra de contato)."""
+    from motor import RGB
+    lum = RGB.astype(float) @ np.array([0.3, 0.59, 0.11])
+    mapa = np.arange(len(RGB))
+    for i in range(len(RGB)):
+        melhor, dist = i, 1e9
+        for j in range(len(RGB)):
+            if lum[j] >= lum[i] * 0.86 or lum[j] < lum[i] * 0.45:
+                continue
+            ci = RGB[i] / max(lum[i], 1)
+            cj = RGB[j] / max(lum[j], 1)
+            d = np.sum((ci - cj) ** 2) * 900 + (lum[i] * 0.72 - lum[j]) ** 2 * 0.02
+            if d < dist:
+                melhor, dist = j, d
+        mapa[i] = melhor
+    mapa[IDX["preto"]] = IDX["preto"]
+    return mapa
+
+
+ESCURO = _mapa_escuro()
+
+
+def sombra_contato(t, cx, y, larg, alt=3.0):
+    """Escurece o chão embaixo de um objeto, para ele 'assentar' (não parecer colado)."""
+    m = t.elipse(cx, y, larg / 2, alt) & (t.px != VAZIO)
+    t.px[m] = ESCURO[t.px[m]]
+    m2 = t.elipse(cx, y, larg * 0.35, alt * 0.6) & (t.px != VAZIO)
+    t.px[m2] = ESCURO[t.px[m2]]
+
+
+def assentar(t, peca, x, chao_y, afundar=1):
+    """Cola a peça em pé no chão (y do chão), com sombra de contato embaixo."""
+    sombra_contato(t, x + peca.w / 2, chao_y + 1, peca.w * 1.05)
+    colar(t, peca, x, chao_y - peca.h + afundar)
+
+
+def tabuas(w, h, vertical=True, semente=0, rampa=None):
+    """Tábuas uma a uma: contorno entre elas, veio da madeira, nós, pregos,
+    luz na borda de cima/esquerda e sombra na de baixo/direita."""
+    rampa = rampa or ["couro_profundo", "couro_escuro", "couro", "couro_medio", "couro_claro", "couro_luz"]
+    t = Tela(w, h)
+    rng = np.random.default_rng(semente)
+    comp = h if vertical else w
+    larg_total = w if vertical else h
+    pos = 0
+    while pos < larg_total:
+        lt = int(rng.integers(4, 7))
+        base = int(rng.integers(2, 4))
+        for a in range(lt):
+            for b in range(comp):
+                x, y = (pos + a, b) if vertical else (b, pos + a)
+                if x >= w or y >= h:
+                    continue
+                n = base
+                if a == 0:
+                    n = base + 1  # luz na borda
+                if a == lt - 1:
+                    n = base - 1  # sombra na borda
+                t.px[y, x] = IDX[rampa[max(0, min(len(rampa) - 1, n))]]
+        # Veio: linhas onduladas ao longo da tábua.
+        for k in range(2):
+            a0 = rng.uniform(1, lt - 1.5)
+            for b in range(comp):
+                a = a0 + math.sin(b / rng.uniform(4, 7) + k) * 0.6
+                x, y = (pos + int(a), b) if vertical else (b, pos + int(a))
+                if x < w and y < h and rng.random() < 0.75:
+                    t.px[y, x] = IDX[rampa[max(0, base - 1)]]
+        # Nó da madeira.
+        if rng.random() < 0.5 and comp > 8:
+            b = rng.uniform(3, comp - 3)
+            cx, cy = (pos + lt / 2, b) if vertical else (b, pos + lt / 2)
+            t.chapado(t.elipse(cx, cy, 1.2, 1.0), rampa[0])
+            t.ponto(int(cx) - 1, int(cy) - 1, rampa[min(len(rampa) - 1, base + 2)])
+        # Pregos perto das pontas.
+        for b in (1, comp - 2):
+            x, y = (pos + lt // 2, b) if vertical else (b, pos + lt // 2)
+            if x < w and y < h:
+                t.ponto(x, y, "cinza_claro")
+        # Junta escura entre uma tábua e a próxima.
+        pos += lt
+        for b in range(comp):
+            x, y = (pos, b) if vertical else (b, pos)
+            if x < w and y < h:
+                t.px[y, x] = IDX[rampa[0]]
+        pos += 1
+    return t
+
+
+def caixote_detalhado():
+    """Caixote de tábuas com travessa em X, cantoneiras de ferro e marca pintada."""
+    t = tabuas(24, 18, vertical=False, semente=8)
+    for (x0, y0, x1, y1) in ((2, 2, 21, 15), (2, 15, 21, 2)):
+        m = t.capsula(x0, y0, x1, y1, 1.4)
+        t.volume(m, MADEIRA, achatado=1, suave=0.3, ambiente=0.35, linha=True)
+    for x in (0, 21):
+        t.cel(t.retangulo(x, 0, 3, 18), ["sombra", "couro_escuro", "couro", "couro_medio"], sombra=1)
+    for (x, y) in ((0, 0), (21, 0), (0, 15), (21, 15)):
+        t.cel(t.retangulo(x, y, 3, 3), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=1)
+        t.ponto(x + 1, y + 1, "branco")
+    t.contorno("sombra")
+    return t
+
+
 # ================================================================ peças
 def pedra(w, h, semente=0, rampa=PEDRA, musgo=True):
     """Pedregulho: contorno irregular, volume, facetas, rachaduras e líquen."""
@@ -269,11 +374,23 @@ def casa_taipa(w=120, h=86, semente=0, quebrada=True):
     t.volume(parede, REBOCO, achatado=3, suave=1.0, ambiente=0.35, textura=0.22, semente=semente, luz=(-0.3, -0.9))
     # Reboco caído: manchas mostrando o trançado de varas com barro.
     caido = (ruido(h, w, 3.0, semente + 1) > 1.0) & parede & (t.yy > beiral + 6)
-    t.px[caido] = IDX["terra"]
-    varas = caido & (((t.xx.astype(int) % 6) == 0) | ((t.yy.astype(int) % 7) == 0))
-    t.px[varas] = IDX["couro_escuro"]
+    # Onde o reboco caiu aparecem os tijolos de adobe, um a um, com junta escura.
+    xi = t.xx.astype(int)
+    yi = t.yy.astype(int)
+    fila = yi // 4
+    junta = ((yi % 4) == 0) | (((xi + (fila % 2) * 4) % 8) == 0)
+    tons = np.array([IDX["barro"], IDX["terra_media"], IDX["areia_media"], IDX["terra"]])
+    tijolo = tons[((xi + (fila % 2) * 4) // 8 * 7 + fila * 3) % 4]
+    t.px[caido] = tijolo[caido]
+    t.px[caido & junta] = IDX["terra_escura"]
+    t.px[caido & ~junta & ((yi % 4) == 1)] = IDX["areia_luz"]
     borda_caido = ndimage.binary_dilation(caido) & ~caido & parede
     t.px[borda_caido] = IDX["areia_luz"]
+    borda_baixo = ndimage.binary_dilation(caido) & ~caido & parede & (np.roll(caido, 1, 0))
+    t.px[borda_baixo] = IDX["terra"]
+    # Sombra do beiral na parede.
+    sob = parede & (t.yy < beiral + 3)
+    t.px[sob] = ESCURO[t.px[sob]]
     # Rachaduras.
     for _ in range(4):
         x, y = rng.uniform(12, w - 12), rng.uniform(beiral + 2, max(beiral + 3, h - 10))
@@ -286,10 +403,8 @@ def casa_taipa(w=120, h=86, semente=0, quebrada=True):
     lp_ = max(6, w * 0.15)  # largura da porta
     porta = t.retangulo(w * 0.22, h - alt_porta, lp_, alt_porta)
     t.chapado(porta, "marrom_noite")
-    folha = t.retangulo(w * 0.22, h - alt_porta, lp_ * 0.6, alt_porta)
-    t.volume(folha, MADEIRA, achatado=1.5, suave=0.5, ambiente=0.2)
-    for k in range(3):
-        t.chapado(t.retangulo(w * 0.22 + k * lp_ * 0.22 + 2, h - alt_porta, 1, alt_porta), "couro_escuro")
+    folha = tabuas(max(4, int(lp_ * 0.6)), int(alt_porta), vertical=True, semente=semente + 3)
+    colar(t, folha, w * 0.22, h - alt_porta)
     t.chapado(t.retangulo(w * 0.22 - 1, h - alt_porta - 1, lp_ + 2, 1.5), "couro_profundo")
     # Janela com tramela.
     jw = max(6, w * 0.17)
@@ -407,6 +522,7 @@ def lajedo(w, h=40, semente=0):
             x += larg - rng.uniform(2, 5)
         y += alt - 3
     tudo = np.zeros((h, w), dtype=bool)
+    ids = np.full((h, w), -1)
     for k, (x, y, larg, alt) in enumerate(blocos):
         r = min(alt, larg) * 0.45
         m = (t.retangulo(x + r, y, larg - 2 * r, alt) | t.retangulo(x, y + r, larg, alt - 2 * r) |
@@ -416,6 +532,14 @@ def lajedo(w, h=40, semente=0):
         t.volume(m, GRANITO, achatado=3, suave=0.9, ambiente=0.2, textura=0.22, semente=semente * 31 + k,
                  luz=(-0.45, -0.85))
         tudo |= m
+        ids[m] = k
+    # Fendas escuras entre os blocos e um fio de luz na borda de cima de cada um.
+    cima = np.roll(ids, 1, 0)
+    esq = np.roll(ids, 1, 1)
+    fenda = tudo & (((cima != ids) & (cima >= 0)) | ((esq != ids) & (esq >= 0)))
+    t.px[fenda] = IDX["sombra"]
+    luz = tudo & ~fenda & np.roll(fenda, 1, 0)
+    t.px[luz] = IDX["areia_luz"]
     # Topo plano e claro (onde se pisa).
     t.px[(t.px != VAZIO) & (t.yy < 3)] = IDX["areia_media"]
     t.px[(t.px != VAZIO) & (t.yy < 1.5)] = IDX["areia_luz"]
@@ -431,6 +555,100 @@ def lajedo(w, h=40, semente=0):
     t.px[liquen] = IDX["mandacaru_luz"]
     t.contorno("sombra")
     return t
+
+def pote_barro(semente=0, alt=14):
+    """Pote de barro (moringa) com boca, alça e mancha de umidade."""
+    t = Tela(14, alt)
+    corpo = t.elipse(7, alt - 6, 6, 5.5) | t.retangulo(4, 1.5, 6, alt - 8)
+    t.volume(corpo, ["marrom_noite", "terra_escura", "terra", "laranja_escuro", "barro", "areia_media"], achatado=3,
+             suave=0.8, ambiente=0.25, textura=0.2, semente=semente)
+    t.cel(t.elipse(7, 2, 3.4, 1.4), ["sombra", "terra_escura", "terra", "barro"], sombra=0)
+    t.chapado(t.elipse(7, 2, 2, 0.7), "marrom_noite")
+    t.linha(3, alt - 7, 11, alt - 7, "terra_escura")
+    t.contorno("sombra")
+    return t
+
+
+def roda_carroca(r=9):
+    """Roda de carroça de madeira com raios e aro de ferro."""
+    t = Tela(2 * r + 2, 2 * r + 2)
+    c = r + 1
+    aro = t.elipse(c, c, r, r) & ~t.elipse(c, c, r - 2, r - 2)
+    t.volume(aro, MADEIRA, achatado=1, suave=0.3, ambiente=0.25)
+    t.px[t.elipse(c, c, r, r) & ~t.elipse(c, c, r - 0.8, r - 0.8)] = IDX["cinza_escuro"]
+    for k in range(8):
+        a = k * math.pi / 4
+        m = t.capsula(c, c, c + math.cos(a) * (r - 1.5), c + math.sin(a) * (r - 1.5), 0.8)
+        t.volume(m, MADEIRA, achatado=0.5, suave=0.2, ambiente=0.3)
+    t.cel(t.elipse(c, c, 2.2, 2.2), MADEIRA[:4], sombra=1)
+    t.contorno("sombra")
+    return t
+
+
+def carroca_quebrada():
+    """Carroça tombada: plataforma de tábuas inclinada, uma roda e o cabeçalho no chão."""
+    t = Tela(64, 30)
+    tab = tabuas(44, 7, vertical=True, semente=21)
+    # Plataforma inclinada (pende para a esquerda, onde falta a roda).
+    for x in range(tab.w):
+        dy = int(x * 0.18)
+        for y in range(tab.h):
+            if tab.px[y, x] != VAZIO:
+                yy = 12 - dy + y + 6
+                if 0 <= yy < t.h:
+                    t.px[yy, x + 6] = tab.px[y, x]
+    for x in (8, 44):
+        t.volume(t.retangulo(x, 18 - int((x - 6) * 0.18), 2, 8), MADEIRA, achatado=0.5, suave=0.2, ambiente=0.3)
+    roda = roda_carroca(9)
+    colar(t, roda, 36, 30 - roda.h)
+    t.volume(t.capsula(48, 22, 63, 28, 1.2), MADEIRA, achatado=0.5, suave=0.2, ambiente=0.3)
+    t.contorno("sombra")
+    return t
+
+
+def pilao():
+    """Pilão de madeira com a mão de pilão encostada."""
+    t = Tela(14, 20)
+    corpo = t.poligono([(2, 8), (12, 8), (10, 14), (11, 20), (3, 20), (4, 14)])
+    t.volume(corpo, MADEIRA, achatado=2, suave=0.5, ambiente=0.25, textura=0.2)
+    t.chapado(t.elipse(7, 8.5, 4.5, 1.2), "couro_profundo")
+    t.volume(t.capsula(9, 9, 12, 0.5, 1.0), MADEIRA, achatado=0.5, suave=0.2, ambiente=0.35)
+    t.contorno("sombra")
+    return t
+
+
+def cabacas():
+    """Penca de cabaças penduradas numa corda."""
+    t = Tela(12, 18)
+    t.linha(6, 0, 6, 5, "terra_media")
+    for (x, y, r) in ((4, 9, 3), (8, 11, 3.3), (5, 14, 2.6)):
+        m = t.elipse(x, y, r, r * 1.1) | t.elipse(x, y - r, r * 0.45, r * 0.6)
+        t.volume(m, ["terra_escura", "couro", "couro_medio", "areia_media", "areia_luz"], achatado=2, suave=0.5,
+                 ambiente=0.3)
+    t.contorno("sombra")
+    return t
+
+
+def cerca_farpada(w=90, semente=0):
+    """Cerca de mourões tortos com três fios de arame farpado."""
+    t = Tela(w, 26)
+    rng = np.random.default_rng(semente)
+    postes = list(range(3, w - 2, 18))
+    for x in postes:
+        inc = rng.uniform(-1, 1)
+        m = t.capsula(x, 25, x + inc, 4, 1.6, 1.3)
+        t.volume(m, GALHO_SECO, achatado=1, suave=0.4, ambiente=0.25, textura=0.3, semente=x)
+    for y0 in (8, 14, 20):
+        for x in range(0, w):
+            y = y0 + int(math.sin(x / 9 + y0) * 0.8)
+            if t.px[y, x] == VAZIO:
+                t.px[y, x] = IDX["cinza_escuro"]
+            if x % 4 == 0:
+                t.ponto(x, y - 1, "cinza_claro")
+                t.ponto(x, y + 1, "cinza_escuro")
+    t.contorno("sombra")
+    return t
+
 
 def disco_caido():
     """O disco voador caído, meio enterrado e torto, com a cúpula rachada."""
@@ -541,18 +759,21 @@ def camada_jogo():
         if rng.random() < 0.55:
             c = capim(semente=x, seco=True)
             colar(t, c, x + rng.integers(-3, 3), y(CHAO) - c.h + 1)
-    for x in (70, 205, 640, 1010, 1470, 1930, 2420):
-        xq = xiquexique(semente=x)
-        colar(t, xq, x, y(CHAO) - xq.h + 1)
-    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610)):
-        p = pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=k + 20)
-        colar(t, p, x, y(CHAO) - p.h + 2)
-    cr = cranio_boi()
-    colar(t, cr, 1880, y(CHAO) - cr.h + 1)
-    colar(t, cranio_boi(), 2540, y(CHAO) - 10)
     # Chão: normal até o local da queda, queimado depois.
     t.colar(chao(2620, 26, semente=3), 0, y(CHAO) - 2)
     t.colar(chao(LARGURA_FASE - 2620, 26, semente=4, queimado=True), 2620, y(CHAO) - 2)
+    yc = y(CHAO) - 1  # linha do chão na camada
+    for x in (70, 205, 640, 1010, 1470, 1930, 2420):
+        assentar(t, xiquexique(semente=x), x, yc)
+    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610)):
+        assentar(t, pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=k + 20), x, yc, afundar=2)
+    assentar(t, cranio_boi(), 1880, yc)
+    assentar(t, cranio_boi(), 2540, yc)
+    # Objetos miúdos do sertão espalhados pelo chão.
+    for x, peca in ((300, pote_barro(1)), (318, pote_barro(2, 11)), (860 - 40, pilao()), (1545, carroca_quebrada()),
+                    (1720, pote_barro(3)), (1910, roda_carroca(8)), (2080, pote_barro(4, 12)), (2450, pilao()),
+                    (2500, carroca_quebrada()), (180, cerca_farpada(70, 1)), (1950, cerca_farpada(100, 2))):
+        assentar(t, peca, x, yc)
     # Emenda pontilhada entre o chão normal e o queimado.
     for xx in range(2590, 2650):
         for yy in range(y(CHAO) - 2, alt):
@@ -561,26 +782,26 @@ def camada_jogo():
     # Lajedos e barranco (sólidos).
     for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8)], range(6)):
         lj = lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
+        sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
     # Trincheira de sacos de areia.
     sx, sy, sw, sh = FASE["solidos"][2]
     sa = sacos_areia(4, 3)
-    colar(t, sa, sx - 3, y(CHAO) - sa.h + 2)
+    assentar(t, sa, sx - 3, yc, afundar=3)
     # Giraus: tábuas sobre forquilhas.
     for k in (7, 9):
         gx, gy, gw = FASE["solidos"][k][:3]
         for px in (gx + 2, gx + gw - 5):
             m = t.capsula(px + 1, y(gy) + 3, px + 1, y(CHAO), 1.5, 1.6)
             t.volume(m, MADEIRA, achatado=1, suave=0.4, ambiente=0.2)
-        tab = t.retangulo(gx, y(gy), gw, 4)
-        t.volume(tab, MADEIRA, achatado=1.5, suave=0.4, ambiente=0.3)
-        for xx in range(gx, gx + gw, 7):
-            t.chapado(t.retangulo(xx, y(gy), 1, 4), "couro_profundo")
+        tab = tabuas(gw, 5, vertical=True, semente=gx)
+        tab.contorno("sombra")
+        colar(t, tab, gx, y(gy))
     # Destroços do disco espalhados e o disco caído no fim.
     for k, dx in enumerate((2660, 2780, 2870)):
-        d = destrocos(semente=k)
-        colar(t, d, dx, y(CHAO) - d.h + 3)
+        assentar(t, destrocos(semente=k), dx, yc, afundar=4)
     dc = disco_caido()
+    sombra_contato(t, 2960 + dc.w / 2, yc + 1, dc.w * 1.1, 4)
     colar(t, dc, 2960, y(CHAO) - dc.h + 10)
     return t, topo
 
@@ -603,6 +824,8 @@ def camada_perto():
     for k, wx in enumerate((270, 1120, 2150)):
         pecas.append((lx(wx), pedra(int(rng.integers(34, 52)), int(rng.integers(20, 30)), semente=k + 300)))
     pecas.append((lx(700), casa_taipa(124, 86, semente=5)))
+    pecas.append((lx(700) + 128, pote_barro(5)))
+    pecas.append((lx(700) - 14, pote_barro(6, 12)))
     pecas.append((lx(1480), cerca(110, semente=9)))
     pecas.append((lx(1590), cata_vento(78)))
     pecas.append((lx(2460), casa_taipa(100, 70, semente=8)))
