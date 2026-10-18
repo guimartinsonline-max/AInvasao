@@ -97,6 +97,8 @@ for nome, quadros in {
 }.items():
     folha(quadros, SAIDA / f"{nome}.png")
 
+import fase1  # noqa: E402
+fase1.exportar(SAIDA, RAIZ)
 import objetos as obj  # noqa: E402
 folha([obj.barril(0), obj.barril(1)], SAIDA / "barril.png")
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")

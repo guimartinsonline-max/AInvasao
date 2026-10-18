@@ -24,7 +24,8 @@ export function carregarSprites(cena) {
   }
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
-  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
+  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje',
+    'f1_jogo', 'f1_perto', 'f1_meio', 'f1_frente']) {
     cena.load.image(nome, s(nome));
   }
 }

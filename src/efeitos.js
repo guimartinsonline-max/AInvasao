@@ -61,6 +61,9 @@ export class Efeitos {
         cena.anims.create({ key: chave, frames: cena.anims.generateFrameNumbers(chave, { start: 0, end: EFEITOS[chave].quadros - 1 }), frameRate: fps });
       }
     }
+    if (!cena.anims.exists('fumaca_lenta')) {
+      cena.anims.create({ key: 'fumaca_lenta', frames: cena.anims.generateFrameNumbers('fumaca', { start: 0, end: 3 }), frameRate: 4 });
+    }
     this.animados = this.pool(40, () => {
       const s = cena.add.sprite(-100, -100, 'impacto').setVisible(false).setDepth(19);
       s.on('animationcomplete', () => s.setVisible(false));
@@ -126,13 +129,20 @@ export class Efeitos {
   }
 
   // Toca um efeito animado. Pool cheio: reaproveita o mais antigo.
-  animar(chave, x, y, { rotacao = 0, origemX = 0.5, profundidade = 19, espelhar = false } = {}) {
+  animar(chave, x, y, { rotacao = 0, origemX = 0.5, profundidade = 19, espelhar = false, anim = chave } = {}) {
     let s = this.animados.find((a) => !a.visible);
     if (!s) s = this.animados[this.proximoAnimado++ % this.animados.length];
+    this.cena.tweens.killTweensOf(s);
     s.setTexture(chave, 0).setPosition(Math.round(x), Math.round(y)).setOrigin(origemX, 0.5)
       .setRotation(rotacao).setFlipX(espelhar).setDepth(profundidade).setVisible(true).setAlpha(1);
-    s.play(chave);
+    s.play(anim);
     return s;
+  }
+
+  // Fumaça que sobe devagar e é levada pelo vento (coluna do disco caído).
+  fumacaSobe(x, y) {
+    const s = this.animar('fumaca', x, y, { profundidade: 6, anim: 'fumaca_lenta' });
+    this.cena.tweens.add({ targets: s, y: y - 70, x: x + 18, duration: 1000 });
   }
 
   // Clarão no cano: estrela de fogo (normal ou grande) ou anel verde.

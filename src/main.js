@@ -4,6 +4,7 @@ import { BootScene } from './scenes/BootScene.js';
 import { MenuScene } from './scenes/MenuScene.js';
 import { PaletaScene } from './scenes/PaletaScene.js';
 import { CampoScene } from './scenes/CampoScene.js';
+import { Fase1Scene } from './scenes/Fase1Scene.js';
 import { HudScene } from './scenes/HudScene.js';
 import { Controles } from './controles.js';
 
@@ -28,7 +29,7 @@ const config = {
     arcade: { gravity: { y: 900 }, debug: false, fixedStep: false },
   },
   fps: { target: 60 },
-  scene: [BootScene, MenuScene, CampoScene, HudScene, PaletaScene],
+  scene: [BootScene, MenuScene, Fase1Scene, CampoScene, HudScene, PaletaScene],
 };
 
 // Espera a fonte pixel carregar (no máximo 3 s) para o texto não sair com a fonte errada.

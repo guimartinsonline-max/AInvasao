@@ -15,7 +15,7 @@ const ALCANCE_PEIXEIRA = 26;
 const ALTURA_EM_PE = 36;
 const ALTURA_AGACHADO = 28;
 const GRANADAS = 10;
-const VIDAS = 3;
+export const VIDAS = 3;
 const INVULNERAVEL = 2000; // ms piscando depois de renascer
 
 export class Jogador {
@@ -105,7 +105,7 @@ export class Jogador {
     // Granada.
     this.desdeGranada += dt;
     // Campo de treino: repõe as granadas depois de um tempo sem nenhuma.
-    if (this.granadas === 0 && this.desdeGranada > 3000) this.granadas = GRANADAS;
+    if (this.cena.tudoVolta && this.granadas === 0 && this.desdeGranada > 3000) this.granadas = GRANADAS;
     if (c.apertou('granada') && this.granadas > 0 && this.desdeGranada > 300) {
       this.desdeGranada = 0;
       this.granadas--;
@@ -135,9 +135,19 @@ export class Jogador {
     cena.time.delayedCall(1300, () => this.renascer());
   }
 
+  // Depois do "continuar?": vidas cheias e volta ao jogo.
+  continuar() {
+    this.vidas = VIDAS;
+    this.renascer();
+  }
+
   renascer() {
     const corpo = this.corpo.body;
-    if (this.vidas <= 0) this.vidas = VIDAS; // campo de treino: recomeça as vidas
+    if (this.vidas <= 0) {
+      // Numa fase, a cena pergunta "continuar?"; no campo de treino recomeça as vidas.
+      if (this.cena.semVidas && this.cena.semVidas()) return;
+      this.vidas = VIDAS;
+    }
     this.morto = false;
     this.invulneravel = true;
     this.granadas = Math.max(this.granadas, 3);

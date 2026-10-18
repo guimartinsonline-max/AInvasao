@@ -89,7 +89,7 @@ class Caixote {
       else if (dentro === 'bode') cena.surpresaBode(cx, this.y);
     }
     cena.caixotes.derrubarSobre(cx, topo);
-    cena.time.delayedCall(VOLTA, () => this.voltar());
+    if (cena.tudoVolta) cena.time.delayedCall(VOLTA, () => this.voltar());
   }
 
   voltar() {

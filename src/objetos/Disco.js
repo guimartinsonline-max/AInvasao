@@ -18,6 +18,7 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
     cena.add.existing(this);
     cena.physics.add.existing(this);
     this.body.allowGravity = false;
+    this.voa = true; // não colide com o chão
     this.body.setSize(48, 16).setOffset(0, 4);
     this.setDepth(12);
     this.vitimas = vitimas;
@@ -78,6 +79,7 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
       this.setVisible(false).setRotation(0);
       cena.explodir(this.x, this.y, 40, 6, 1.3);
       cena.soltarItem(this.x, this.y - 10, 'desintegrador');
+      if (!cena.tudoVolta) return;
       cena.time.delayedCall(9000, () => {
         this.reiniciar();
         this.setPosition(this.inicioX, ALTURA_VOO);
@@ -146,6 +148,11 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
         this.puxando = false;
         v.setVisible(false);
         v.body.enable = false;
+        if (v.esconder && !this.scene.tudoVolta) v.esconder();
+        if (!this.scene.tudoVolta) {
+          this.alvo = null;
+          return;
+        }
         this.scene.time.delayedCall(6000, () => {
           v.abduzido = false;
           v.body.allowGravity = true;

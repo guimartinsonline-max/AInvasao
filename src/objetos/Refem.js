@@ -102,7 +102,7 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
         this.estado = 'longe';
         this.setVisible(false);
         this.body.enable = false;
-        if (this.temporario) return;
+        if (this.temporario || !this.scene.tudoVolta) return;
         this.scene.time.delayedCall(10000, () => {
           this.reiniciar();
           this.body.reset(this.inicioX, this.inicioY - 40);

@@ -26,6 +26,7 @@ export class HudScene extends Phaser.Scene {
 
   init(dados) {
     this.jogador = dados.jogador;
+    this.chaveCena = dados.cena || 'Campo';
   }
 
   create() {
@@ -38,7 +39,7 @@ export class HudScene extends Phaser.Scene {
 
     // Nome da arma "gritado" no meio da tela ao pegar, como no Metal Slug.
     this.anuncio = this.add.text(LARGURA / 2, 60, '', estiloTexto(hex('amarelo_fogo'), 16)).setOrigin(0.5).setVisible(false);
-    const campo = this.scene.get('Campo');
+    const campo = this.scene.get(this.chaveCena);
     const anunciar = (nome) => {
       this.anuncio.setText(nome + '!').setVisible(true).setScale(2).setAlpha(1);
       this.tweens.killTweensOf(this.anuncio);

@@ -36,6 +36,22 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(LARGURA / 2, 48, 'A INVASÃO', estiloTexto(hex('amarelo_fogo'), 24)).setOrigin(0.5);
     this.add.text(LARGURA / 2, 76, 'SERTÃO, 1936', estiloTexto(hex('branco'))).setOrigin(0.5);
 
+    // Opções: a fase 1 e o campo de treino (todas as armas, tudo volta).
+    this.opcoes = [
+      { cena: 'Fase1', texto: 'MISSÃO 1' },
+      { cena: 'Campo', texto: 'CAMPO DE TREINO' },
+    ].map((o, k) => {
+      const t = this.add.text(LARGURA / 2, 122 + k * 16, o.texto, estiloTexto(hex('branco'))).setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      t.on('pointerdown', (p, x, y, e) => {
+        e.stopPropagation();
+        this.escolha = k;
+        this.comecar();
+      });
+      return { ...o, t };
+    });
+    this.escolha = 0;
+    this.marcar();
     this.aviso = this.add.text(LARGURA / 2, 100, '', estiloTexto(hex('branco'))).setOrigin(0.5);
     this.time.addEvent({ delay: 500, loop: true, callback: () => this.aviso.setVisible(!this.aviso.visible) });
     this.mostrarAviso(this.controles.fonte);
@@ -52,6 +68,13 @@ export class MenuScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-P', () => this.scene.start('Paleta'));
   }
 
+  marcar() {
+    this.opcoes.forEach((o, k) => {
+      const sel = k === this.escolha;
+      o.t.setText(sel ? `> ${o.texto} <` : o.texto).setColor(sel ? hex('amarelo_fogo') : hex('branco'));
+    });
+  }
+
   mostrarAviso(fonte) {
     this.aviso.setText(AVISOS[fonte]);
   }
@@ -60,12 +83,16 @@ export class MenuScene extends Phaser.Scene {
     if (this.saindo) return;
     this.saindo = true;
     pedirTelaCheia(this.game);
-    this.scene.start('Campo');
+    this.scene.start(this.opcoes[this.escolha].cena);
   }
 
   update() {
     const c = this.controles;
     c.atualizar();
+    if (c.apertou('baixo') || c.apertou('cima')) {
+      this.escolha = (this.escolha + 1) % this.opcoes.length;
+      this.marcar();
+    }
     if (c.apertou('confirmar')) this.comecar();
   }
 }

@@ -42,11 +42,11 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - Por enquanto só o **Lampião** é jogável; Maria Bonita fica para depois.
 - Visual em construção: desenhado **pixel a pixel** (`tools/arte/pixel/lampiao.txt`, gerado por `tools/arte/lampiao_px.py`), estilo Metal Slug: base agachada, inclinado para a frente, poucos acessórios. O mais importante é o **rosto expressivo** e as **poses**.
 - Ataque corpo a corpo: peixeira (equivalente à faca do Metal Slug).
-- Com arma pesada, o Lampião segura o desenho da arma (`assets/sprites/armas.png`, empunhadura e boca em `src/quadros.js`).
+- **Cada arma tem o jeito próprio de segurar** (quadros em `tools/arte/lampiao_armas.py`, folhas `lampiao_<arma>.png`): Madsen no quadril, Bacamarte baixo na cintura, Papo-amarelo no ombro mirando, Rojão apoiado no ombro, Desintegrador numa mão só, Candeeiro com a lata nas costas, Baladeira puxando a liga, Buscapé no peito. Braços atrás da arma, só as mãos por cima. Armas no tamanho do fuzil (30x12). Boca do cano gerada em `src/maos.js`.
 
 ## Inimigos e refém
 
-- **Caricatos, igual ao Metal Slug:** cabeça grande, olhos e nariz exagerados, poses cômicas. Desenhados em `tools/arte/caricatos.py` (gera os `.txt` em `tools/arte/pixel/`).
+- **Caricatos, igual ao Metal Slug, mas no porte do Lampião** (cabeça do tamanho da dele, nada absurdo): olhos e nariz exagerados na medida, poses cômicas. Desenhados em `tools/arte/caricatos.py` (gera os `.txt` em `tools/arte/pixel/`).
 - **Soldado da Volante:** quepe, narigão, bigodão, barriga; pânico com suor; variante com escudo de tábuas que segura tiros de frente (granada e peixeira quebram).
 - **Xeremita:** cabeçona verde, olho gigante, tentáculos e pistola de raio. O raio sai reto, sem mirar.
 - **Morte por arma:** fogo vira carvão e cinza (quadro "tostado"), chumbo arremessa longe, Papo-amarelo derruba de costas, desintegrador derrete, explosão manda alto girando.
@@ -55,7 +55,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 
 ## Fases (rascunho aprovado)
 
-1. Caatinga: primeiro contato e queda do disco.
+1. Caatinga: primeiro contato e queda do disco. **Em construção** (`src/scenes/Fase1Scene.js`; arte e dados em `tools/arte/fase1.py`, que gera as camadas `f1_*.png` e `assets/fases/fase1.json`): caatinga aberta, casa de taipa com a Volante entrincheirada, lajedo em degraus com o disco, curral com cata-vento, barranco e o local da queda com o disco caído. 4 ondas que travam a câmera, câmera que não volta, "CONTINUAR?" no lugar (sem checkpoint, como no Metal Slug).
 2. Cidade do interior em dia de feira: invasão e chegada da Volante.
 3. Trem da Great Western: fase em movimento.
 4. Açude e casa-grande: chefe coronel.
@@ -105,6 +105,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 ## Arte
 
+- **Nível de detalhe do cenário:** o das referências do Metal Slug que o Guilherme mandou (MS2/MS3): volume em tudo, textura, rachaduras, líquen, chão em corte com camadas e pedras, várias camadas de parallax e uma de frente.
 - **Estilo exatamente igual ao do Metal Slug** (proporções, contorno escuro, volume com vários tons, rostos expressivos, poses exageradas). O que muda é a **paleta** e o tema (sertão), não o estilo.
 - Pixel art original. Não copiar sprites, personagens ou cenários do Metal Slug (são da SNK): mesmo estilo, desenhos nossos.
 - Personagens e inimigos são desenhados pixel a pixel em `tools/arte/pixel/*.txt` (um caractere por cor, legenda em `tools/arte/pixel.py`).
@@ -164,6 +165,6 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 9. **Acabamento:** tela de título, seleção de personagem, pausa, game over com "continuar?", progresso salvo no celular.
 10. **Mais conteúdo:** fases 2 a 6, repetindo as etapas 4 a 6.
 
-**Próximo passo:** etapa 3 (arte base) em teste no iPhone e no PC: armas, inimigos, refém e efeitos. Depois, etapa 4 (fase 1 completa).
+**Próximo passo:** etapa 4 (fase 1) em construção. Falta o trecho de veículo (jumento blindado) e ajustar a fase com o teste do Guilherme. Campo de treino continua no menu.
 
 

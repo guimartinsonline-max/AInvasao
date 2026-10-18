@@ -210,6 +210,15 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
   }
 
   renascer() {
+    // Numa fase quem morre não volta: sai da cena de vez.
+    if (!this.scene.tudoVolta) {
+      this.setVisible(false);
+      this.body.enable = false;
+      this.grito.setVisible(false);
+      if (this.escudo) this.escudo.setVisible(false);
+      this.fora = true;
+      return;
+    }
     this.reiniciar();
     this.body.enable = true;
     this.body.checkCollision.none = false;
