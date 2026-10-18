@@ -1,3 +1,4 @@
+import { ajustes } from './ajustes.js';
 import { P } from './paleta.js';
 import { EFEITOS } from './quadros.js';
 
@@ -104,6 +105,7 @@ export class Efeitos {
   }
 
   tremer(forca = 0.006, ms = 120) {
+    if (!ajustes.tremida) return; // desligada nas opções
     this.cena.cameras.main.shake(ms, forca);
   }
 

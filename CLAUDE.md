@@ -100,6 +100,13 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - Coop: reviver o parceiro caído e câmera compartilhada que não deixa ninguém para trás.
 - Chefes com máquina de estados, padrões que mudam conforme a vida cai e partes que quebram separadas.
 
+## Tela de início e opções
+
+- No jeito do Metal Slug (`src/scenes/MenuScene.js`): cena pintada em pixel art no pôr do sol (Lampião grande atirando, disco puxando o bode, blindado e soldados, explosões ao fundo), coluna da direita com o logo e placas penduradas em correntes, caixa de baixo explicando o item escolhido.
+- Menu: MISSÃO 1, CAMPO DE TREINO, COOP ONLINE (apagado, em breve), OPÇÕES.
+- Opções no mesmo layout: volume dos efeitos e da música (0 a 10), tremida de tela (sim/não), troca das teclas do teclado (some no toque), restaurar padrão. Guardado no aparelho (`src/ajustes.js`, localStorage).
+- Som em código (`src/som.js`, Web Audio): bipes do menu e tema de baião chiptune (sanfona em escala mixolídia, zabumba e triângulo) na tela de início. Efeitos do jogo e outras músicas ficam para a etapa de som.
+
 ## Técnica
 
 - **Motor:** Phaser (versão estável atual), carregado por CDN. Física Arcade.

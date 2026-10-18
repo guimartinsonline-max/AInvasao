@@ -1,19 +1,26 @@
 // Entrada unificada: teclado, controle (gamepad) e toque viram o mesmo estado.
 // A "fonte" é o último tipo de entrada usado; a HUD mostra os botões de toque
-// só quando a fonte é o toque.
+// só quando a fonte é o toque. As teclas principais vêm dos ajustes (dá para
+// trocar na tela de opções); as alternativas (WASD, J/K/L, espaço) valem
+// enquanto não estiverem em uso por outra ação.
+import { ajustes, aoMudarAjustes, ACOES_TECLADO } from './ajustes.js';
 
-const TECLAS = {
-  esquerda: ['ArrowLeft', 'KeyA'],
-  direita: ['ArrowRight', 'KeyD'],
-  cima: ['ArrowUp', 'KeyW'],
-  baixo: ['ArrowDown', 'KeyS'],
-  pular: ['KeyX', 'KeyK', 'Space'],
-  atirar: ['KeyZ', 'KeyJ'],
-  granada: ['KeyC', 'KeyL'],
-  confirmar: ['Enter', 'Space'],
-  voltar: ['Escape'],
+const ALTERNATIVAS = {
+  esquerda: ['KeyA'], direita: ['KeyD'], cima: ['KeyW'], baixo: ['KeyS'],
+  pular: ['KeyK', 'Space'], atirar: ['KeyJ'], granada: ['KeyL'],
 };
-const CODIGOS_JOGO = new Set(Object.values(TECLAS).flat());
+const TECLAS = { confirmar: ['Enter', 'Space'], voltar: ['Escape'] };
+let CODIGOS_JOGO = new Set();
+
+function montarTeclas() {
+  const principais = new Set(ACOES_TECLADO.map((a) => ajustes.teclas[a]));
+  for (const a of ACOES_TECLADO) {
+    TECLAS[a] = [ajustes.teclas[a], ...ALTERNATIVAS[a].filter((c) => !principais.has(c))];
+  }
+  CODIGOS_JOGO = new Set(Object.values(TECLAS).flat());
+}
+montarTeclas();
+aoMudarAjustes(montarTeclas);
 
 // Mapeamento padrão (Xbox): A=0, B=1, X=2, Y=3, LB=4, RB=5, LT=6, RT=7,
 // Back=8, Start=9, direcional=12..15.
@@ -48,8 +55,15 @@ export class Controles {
     }
 
     window.addEventListener('keydown', (e) => {
-      if (CODIGOS_JOGO.has(e.code)) e.preventDefault();
+      if (CODIGOS_JOGO.has(e.code) || this.captura) e.preventDefault();
       if (e.repeat) return;
+      if (this.captura) {
+        // Tela de opções esperando a nova tecla de uma ação.
+        const fn = this.captura;
+        this.captura = null;
+        fn(e.code);
+        return;
+      }
       this.teclas.add(e.code);
       this.batidas.add(e.code);
       this.mudarFonte('teclado');
@@ -57,6 +71,11 @@ export class Controles {
     window.addEventListener('keyup', (e) => this.teclas.delete(e.code));
     window.addEventListener('blur', () => this.teclas.clear());
     window.addEventListener('touchstart', () => this.mudarFonte('toque'), { capture: true, passive: true });
+  }
+
+  // A próxima tecla apertada vai para fn (troca de teclas nas opções).
+  capturarTecla(fn) {
+    this.captura = fn;
   }
 
   aoMudarFonte(fn) {
@@ -89,6 +108,7 @@ export class Controles {
       if (botao(pad, 14)) x -= 1;
       if (botao(pad, 15)) x += 1;
     }
+    this.eixoAnterior = this.eixoX;
     this.eixoX = Math.max(-1, Math.min(1, x));
 
     for (const a of ACOES) {
@@ -121,6 +141,11 @@ export class Controles {
       return pad;
     }
     return null;
+  }
+
+  // Direcional para os lados apertado agora (para menus): -1, 1 ou 0.
+  lado() {
+    return this.eixoX !== this.eixoAnterior ? this.eixoX : 0;
   }
 
   apertou(acao) {
