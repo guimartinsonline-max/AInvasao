@@ -1,6 +1,7 @@
 import { LARGURA, ALTURA } from '../config.js';
 import { P, hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
+import { ARMAS } from '../armas.js';
 
 const RAIO_DIRECIONAL = 18;
 const ZONA_DIRECIONAL = 0.45; // fração da tela, à esquerda, que vira direcional
@@ -31,7 +32,7 @@ export class HudScene extends Phaser.Scene {
     this.controles = this.game.controles;
     this.dedos = new Map(); // id do toque -> 'direcional' ou ação de botão
 
-    this.granadas = this.add.text(4, 4, '', estiloTexto(hex('branco')));
+    this.criarPainel();
     this.fps = this.add.text(LARGURA - 4, 4, '', estiloTexto(hex('branco'))).setOrigin(1, 0).setAlpha(0.6);
     this.dica = this.add.text(LARGURA / 2, ALTURA - 10, '', estiloTexto(hex('branco'))).setOrigin(0.5);
 
@@ -53,6 +54,24 @@ export class HudScene extends Phaser.Scene {
       desligar();
       this.soltarTudo();
     });
+  }
+
+  // Painel de munição no canto, como o ARMS / BOMB do Metal Slug.
+  criarPainel() {
+    const x = 4;
+    const y = 4;
+    const g = this.add.graphics();
+    g.fillStyle(P.sombra, 0.82).fillRect(x, y, 140, 34);
+    g.lineStyle(1, P.areia_luz, 0.9).strokeRect(x + 0.5, y + 0.5, 139, 33);
+    g.lineStyle(1, P.areia_luz, 0.4).lineBetween(x + 74.5, y + 4, x + 74.5, y + 30);
+    const rotulo = estiloTexto(hex('amarelo_claro'));
+    this.icone = this.add.image(x + 12, y + 17, 'item_madsen').setVisible(false);
+    this.rotuloArma = this.add.text(x + 24, y + 5, 'ARMA', rotulo);
+    this.numArma = this.add.text(x + 24, y + 15, '', estiloTexto(hex('branco'), 16));
+    this.infinito = this.add.image(x + 26, y + 18, 'infinito').setOrigin(0);
+    this.add.text(x + 80, y + 5, 'GRANADA', rotulo);
+    this.numGranada = this.add.text(x + 80, y + 15, '', estiloTexto(hex('branco'), 16));
+    this.vidas = this.add.text(x, y + 38, '', estiloTexto(hex('branco')));
   }
 
   criarToque() {
@@ -182,8 +201,16 @@ export class HudScene extends Phaser.Scene {
       if (this.dedos.has(p.id) && !p.isDown) this.soltar(p);
     }
     const j = this.jogador;
-    const municao = j.arma === 'padrao' ? 'INF' : j.municao;
-    this.granadas.setText(`VIDAS ${j.vidas}  GRANADAS ${j.granadas}\nARMA ${municao}`);
+    const padrao = j.arma === 'padrao';
+    this.infinito.setVisible(padrao);
+    this.icone.setVisible(!padrao);
+    if (!padrao) this.icone.setTexture(`item_${j.arma}`);
+    // Pouca munição: o número pisca em vermelho.
+    const pouca = !padrao && j.municao <= Math.max(3, ARMAS[j.arma].municao * 0.15);
+    const pisca = pouca && Math.floor(this.time.now / 200) % 2 === 0;
+    this.numArma.setText(padrao ? '' : `${j.municao}`).setColor(pisca ? hex('vermelho') : hex('branco'));
+    this.numGranada.setText(`${j.granadas}`).setColor(j.granadas === 0 ? hex('vermelho') : hex('branco'));
+    this.vidas.setText(`VIDAS ${j.vidas}`);
     this.fps.setText(`${Math.round(this.game.loop.actualFps)}`);
   }
 }

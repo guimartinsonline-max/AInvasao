@@ -9,6 +9,8 @@ import { Refem } from '../objetos/Refem.js';
 import { Disco, Bode } from '../objetos/Disco.js';
 import { Itens } from '../objetos/Itens.js';
 import { Caixotes } from '../objetos/Caixotes.js';
+import { estiloTexto } from '../texto.js';
+import { hex } from '../paleta.js';
 
 const LARGURA_MUNDO = LARGURA * 3;
 const CHAO_Y = 192;
@@ -41,11 +43,13 @@ export class CampoScene extends Phaser.Scene {
 
     this.efeitos = new Efeitos(this, this.solidos);
     // Caixotes destrutíveis (o de cima, empilhado, cai quando o de baixo quebra).
-    this.caixotes = new Caixotes(this, [[176, c - 18], [412, c - 18], [436, c - 18], [424, c - 36], [860, c - 18]]);
+    this.caixotes = new Caixotes(this, [[176, c - 18], [412, c - 18], [436, c - 18], [424, c - 36], [860, c - 18],
+      [944, c - 24, 'barril'], [963, c - 24, 'barril'], [953, c - 48, 'barril']]);
 
     this.alvos = this.physics.add.group({ runChildUpdate: false });
-    for (const [x, y, tipo] of [[320, c, 'xeremita'], [624, 150, 'volante'], [880, c, 'volante'], [1060, c, 'xeremita']]) {
-      const inimigo = new Inimigo(this, x, y, tipo);
+    for (const [x, y, tipo, escudo] of [[320, c, 'xeremita'], [624, 150, 'volante'], [880, c, 'volante', true],
+      [1060, c, 'xeremita']]) {
+      const inimigo = new Inimigo(this, x, y, tipo, { escudo });
       inimigo.setDepth(9);
       this.alvos.add(inimigo);
       inimigo.ajustarCorpo();
@@ -54,6 +58,15 @@ export class CampoScene extends Phaser.Scene {
     this.refem = new Refem(this, 340, c);
     this.alvos.add(this.refem);
     this.refem.reiniciar();
+    // Reféns escondidos em caixotes (pool); só aparecem quando um caixote quebra.
+    this.refensExtras = [];
+    for (let k = 0; k < 2; k++) {
+      const r = new Refem(this, -200, c);
+      r.temporario = true;
+      this.alvos.add(r);
+      r.esconder();
+      this.refensExtras.push(r);
+    }
     this.bode = new Bode(this, 720, c);
     this.physics.add.collider(this.bode, this.solidos);
     this.disco = new Disco(this, 560, [this.refem, this.bode]);
@@ -63,6 +76,11 @@ export class CampoScene extends Phaser.Scene {
 
     this.balas = new Balas(this, this.solidos, this.alvos, (alvo, bala) => {
       const tipo = bala.tipo;
+      if (alvo.bloqueia && alvo.bloqueia(bala.body.velocity.x)) {
+        alvo.danoEscudo(Math.max(1, tipo.dano), bala.x, bala.y);
+        if (tipo.atravessa) this.balas.recolher(bala);
+        return;
+      }
       alvo.levarDano(tipo.dano, bala.x, false, tipo.morte, tipo.queima);
       if (tipo.impacto) this.efeitos.impacto(bala.x, bala.y, tipo.impacto);
       if (tipo.pausa) this.efeitos.parar(tipo.pausa);
@@ -128,7 +146,9 @@ export class CampoScene extends Phaser.Scene {
     this.corte.setPosition(x, y).setFlipX(direcao < 0).setVisible(true).setAlpha(1);
     this.tweens.killTweensOf(this.corte);
     this.tweens.add({ targets: this.corte, alpha: 0, duration: 120, onComplete: () => this.corte.setVisible(false) });
-    alvo.levarDano(5, this.jogador.x, true);
+    // A peixeirada racha o escudo de uma vez.
+    if (alvo.vidaEscudo > 0) alvo.danoEscudo(alvo.vidaEscudo, alvo.x, alvo.y - 20);
+    else alvo.levarDano(5, this.jogador.x, true);
     this.efeitos.faisca(alvo.x, alvo.y - 20, 6);
     this.efeitos.tremer(0.004, 80);
   }
@@ -157,6 +177,7 @@ export class CampoScene extends Phaser.Scene {
     this.efeitos.explosao(x, y, tamanho);
     for (const alvo of [...this.alvos.getChildren(), ...this.caixotes.vivos()]) {
       if (alvo.vivo && Phaser.Math.Distance.Between(x, y, alvo.x, alvo.y - 18) < raio) {
+        if (alvo.vidaEscudo > 0) alvo.danoEscudo(3, alvo.x, alvo.y - 13);
         alvo.levarDano(dano, x, true);
       }
     }
@@ -185,6 +206,24 @@ export class CampoScene extends Phaser.Scene {
   // Item que sai saltando de um caixote quebrado ou de um refém solto.
   soltarItem(x, y, arma) {
     this.itens.colocar(x, y, arma, { pulo: true });
+  }
+
+  // Refém amarrado que estava dentro do caixote.
+  surpresaRefem(x, pe) {
+    const r = this.refensExtras.find((rr) => !rr.visible);
+    if (r) r.aparecer(x, pe);
+    else this.soltarItem(x, pe - 10, 'granadas');
+  }
+
+  // O bode Fubá estava dentro do caixote: sai correndo e berrando.
+  surpresaBode(x, pe) {
+    const lado = this.jogador.x < x ? 1 : -1;
+    const b = this.add.sprite(x, pe, 'bode', 0).setOrigin(0.5, 1).setDepth(8).setFlipX(lado < 0);
+    const grito = this.add.text(x, pe - 34, 'BÉÉÉÉ!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(30);
+    this.tweens.add({ targets: grito, y: pe - 48, alpha: 0, duration: 900, onComplete: () => grito.destroy() });
+    this.tweens.add({ targets: b, y: pe - 10, duration: 140, yoyo: true, repeat: 5 });
+    this.tweens.add({ targets: b, x: x + lado * 260, duration: 1600, onComplete: () => b.destroy() });
+    this.efeitos.poeira(x, pe, 6);
   }
 
   // Primeira superfície sólida abaixo de (x, y).

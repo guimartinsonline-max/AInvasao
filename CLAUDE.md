@@ -34,7 +34,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - Reféns: romeiros e vaqueiros amarrados que, soltos, dão arma ou item.
 - Bode abduzido: easter egg que aparece em toda fase.
 
-**Rejeitado:** cenas de história em estilo xilogravura. Não usar esse estilo.
+**Rejeitado:** cenas de história em estilo xilogravura. Não usar esse estilo. Granada como "bomba de São João".
 
 ## Personagens jogáveis
 
@@ -42,6 +42,16 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - Por enquanto só o **Lampião** é jogável; Maria Bonita fica para depois.
 - Visual em construção: desenhado **pixel a pixel** (`tools/arte/pixel/lampiao.txt`, gerado por `tools/arte/lampiao_px.py`), estilo Metal Slug: base agachada, inclinado para a frente, poucos acessórios. O mais importante é o **rosto expressivo** e as **poses**.
 - Ataque corpo a corpo: peixeira (equivalente à faca do Metal Slug).
+- Com arma pesada, o Lampião segura o desenho da arma (`assets/sprites/armas.png`, empunhadura e boca em `src/quadros.js`).
+
+## Inimigos e refém
+
+- **Caricatos, igual ao Metal Slug:** cabeça grande, olhos e nariz exagerados, poses cômicas. Desenhados em `tools/arte/caricatos.py` (gera os `.txt` em `tools/arte/pixel/`).
+- **Soldado da Volante:** quepe, narigão, bigodão, barriga; pânico com suor; variante com escudo de tábuas que segura tiros de frente (granada e peixeira quebram).
+- **Xeremita:** cabeçona verde, olho gigante, tentáculos e pistola de raio. O raio sai reto, sem mirar.
+- **Morte por arma:** fogo vira carvão e cinza (quadro "tostado"), chumbo arremessa longe, Papo-amarelo derruba de costas, desintegrador derrete, explosão manda alto girando.
+- **Refém:** romeiro do mesmo porte do Lampião (chapéu de palha com fitas, barba branca, terço, bornal). Amarrado se debate; solto pula, procura no bornal, entrega o item, bate continência e foge.
+- **Disco abdutor:** raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
 
 ## Fases (rascunho aprovado)
 
@@ -63,10 +73,12 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 ## Mecânicas
 
 - Correr, pular, agachar, atirar para frente, para cima e para baixo no ar.
-- Armas pickup com munição limitada, além da arma padrão infinita.
+- Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são letras grandes no estilo Metal Slug.
+- **Armas aprovadas:** M Metralhadora Madsen, B Bacamarte, R Rojão de São João, D Raio Desintegrador, C Candeeiro (lança-chamas; deixa o inimigo pegando fogo), P Papo-amarelo (atravessa a fila), E Baladeira (pedras que quicam), F Fogos Buscapé (perseguem o inimigo). Item G dá granadas. Tabela em `src/armas.js`.
+- Painel de munição no canto (ARMA e GRANADA), como no Metal Slug.
 - Granadas.
 - Reféns que dão itens.
-- Objetos destrutíveis no cenário.
+- Objetos destrutíveis no cenário: caixotes (podem soltar item, refém ou o bode Fubá) e barris de querosene que explodem em cadeia.
 - Checkpoints.
 - Coop: reviver o parceiro caído e câmera compartilhada que não deixa ninguém para trás.
 - Chefes com máquina de estados, padrões que mudam conforme a vida cai e partes que quebram separadas.
@@ -96,7 +108,8 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - **Estilo exatamente igual ao do Metal Slug** (proporções, contorno escuro, volume com vários tons, rostos expressivos, poses exageradas). O que muda é a **paleta** e o tema (sertão), não o estilo.
 - Pixel art original. Não copiar sprites, personagens ou cenários do Metal Slug (são da SNK): mesmo estilo, desenhos nossos.
 - Personagens e inimigos são desenhados pixel a pixel em `tools/arte/pixel/*.txt` (um caractere por cor, legenda em `tools/arte/pixel.py`).
-- Spritesheets PNG geradas por script.
+- Spritesheets PNG geradas por script (`tools/arte/exportar.py`).
+- Efeitos de tiro desenhados quadro a quadro em `tools/arte/efeitos_tiro.py`: clarão do cano, balas, impacto, explosão em 8 quadros, fumaça, chama.
 - Paleta de cores fixa: `assets/paleta.json` (64 cores: as 32 originais e degraus intermediários). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.
 - Sprites de tamanho médio e animações com poucos quadros bem escolhidos, onde a consistência entre quadros se mantém.
 - Renderizar e conferir visualmente cada sprite antes de usar.
@@ -119,7 +132,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 ## Publicação
 
-- Repositório no GitHub: `a-invasao`.
+- Repositório no GitHub: `AInvasao`.
 - **Ramos:**
   - `dev`: todo o desenvolvimento. O Netlify publica como branch deploy, grátis e ilimitado.
   - `main`: versão oficial. Só recebe o `dev` nos marcos (fim de cada etapa).
@@ -151,6 +164,6 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 9. **Acabamento:** tela de título, seleção de personagem, pausa, game over com "continuar?", progresso salvo no celular.
 10. **Mais conteúdo:** fases 2 a 6, repetindo as etapas 4 a 6.
 
-**Próximo passo:** etapa 2 (controle e sensação) em teste no iPhone e no PC.
+**Próximo passo:** etapa 3 (arte base) em teste no iPhone e no PC: armas, inimigos, refém e efeitos. Depois, etapa 4 (fase 1 completa).
 
 

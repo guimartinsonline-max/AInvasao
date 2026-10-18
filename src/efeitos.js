@@ -107,6 +107,10 @@ export class Efeitos {
     this.faiscaEm.explode(n, x, y);
   }
 
+  lascas(x, y) {
+    this.lascasEm.explode(4, x, y);
+  }
+
   tabuas(x, y) {
     this.tabuasEm.explode(7, x, y);
     this.lascasEm.explode(10, x, y);

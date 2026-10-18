@@ -51,5 +51,13 @@ export const EFEITOS = {
 };
 
 // Armas vistas de lado (tools/arte/armas.py), na ordem da folha assets/sprites/armas.png.
+// punho: onde a mão segura; boca: de onde sai o tiro (pixels dentro do desenho).
 export const ARMAS_SPRITE = { largura: 40, altura: 16,
-  ordem: ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'candeeiro', 'papo_amarelo', 'estilingue', 'buscape'] };
+  ordem: ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'candeeiro', 'papo_amarelo', 'estilingue', 'buscape'],
+  punho: { madsen: [14, 11], bacamarte: [13, 11], rojao: [16, 12], desintegrador: [10, 10], candeeiro: [22, 11],
+    papo_amarelo: [13, 10], estilingue: [19, 12], buscape: [17, 12] },
+  boca: { madsen: [39, 8], bacamarte: [39, 8], rojao: [39, 7], desintegrador: [37, 7], candeeiro: [37, 8],
+    papo_amarelo: [39, 5], estilingue: [20, 2], buscape: [34, 5] },
+};
+// Mão do Lampião segurando uma arma pesada, em relação ao pé (x para a frente, y para cima).
+LAMPIAO.mao = { frente: [11, 14], agachado: [11, 9], cima: [10, 27] };

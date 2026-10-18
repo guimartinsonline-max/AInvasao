@@ -15,6 +15,8 @@ export function carregarSprites(cena) {
   for (const [nome, q] of Object.entries(EFEITOS)) {
     cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
   }
+  cena.load.spritesheet('barril', s('barril'), { frameWidth: 18, frameHeight: 24 });
+  cena.load.spritesheet('escudo', s('escudo'), { frameWidth: 12, frameHeight: 26 });
   cena.load.spritesheet('armas', s('armas'), { frameWidth: ARMAS_SPRITE.largura, frameHeight: ARMAS_SPRITE.altura });
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
@@ -34,6 +36,17 @@ export function gerarSprites(cena) {
   texturaDeTexto(cena, 'raio', ['..0!??*.', '90!?*WW*', '..0!??*.'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
   gerarItens(cena);
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });
+  // Infinito da arma padrão no painel de munição.
+  texturaDeTexto(cena, 'infinito', [
+    '.WWW.....WWW...',
+    'WW.WW...WW.WWo.',
+    'W...WW.WW...Wo.',
+    'W....WWW....Wo.',
+    'W...WW.WW...Wo.',
+    'WW.WW.o.WW.WWo.',
+    '.WWWo....WWWo..',
+    '..ooo.....ooo..',
+  ], { W: 'branco', o: 'sombra' });
   texturaDeTexto(cena, 'granada', ['.g.', 'GGG', 'GgG', 'GGG'], { g: 'cinza', G: 'caatinga_esc' });
   texturaDeTexto(cena, 'corte', [
     '....wwww....',

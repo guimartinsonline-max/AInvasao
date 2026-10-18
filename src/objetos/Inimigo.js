@@ -3,6 +3,7 @@ import { estiloTexto } from '../texto.js';
 import { INIMIGOS } from '../quadros.js';
 
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
+const ESCUDO = 6; // tiros que o escudo aguenta
 const QUEIMA = 2200; // ms pegando fogo
 const DANO_QUEIMA = 0.5; // dano a cada QUEIMA_TICK ms
 const QUEIMA_TICK = 450;
@@ -21,7 +22,8 @@ const TIPOS = {
 // Inimigo comum: anda até o Lampião, para a uma distância e atira.
 // Ao morrer voa ou derrete de forma cômica; no campo de treino renasce.
 export class Inimigo extends Phaser.Physics.Arcade.Sprite {
-  constructor(cena, x, y, tipo) {
+  // opcoes.escudo: soldado da Volante com escudo de tábuas, que segura os tiros de frente.
+  constructor(cena, x, y, tipo, opcoes = {}) {
     const q = INIMIGOS[tipo];
     super(cena, x, y, tipo, q.parado);
     this.tipo = tipo;
@@ -32,7 +34,31 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.inicioX = x;
     this.inicioY = y;
     this.grito = cena.add.text(0, 0, '', estiloTexto(hex('branco'))).setOrigin(0.5).setVisible(false).setDepth(30);
+    this.temEscudo = !!opcoes.escudo;
+    if (this.temEscudo) this.escudo = cena.add.image(x, y, 'escudo', 0).setOrigin(0.5, 1).setDepth(10);
     this.reiniciar();
+  }
+
+  // Tiro vindo pela frente acerta o escudo e não o soldado.
+  bloqueia(vx) {
+    return this.vidaEscudo > 0 && Math.sign(vx) === -this.direcao;
+  }
+
+  danoEscudo(dano, x, y) {
+    const cena = this.scene;
+    this.vidaEscudo -= dano;
+    this.escudo.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
+    cena.time.delayedCall(50, () => this.escudo.clearTint());
+    cena.efeitos.impacto(x, y, 'comum');
+    cena.efeitos.lascas(x, y);
+    if (this.vidaEscudo <= ESCUDO / 2) this.escudo.setFrame(1);
+    if (this.vidaEscudo <= 0) {
+      this.escudo.setVisible(false);
+      cena.efeitos.tabuas(this.escudo.x, this.escudo.y - 13);
+      this.grito.setText('MEU ESCUDO!').setPosition(this.x, this.y - 54).setVisible(true).setAlpha(1);
+      cena.tweens.killTweensOf(this.grito);
+      cena.tweens.add({ targets: this.grito, alpha: 0, delay: 700, duration: 300 });
+    }
   }
 
   reiniciar() {
@@ -45,6 +71,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.passo = 0;
     this.queimaAte = 0;
     this.proximaQueima = 0;
+    this.vidaEscudo = this.temEscudo ? ESCUDO : 0;
+    if (this.escudo) this.escudo.setVisible(true).setFrame(0).clearTint();
     this.proximaChama = 0;
     this.setRotation(0).setVisible(true).clearTint().setAlpha(1);
     this.ajustarCorpo();
@@ -98,6 +126,12 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.vivo = false;
     this.clearTint();
     this.queimaAte = 0;
+    if (this.escudo && this.vidaEscudo > 0) {
+      // O escudo cai no chão quando o soldado morre.
+      this.vidaEscudo = 0;
+      this.escudo.setVisible(false);
+      ef.tabuas(this.escudo.x, this.escudo.y - 13);
+    }
     if (morte === 'fogo') {
       // Vira carvão, fica parado um instante e desmancha em cinza.
       this.setFrame(this.q.tostado);
@@ -186,6 +220,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
 
   preUpdate(t, dt) {
     super.preUpdate(t, dt);
+    if (this.escudo && this.escudo.visible) {
+      // O escudo vai na frente do corpo, na altura da barriga.
+      this.escudo.setPosition(Math.round(this.x + this.direcao * 9), Math.round(this.y)).setFlipX(this.direcao < 0);
+    }
     if (!this.vivo) return;
     const cena = this.scene;
     if (this.caindo) {
@@ -233,7 +271,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     if (dist > cfg.distancia && dist < cfg.alcance * 1.4 && !j.morto && this.temChaoAFrente()) {
-      this.body.setVelocityX(this.direcao * cfg.velocidade);
+      this.body.setVelocityX(this.direcao * cfg.velocidade * (this.vidaEscudo > 0 ? 0.6 : 1));
       this.passo += dt;
       this.setFrame(q.andar[Math.floor(this.passo / 150) % q.andar.length]);
     } else {

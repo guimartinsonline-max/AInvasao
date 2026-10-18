@@ -29,6 +29,7 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
 
   reiniciar() {
     this.vivo = true;
+    this.caindo = false;
     this.vida = VIDA;
     this.alvo = null;
     this.puxando = false;
@@ -44,18 +45,45 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
     if (this.vida <= 0) this.explodir();
   }
 
+  // Derrubado: rodopia soltando fumaça e faísca, cai e explode no chão,
+  // deixando o raio desintegrador.
   explodir() {
     const cena = this.scene;
     this.vivo = false;
+    this.caindo = true;
     this.soltarVitima();
-    this.setVisible(false);
     this.feixe.setVisible(false);
     this.body.enable = false;
-    cena.explodir(this.x, this.y, 30, 4, 1.2);
-    cena.time.delayedCall(9000, () => {
-      this.reiniciar();
-      this.body.reset(this.inicioX, ALTURA_VOO);
-    });
+    this.velQueda = { x: (Math.random() < 0.5 ? -1 : 1) * 40, y: -60 };
+    this.proximaFumaca = 0;
+    cena.efeitos.explosao(this.x, this.y + 4, 0.5);
+    this.grito.setText('BLÚRP!').setPosition(this.x, this.y - 20).setVisible(true).setAlpha(1);
+    cena.tweens.add({ targets: this.grito, alpha: 0, delay: 500, duration: 300 });
+  }
+
+  cair(t, dt) {
+    const cena = this.scene;
+    const s = dt / 1000;
+    this.velQueda.y = Math.min(this.velQueda.y + 420 * s, 260);
+    this.x += this.velQueda.x * s;
+    this.y += this.velQueda.y * s;
+    this.rotation += 9 * s * Math.sign(this.velQueda.x);
+    if (t > this.proximaFumaca) {
+      cena.efeitos.fumaca(this.x, this.y);
+      cena.efeitos.faisca(this.x, this.y, 2);
+      this.proximaFumaca = t + 60;
+    }
+    if (this.y + 6 >= cena.chaoAbaixo(this.x, this.y)) {
+      this.caindo = false;
+      this.setVisible(false).setRotation(0);
+      cena.explodir(this.x, this.y, 40, 6, 1.3);
+      cena.soltarItem(this.x, this.y - 10, 'desintegrador');
+      cena.time.delayedCall(9000, () => {
+        this.reiniciar();
+        this.setPosition(this.inicioX, ALTURA_VOO);
+        this.body.reset(this.inicioX, ALTURA_VOO);
+      });
+    }
   }
 
   soltarVitima() {
@@ -81,6 +109,10 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
 
   preUpdate(t, dt) {
     super.preUpdate(t, dt);
+    if (this.caindo) {
+      this.cair(t, dt);
+      return;
+    }
     if (!this.vivo) return;
     this.setFrame(Math.floor(t / 150) % 2);
     this.feixe.setFrame(Math.floor(t / 100) % 2);

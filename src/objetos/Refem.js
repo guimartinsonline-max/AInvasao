@@ -32,6 +32,21 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
     this.body.enable = true;
   }
 
+  // Pool de reféns escondidos em caixotes.
+  esconder() {
+    this.estado = 'longe';
+    this.vivo = false;
+    this.setVisible(false);
+    this.body.enable = false;
+  }
+
+  aparecer(x, pe) {
+    this.reiniciar();
+    this.body.reset(x, pe - 6);
+    this.scene.efeitos.poeira(x, pe, 8);
+    this.falar('ME SOLTA!');
+  }
+
   levarDano() {
     if (this.estado !== 'amarrado' || this.abduzido) return;
     this.soltar();
@@ -87,6 +102,7 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
         this.estado = 'longe';
         this.setVisible(false);
         this.body.enable = false;
+        if (this.temporario) return;
         this.scene.time.delayedCall(10000, () => {
           this.reiniciar();
           this.body.reset(this.inicioX, this.inicioY - 40);
