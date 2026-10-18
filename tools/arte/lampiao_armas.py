@@ -23,7 +23,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 import armas as ar  # noqa: E402
 import lampiao_px as lp  # noqa: E402
-import pixel  # noqa: E402
+import pixel
+import repintar  # noqa: E402
 
 PE = (14, 63)  # pé do Lampião no quadro
 MANGA = "uyytte"  # tons da manga (claro -> escuro)
@@ -141,6 +142,21 @@ def cabeca(g, dy, rosto, baixa=0):
         lp.pintar(g, 8 + k + dy + baixa, 7 + baixa, txt)
     for k, txt in enumerate(lp.CHAPEU):
         lp.pintar(g, 1 + k + dy + baixa, 4 + baixa, txt)
+    global _CORPO
+    _CORPO = [l[:] for l in g]  # o corpo antes de braço e arma: só ele é repintado
+
+
+_CORPO = None
+
+
+def _fim(g):
+    """Fecha o quadro: repinta o corpo (tons, dobras, couro gasto) sem tocar na arma."""
+    global _CORPO
+    if _CORPO is not None:
+        a, c = np.array(g), np.array(_CORPO)
+        g = repintar.repintar(g, ((a == c) & (a != ".")) | np.isin(a, list(repintar.RAMPAS["caqui"])))
+        _CORPO = None
+    return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
 
 
 def quadro_morte(nome):
@@ -240,7 +256,7 @@ def quadro(nome, arma, bocas=None):
         if bocas is not None:
             # Boca depois de girar: (by, W - 1 - bx).
             bocas["cima"] = [mx - gx + by - PE[0], PE[1] - (my - gy + ar.W - 1 - bx)]
-        return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
+        return _fim(g)
 
     if nome == "mira_baixo":
         # No pulo, apontando a arma para baixo entre as pernas (como no Metal Slug),
@@ -260,7 +276,7 @@ def quadro(nome, arma, bocas=None):
         if bocas is not None:
             # Boca depois de girar: (H - 1 - by, bx).
             bocas["baixo"] = [mx - gx + ar.H - 1 - by - PE[0], PE[1] - (my - gy + bx)]
-        return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
+        return _fim(g)
 
     arremesso = nome == "arremesso"
     facada = nome in ("facada", "facada1")
@@ -351,7 +367,7 @@ def quadro(nome, arma, bocas=None):
         chave = "agachado" if nome == "agachado" else ("frente" if nome == "parado" else None)
         if chave:
             bocas[chave] = [ox + bx - PE[0], PE[1] - (oy + by)]
-    return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
+    return _fim(g)
 
 
 def folha_da_arma(arma, bocas=None):
