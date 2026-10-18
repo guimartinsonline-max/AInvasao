@@ -64,6 +64,7 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
                     "metralhador": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "facao": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "rojao": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
+                    "oficial": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "xeremita": ["parado", "atira", "grito", "anda1", "anda2", "anda3", "anda4", "morte"]}.items():
     d = pixel.ler(f"{nome}.txt")
     # Soldados da Volante também têm os quadros sentados (distraídos) depois do tostado.

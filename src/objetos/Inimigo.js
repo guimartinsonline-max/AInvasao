@@ -5,7 +5,9 @@ import { INIMIGOS } from '../quadros.js';
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
 const ESCUDO = 6; // tiros que o escudo aguenta
 // Pontos por inimigo (como no Metal Slug, aparecem subindo quando ele cai).
-const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200 };
+const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200, oficial: 500 };
+// Quem pode se render quando o Lampião chega perto com arma pesada.
+const RENDE = new Set(['volante', 'granadeiro', 'rojao', 'metralhador']);
 const VE_DE = 130; // px: distância em que o soldado distraído percebe o Lampião
 const QUEIMA = 2200; // ms pegando fogo
 const DANO_QUEIMA = 0.5; // dano a cada QUEIMA_TICK ms
@@ -35,6 +37,12 @@ const TIPOS = {
     vida: 2, velocidade: 22, alcance: 280, distancia: 170, recarga: [2600, 3400], acao: 'rojao',
     gritos: ['MEU ROJÃO!', 'VIXE!', 'AAAI!'], panico: 30,
   },
+  // Oficial: fica atrás gritando ordem com a espada; atira de pistola; quando a
+  // tropa cai ou o Lampião chega perto, foge chorando.
+  oficial: {
+    vida: 3, velocidade: 20, alcance: 280, distancia: 200, recarga: [1900, 2800], bala: 'volante',
+    gritos: ['MAMÃEZINHA!', 'NÃO FUI EU!', 'AI, MEU QUEPE!'], panico: 0, oficial: true,
+  },
   // Corre para cima do Lampião com o facão erguido e golpeia de perto.
   facao: {
     vida: 2, velocidade: 82, alcance: 300, distancia: 0, recarga: [700, 1000], acao: 'golpe', alcanceGolpe: 24,
@@ -58,6 +66,11 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.inicioY = y;
     this.grito = cena.add.text(0, 0, '', estiloTexto(hex('branco'))).setOrigin(0.5).setVisible(false).setDepth(30);
     this.temEscudo = !!opcoes.escudo;
+    // opcoes.refem: segura um romeiro na frente como escudo (tiro de frente não passa).
+    this.temRefem = !!opcoes.refem;
+    if (this.temRefem) {
+      this.refemImg = cena.add.sprite(x, y, 'refem', 0).setDepth(10);
+    }
     this.comecaDistraido = !!opcoes.distraido && !!this.q.sentado;
     if (this.temEscudo) this.escudo = cena.add.image(x, y, 'escudo', 0).setOrigin(0.5, 1).setDepth(10);
     this.reiniciar();
@@ -65,11 +78,21 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
 
   // Tiro vindo pela frente acerta o escudo e não o soldado.
   bloqueia(vx) {
-    return this.vidaEscudo > 0 && Math.sign(vx) === -this.direcao;
+    const frente = Math.sign(vx) === -this.direcao;
+    return (this.vidaEscudo > 0 || (this.refemAtivo && this.vivo)) && frente;
   }
 
   danoEscudo(dano, x, y) {
     const cena = this.scene;
+    if (this.refemAtivo) {
+      // O romeiro na frente grita e o tiro não passa (peixeira, granada ou tiro por trás resolvem).
+      this.refemImg.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
+      cena.time.delayedCall(50, () => this.refemImg.clearTint());
+      if (!this.grito.visible || this.grito.alpha < 0.2) {
+        this.falar(Phaser.Utils.Array.GetRandom(['NÃO ATIRA!', 'VALEI-ME!', 'SOU EU, CAPITÃO!']));
+      }
+      return;
+    }
     this.vidaEscudo -= dano;
     this.escudo.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
     cena.time.delayedCall(50, () => this.escudo.clearTint());
@@ -96,6 +119,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.queimaAte = 0;
     this.proximaQueima = 0;
     this.vidaEscudo = this.temEscudo ? ESCUDO : 0;
+    this.refemAtivo = this.temRefem;
+    if (this.refemImg) this.refemImg.setVisible(true);
+    this.rendeuTentou = false;
+    this.contaTropa = 0;
     this.distraido = this.comecaDistraido;
     this.proximoZ = 0;
     if (this.escudo) this.escudo.setVisible(true).setFrame(0).clearTint();
@@ -118,6 +145,12 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const ox = d > 0 ? q.peX : q.largura - q.peX;
     this.setOrigin(ox / q.largura, q.peY / q.altura);
     this.body.setOffset(ox - q.corpoL / 2, q.peY - q.corpoA);
+  }
+
+  falar(texto, ms = 700) {
+    this.grito.setText(texto).setPosition(this.x, this.y - 54).setVisible(true).setAlpha(1);
+    this.scene.tweens.killTweensOf(this.grito);
+    this.scene.tweens.add({ targets: this.grito, alpha: 0, delay: ms, duration: 300 });
   }
 
   // Candeeiro: sai correndo apavorado, pegando fogo, e perde vida aos poucos.
@@ -178,6 +211,16 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     if (morte !== 'fogo' && morte !== 'derrete') {
       if (this.tipo === 'xeremita') ef.gosma(this.x, this.y - 22, 14);
       else ef.sangue(this.x, this.y - 22, morte === 'facada' ? 34 : 22);
+    }
+    if (this.refemAtivo) {
+      // Soldado caiu: o romeiro fica livre (já desamarrado) e agradece.
+      this.refemAtivo = false;
+      this.refemImg.setVisible(false);
+      const r = cena.refensExtras.find((rr) => !rr.visible);
+      if (r) {
+        r.aparecer(this.x + this.direcao * 10, this.y);
+        r.soltar();
+      }
     }
     if (this.escudo && this.vidaEscudo > 0) {
       // O escudo cai no chão quando o soldado morre.
@@ -303,6 +346,12 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       // O escudo vai na frente do corpo, na altura da barriga.
       this.escudo.setPosition(Math.round(this.x + this.direcao * 9), Math.round(this.y)).setFlipX(this.direcao < 0);
     }
+    if (this.refemAtivo) {
+      // Romeiro agarrado na frente, se debatendo.
+      const d = this.direcao;
+      this.refemImg.setPosition(Math.round(this.x + d * 10), Math.round(this.y)).setFlipX(d < 0)
+        .setOrigin((d > 0 ? 17 : 27) / 44, 45 / 46).setFrame(Math.floor(t / 160) % 3);
+    }
     if (!this.vivo) return;
     const cena = this.scene;
     if (this.caindo) {
@@ -344,6 +393,60 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const q = this.q;
     const cfg = this.cfg;
 
+    // Rendido: larga a arma, mãos para cima tremendo; depois sai correndo.
+    if (this.estado === 'rendido') {
+      this.body.setVelocityX(0);
+      this.setFrame(q.panico);
+      this.x += Math.floor(t / 60) % 2 ? 0.5 : -0.5;
+      if (t > this.fimEstado) {
+        this.estado = 'fugindo';
+        this.virar(dx > 0 ? -1 : 1);
+        this.falar('CORRE!');
+      }
+      return;
+    }
+    // Fugindo (rendido ou o oficial chorando): corre para fora da tela e some.
+    if (this.estado === 'fugindo') {
+      this.body.setVelocityX(this.direcao * cfg.velocidade * (cfg.oficial ? 3.2 : 2.4));
+      this.passo += dt;
+      this.setFrame(Math.floor(this.passo / 120) % 2 ? q.panico : q.andar[1]);
+      if (this.body.blocked.down && (this.body.blocked.left || this.body.blocked.right)) this.body.setVelocityY(-260);
+      const v = cena.cameras.main.worldView;
+      if (this.x < v.x - 30 || this.x > v.right + 30) {
+        this.vivo = false;
+        this.fora = true;
+        this.setVisible(false);
+        this.body.enable = false;
+        this.grito.setVisible(false);
+        if (cena.tudoVolta) cena.time.delayedCall(3000, () => this.renascer());
+      }
+      return;
+    }
+    if (RENDE.has(this.tipo) && !this.rendeuTentou && !this.refemAtivo && j.arma !== 'padrao' && dist < 90 && !j.morto) {
+      // Vê o Lampião chegando com arma pesada: às vezes se rende.
+      this.rendeuTentou = true;
+      if (Math.random() < 0.35) {
+        this.estado = 'rendido';
+        this.fimEstado = t + 2500;
+        this.virar(dx > 0 ? 1 : -1);
+        this.falar('NÃO ATIRA!', 1500);
+        cena.efeitos.capsula(this.x + this.direcao * 8, this.y - 20, this.direcao); // larga a arma
+        return;
+      }
+    }
+    if (cfg.oficial) {
+      // O oficial grita ordens; levou tiro ou o Lampião chegou perto: foge chorando.
+      if (this.vida < cfg.vida || (dist < 110 && !j.morto)) {
+        this.estado = 'fugindo';
+        this.virar(dx > 0 ? -1 : 1);
+        this.falar(Phaser.Utils.Array.GetRandom(['MAMÃE!', 'BUÁÁÁ!', 'RETIRADA!']), 1200);
+        return;
+      }
+      if (t > (this.proximaOrdem || 0)) {
+        this.proximaOrdem = t + Phaser.Math.Between(2500, 4000);
+        this.falar(Phaser.Utils.Array.GetRandom(['AVANÇAR!', 'FOGO NELE!', 'PEGA O CANGACEIRO!']), 900);
+      }
+    }
     if (this.estado === 'panico') {
       // Foge correndo, de costas para o Lampião, gritando.
       this.body.setVelocityX(this.temChaoAFrente() ? this.direcao * cfg.velocidade * 2.2 : 0);
@@ -375,7 +478,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const foraDaTela = this.x < v.x + 14 || this.x > v.right - 14;
     if (foraDaTela && !j.morto) this.virar(this.x < v.x + 14 ? 1 : -1);
     const anda = foraDaTela || (dist > cfg.distancia && dist < cfg.alcance * 1.4 && !j.morto);
-    const vel = cfg.velocidade * (this.vidaEscudo > 0 ? 0.6 : 1) * (foraDaTela ? 1.5 : 1);
+    const vel = cfg.velocidade * (this.vidaEscudo > 0 || this.refemAtivo ? 0.6 : 1) * (foraDaTela ? 1.5 : 1);
     if (anda && this.abrirCaminho(vel, j, foraDaTela)) {
       this.body.setVelocityX(this.direcao * vel);
       this.passo += dt;

@@ -53,7 +53,7 @@ export class CampoScene extends CenaJogo {
     const c = CHAO_Y + 2;
     for (const [x, y, tipo, opcoes] of [[320, c, 'xeremita'], [624, 150, 'granadeiro'], [880, c, 'volante', { escudo: true }],
       [1060, c, 'xeremita'], [700, c, 'metralhador'], [1130, c, 'facao'], [1110, c, 'rojao'],
-      [480, c, 'volante', { distraido: true }]]) {
+      [480, c, 'volante', { distraido: true }], [1150, c, 'oficial'], [900, c, 'volante', { refem: true }]]) {
       this.adicionarInimigo(x, y, tipo, opcoes || {});
     }
     // Refém (as balas do Lampião soltam a corda) e o bode Fubá.

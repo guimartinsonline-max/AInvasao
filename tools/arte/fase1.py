@@ -799,6 +799,7 @@ FASE = {
         {"gatilho": 300, "trava": [140, 524], "inimigos": [["volante", "dir", 0], ["volante", "dir", 900],
                                                            ["volante", "salta:500", 1700]]},
         {"gatilho": 860, "trava": [700, 1084], "inimigos": [["volante", "salta:910", 0], ["facao", "dir", 700],
+                                                            ["volante", "dir", 2000, {"refem": True}],
                                                             ["volante", "esq", 1600], ["metralhador", "dir", 2400],
                                                             ["rojao", "dir", 3200]]},
         {"gatilho": 1720, "trava": [1560, 1944], "inimigos": [["volante", "salta:1700", 0], ["volante", "dir", 500],
@@ -812,15 +813,19 @@ FASE = {
         # Vila: a Volante sai das casas e da capela, e chega um caminhão.
         {"gatilho": 3250, "trava": [3060, 3608], "inimigos": [["volante", "porta:3098", 0], ["volante", "porta:3468", 600],
                                                               ["caminhao", "dir", 1200, {"soldados": ["volante", "granadeiro", "volante"]}],
-                                                              ["facao", "porta:3468", 3400], ["volante", "esq", 4000]]},
+                                                              ["facao", "porta:3468", 3400], ["volante", "esq", 4000],
+                                                              ["oficial", "porta:3468", 2000],
+                                                              ["volante", "dir", 4800, {"refem": True}]]},
         # Rio seco: soldados pelo leito e pulando da ponte.
         {"gatilho": 4150, "trava": [3990, 4538], "inimigos": [["volante", "dir", 0], ["granadeiro", "salta:4320", 500],
                                                               ["metralhador", "dir", 1500], ["rojao", "esq", 2300],
-                                                              ["volante", "salta:4440", 2800], ["facao", "dir", 3400]]},
+                                                              ["volante", "salta:4440", 2800], ["facao", "dir", 3400],
+                                                              ["volante", "dir", 1000, {"refem": True}]]},
         # Acampamento: saem das barracas e de um caminhão.
         {"gatilho": 4880, "trava": [4700, 5248], "inimigos": [["volante", "porta:4782", 0],
                                                               ["caminhao", "dir", 600, {"soldados": ["volante", "facao", "granadeiro", "volante"]}],
-                                                              ["metralhador", "salta:4930", 1800], ["volante", "porta:5222", 3000]]},
+                                                              ["metralhador", "salta:4930", 1800], ["volante", "porta:5222", 3000],
+                                                              ["oficial", "porta:5222", 1200]]},
         # Carro blindado da Volante.
         {"gatilho": 5420, "trava": [5230, 5778], "inimigos": [["blindado", "dir", 300, {"para": 5640}],
                                                               ["volante", "esq", 5000], ["volante", "esq", 9000]]},

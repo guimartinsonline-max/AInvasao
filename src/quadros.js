@@ -37,7 +37,10 @@ export const INIMIGOS = {
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [38, 31] },
 };
 // Soldados da Volante sentados cochilando (distraídos): quadros 9 e 10.
-for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao']) INIMIGOS[tipo].sentado = [9, 10];
+// Oficial da Volante: espada erguida dando ordem, pistola, chora fugindo.
+INIMIGOS.oficial = { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
+  parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [33, 19] };
+for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial']) INIMIGOS[tipo].sentado = [9, 10];
 
 // Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).
 export const REFEM = { largura: 44, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,
