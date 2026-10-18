@@ -21,6 +21,9 @@ export const ARMAS = {
   },
 };
 
+// Itens que reféns e caixotes podem soltar.
+export const PREMIOS = ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'granadas'];
+
 // Comportamento de cada tipo de bala.
 export const BALAS = {
   comum: { textura: 'bala', velocidade: 380, dano: 1 },

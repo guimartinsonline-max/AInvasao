@@ -1,3 +1,5 @@
+import { PREMIOS } from '../armas.js';
+
 // Caixotes de madeira destrutíveis. Bloqueiam a passagem até serem quebrados
 // por tiro, peixeira ou explosão; viram tábuas voando e podem soltar um item.
 // Um caixote empilhado cai quando o de baixo quebra. No campo de treino voltam.
@@ -6,7 +8,6 @@ const LARGURA = 24;
 const ALTURA = 18;
 const VIDA = 3;
 const VOLTA = 10000; // ms para o caixote reaparecer (campo de treino)
-const PREMIOS = ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'granadas'];
 const CHANCE_PREMIO = 0.6;
 
 class Caixote {

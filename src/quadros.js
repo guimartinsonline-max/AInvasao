@@ -11,15 +11,18 @@ LAMPIAO.corrida = ['corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6'];
 LAMPIAO.cano = { frente: [29, 15], agachado: [29, 10], cima: [10, 45] };
 
 // Inimigos pixel a pixel (tools/arte/pixel/*.txt), ordem de tools/arte/exportar.py.
+// Caricatos (tools/arte/caricatos.py): o quadro 7 é a morte e o 8 é o tostado (queimado).
 const ANDAR = [3, 4, 5, 6];
 export const INIMIGOS = {
-  volante: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 34,
-    parado: 0, atira: 1, panico: 2, morte: 2, andar: ANDAR, cano: [29, 15] },
-  xeremita: { largura: 44, altura: 46, peX: 15, peY: 45, corpoL: 12, corpoA: 32,
-    parado: 0, atira: 1, panico: 2, morte: 2, andar: ANDAR, cano: [15, 14] },
+  volante: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 17] },
+  xeremita: { largura: 44, altura: 46, peX: 17, peY: 45, corpoL: 14, corpoA: 38,
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [23, 16] },
 };
 
-export const REFEM = { largura: 32, altura: 36, peX: 15, peY: 35, amarrado: [0, 1], continencia: 2, corrida: [3, 4, 5, 6] };
+// Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).
+export const REFEM = { largura: 44, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,
+  entrega: 5, continencia: 6, corrida: [7, 8, 9, 10] };
 export const DISCO = { largura: 48, altura: 24 };
 export const FEIXE = { largura: 14, altura: 120 };
 export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };
