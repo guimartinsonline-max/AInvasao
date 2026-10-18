@@ -7,6 +7,8 @@ import { Balas } from '../objetos/Balas.js';
 import { ARMAS } from '../armas.js';
 import { Refem } from '../objetos/Refem.js';
 import { Disco, Bode } from '../objetos/Disco.js';
+import { Itens } from '../objetos/Itens.js';
+import { Caixotes } from '../objetos/Caixotes.js';
 
 const LARGURA_MUNDO = LARGURA * 3;
 const CHAO_Y = 192;
@@ -32,16 +34,14 @@ export class CampoScene extends Phaser.Scene {
       this.add.image(x, CHAO_Y + 3, 'touceiras', Phaser.Math.Between(0, 3)).setOrigin(0.5, 1).setDepth(6);
     }
     const c = CHAO_Y + 2;
-    for (const [x, y] of [[176, c - 18], [412, c - 18], [436, c - 18], [424, c - 36], [860, c - 18]]) {
-      this.add.image(x, y, 'caixote').setOrigin(0).setDepth(6);
-      this.solido(x, y, 24, 18);
-    }
     for (const [x, y, n] of [[560, 150, 4], [740, 162, 2], [980, 146, 3]]) {
       this.add.tileSprite(x, y, 32 * n, 12, 'laje').setOrigin(0).setDepth(6);
       this.solido(x, y, 32 * n, 12);
     }
 
     this.efeitos = new Efeitos(this, this.solidos);
+    // Caixotes destrutíveis (o de cima, empilhado, cai quando o de baixo quebra).
+    this.caixotes = new Caixotes(this, [[176, c - 18], [412, c - 18], [436, c - 18], [424, c - 36], [860, c - 18]]);
 
     this.alvos = this.physics.add.group({ runChildUpdate: false });
     for (const [x, y, tipo] of [[320, c, 'xeremita'], [624, 150, 'volante'], [880, c, 'volante'], [1060, c, 'xeremita']]) {
@@ -64,7 +64,7 @@ export class CampoScene extends Phaser.Scene {
     this.balas = new Balas(this, this.solidos, this.alvos, (alvo, bala) => {
       alvo.levarDano(bala.tipo.dano, bala.x, false, bala.tipo.morte);
       this.efeitos.faisca(bala.x, bala.y, 4);
-    });
+    }, (caixote, bala) => caixote.levarDano(bala.tipo.dano || 1));
 
     this.granadas = this.physics.add.group({ defaultKey: 'granada', maxSize: 6 });
     this.physics.add.collider(this.granadas, this.solidos, (g) => {
@@ -77,7 +77,7 @@ export class CampoScene extends Phaser.Scene {
     this.jogador = new Jogador(this, 60, c - 20);
     this.physics.add.collider(this.jogador.corpo, this.solidos);
     this.balasInimigas = new BalasInimigas(this, this.solidos, this.jogador);
-    this.criarCaixasDeArma(c);
+    this.criarItens(c);
 
     this.corte = this.add.image(0, 0, 'corte').setVisible(false).setDepth(20);
 
@@ -114,7 +114,7 @@ export class CampoScene extends Phaser.Scene {
   }
 
   alvoProximo(x, y, direcao, alcance) {
-    for (const alvo of this.alvos.getChildren()) {
+    for (const alvo of [...this.alvos.getChildren(), ...this.caixotes.vivos()]) {
       if (!alvo.vivo) continue;
       const dx = (alvo.x - x) * direcao;
       if (dx > -6 && dx < alcance && Math.abs(alvo.y - 18 - y) < 22) return alvo;
@@ -153,60 +153,42 @@ export class CampoScene extends Phaser.Scene {
   // Explosão com dano em área (granada, rojão).
   explodir(x, y, raio, dano, tamanho = 1) {
     this.efeitos.explosao(x, y, tamanho);
-    for (const alvo of this.alvos.getChildren()) {
+    for (const alvo of [...this.alvos.getChildren(), ...this.caixotes.vivos()]) {
       if (alvo.vivo && Phaser.Math.Distance.Between(x, y, alvo.x, alvo.y - 18) < raio) {
         alvo.levarDano(dano, x, true);
       }
     }
   }
 
-  // Caixas de arma espalhadas pelo campo de treino; voltam depois de um tempo.
-  criarCaixasDeArma(chao) {
-    this.caixasArma = this.physics.add.staticGroup();
+  // Itens de arma espalhados pelo campo de treino; voltam depois de pegos.
+  criarItens(chao) {
+    this.itens = new Itens(this, this.solidos, this.jogador, (arma, item) => this.pegarItem(arma, item));
     for (const [x, arma] of [[240, 'madsen'], [520, 'bacamarte'], [780, 'rojao'], [1010, 'desintegrador']]) {
-      const caixa = this.caixasArma.create(x, chao, `caixa_${ARMAS[arma].letra}`).setOrigin(0.5, 1).setDepth(7);
-      caixa.refreshBody();
-      caixa.arma = arma;
+      this.itens.colocar(x, chao - 20, arma, { fixo: true });
     }
-    this.caixasTemp = [];
-    for (let k = 0; k < 3; k++) {
-      const caixa = this.caixasArma.create(-100, -100, 'caixa_M').setOrigin(0.5, 1).setDepth(7);
-      caixa.temporaria = true;
-      caixa.disableBody(true, true);
-      this.caixasTemp.push(caixa);
-    }
-    this.physics.add.overlap(this.jogador.corpo, this.caixasArma, (corpo, caixa) => {
-      if (!caixa.active || this.jogador.morto) return;
-      this.pegarArma(caixa);
-    });
   }
 
-  pegarArma(caixa) {
-    const arma = ARMAS[caixa.arma];
-    this.jogador.trocarArma(caixa.arma);
-    caixa.disableBody(true, true);
-    this.efeitos.faisca(caixa.x, caixa.y - 8, 10);
-    this.events.emit('arma', arma.nome);
-    if (!caixa.temporaria) this.time.delayedCall(8000, () => caixa.enableBody(false, 0, 0, true, true));
+  pegarItem(arma, item) {
+    this.efeitos.faisca(item.x, item.y - 8, 12);
+    if (arma === 'granadas') {
+      this.jogador.granadas = Math.min(this.jogador.granadas + 5, 20);
+      this.events.emit('arma', 'GRANADAS +5');
+      return;
+    }
+    this.jogador.trocarArma(arma);
+    this.events.emit('arma', ARMAS[arma].nome);
   }
 
-  // Caixa deixada por um refém (pool de caixas temporárias).
-  soltarCaixa(x, y, arma) {
-    const caixa = this.caixasTemp.find((cx) => !cx.active) || this.caixasTemp[0];
-    caixa.setTexture(`caixa_${ARMAS[arma].letra}`);
-    caixa.arma = arma;
-    const chao = this.chaoAbaixo(x, y);
-    caixa.enableBody(true, x, chao, true, true);
-    caixa.refreshBody();
-    // Cai do ponto onde o refém estava até o chão.
-    caixa.y = y;
-    this.tweens.add({ targets: caixa, y: chao, duration: Math.max(80, (chao - y) * 4), ease: 'Quad.easeIn' });
+  // Item que sai saltando de um caixote quebrado ou de um refém solto.
+  soltarItem(x, y, arma) {
+    this.itens.colocar(x, y, arma, { pulo: true });
   }
 
   // Primeira superfície sólida abaixo de (x, y).
   chaoAbaixo(x, y) {
-    for (let yy = Math.floor(y); yy < ALTURA; yy += 2) {
-      if (this.physics.overlapRect(x - 1, yy, 2, 2, false, true).length) return yy;
+    for (let yy = Math.floor(y); yy < ALTURA; yy++) {
+      // O retângulo de teste conta como tocando quando a borda de baixo encosta no sólido.
+      if (this.physics.overlapRect(x - 1, yy, 2, 1, false, true).length) return yy + 1;
     }
     return CHAO_Y + 2;
   }
@@ -223,6 +205,7 @@ export class CampoScene extends Phaser.Scene {
     this.balas.atualizar(dt);
     this.balasInimigas.atualizar();
     this.efeitos.atualizar();
+    this.itens.atualizar(t);
 
     for (const g of this.granadas.getChildren()) {
       if (g.active && t >= g.explodeEm) this.explodirGranada(g);

@@ -1,4 +1,4 @@
-// Tabela de armas. A padrão é infinita; as outras vêm em caixas com letra.
+// Tabela de armas. A padrão é infinita; as outras vêm em itens com letra (src/sprites.js).
 // cadencia: ms entre tiros segurando; toque: ms mínimo apertando repetido.
 // bala: tipo usado por src/objetos/Balas.js.
 export const ARMAS = {

@@ -35,6 +35,17 @@ export class Efeitos {
       gravityY: 500, tint: [P.alien, P.alien_brilho, P.alien_esc],
     });
 
+    // Tábuas de caixote quebrado: giram e caem.
+    this.tabuasEm = add('tabua', {
+      lifespan: 1000, speed: { min: 70, max: 190 }, angle: { min: 200, max: 340 },
+      gravityY: 650, alpha: { start: 1, end: 0, ease: 'Expo.easeIn' },
+      rotate: { onEmit: () => Phaser.Math.Between(0, 359), onUpdate: (p, k, t, v) => v + (p.velocityX > 0 ? 14 : -14) },
+    });
+    this.lascasEm = add('px2', {
+      lifespan: 600, speed: { min: 40, max: 140 }, angle: { min: 190, max: 350 },
+      gravityY: 600, tint: [P.couro_claro, P.couro, P.couro_luz],
+    });
+
     this.clarao = cena.add.image(0, 0, 'clarao').setOrigin(0.1, 0.5).setVisible(false).setDepth(20);
     this.flashes = this.pool(4, () => cena.add.image(0, 0, 'disco').setVisible(false).setDepth(19));
 
@@ -75,6 +86,11 @@ export class Efeitos {
 
   faisca(x, y, n = 5) {
     this.faiscaEm.explode(n, x, y);
+  }
+
+  tabuas(x, y) {
+    this.tabuasEm.explode(7, x, y);
+    this.lascasEm.explode(10, x, y);
   }
 
   gosma(x, y, n = 24) {

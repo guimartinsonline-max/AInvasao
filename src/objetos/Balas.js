@@ -3,12 +3,13 @@ import { BALAS } from '../armas.js';
 // Balas do jogador, reaproveitadas de um pool fixo. O tipo (src/armas.js)
 // define textura, velocidade, dano, alcance, explosão e se atravessa inimigos.
 export class Balas {
-  constructor(cena, solidos, alvos, aoAcertar) {
+  constructor(cena, solidos, alvos, aoAcertar, aoAcertarCaixote) {
     this.cena = cena;
     this.grupo = cena.physics.add.group({ defaultKey: 'bala', maxSize: 48, allowGravity: false });
 
-    cena.physics.add.overlap(this.grupo, solidos, (bala) => {
+    cena.physics.add.overlap(this.grupo, solidos, (bala, solido) => {
       if (!bala.active) return;
+      if (solido.caixote && !bala.tipo.explode) aoAcertarCaixote(solido.caixote, bala);
       if (bala.tipo.explode) this.explodir(bala);
       else cena.efeitos.faisca(bala.x, bala.y, 3);
       this.recolher(bala);

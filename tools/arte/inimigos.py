@@ -97,12 +97,13 @@ def disco(quadro=0):
     return t
 
 
-def feixe(quadro=0, w=26, h=110):
-    """Raio abdutor: cone listrado que o jogo desenha meio transparente."""
+def feixe(quadro=0, w=14, h=110):
+    """Raio abdutor: cone estreito e listrado que o jogo desenha meio transparente.
+    Estreito de propósito: dá para ficar ao lado, embaixo do disco, e atirar para cima."""
     t = Tela(w, h)
     meio = w / 2
     for y in range(h):
-        larg = 3 + (meio - 3) * y / h
+        larg = 2 + (meio - 2) * y / h
         x0, x1 = int(round(meio - larg)), int(round(meio + larg))
         for x in range(x0, x1):
             faixa = (y + quadro * 4) // 6 % 2 == 0

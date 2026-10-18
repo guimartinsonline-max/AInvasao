@@ -5,6 +5,10 @@ import { DISCO, FEIXE, BODE } from '../quadros.js';
 const ALTURA_VOO = 62;
 const VIDA = 10;
 const PUXADA = 14; // px/s que a vítima sobe
+// O raio só levanta o Lampião bem no centro e depois de um tempo dentro dele;
+// nas laterais do disco dá para ficar embaixo e atirar para cima sem ser sugado.
+const MEIO_RAIO = 6;
+const DEMORA_PUXAR = 450; // ms dentro do raio antes de começar a subir
 
 // Disco abdutor: voa até uma vítima (refém ou bode) e puxa com o raio.
 // Atirar nele derruba a vítima; ficar dentro do raio levanta o Lampião.
@@ -14,7 +18,7 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
     cena.add.existing(this);
     cena.physics.add.existing(this);
     this.body.allowGravity = false;
-    this.body.setSize(40, 12).setOffset(4, 8);
+    this.body.setSize(48, 16).setOffset(0, 4);
     this.setDepth(12);
     this.vitimas = vitimas;
     this.feixe = cena.add.sprite(x, ALTURA_VOO, 'feixe', 0).setOrigin(0.5, 0).setAlpha(0.55).setDepth(11).setVisible(false);
@@ -126,8 +130,10 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
     this.feixe.setCrop(0, 0, FEIXE.largura, Math.max(0, 192 - (this.y + 8)));
     // Lampião dentro do raio sobe junto.
     const j = this.scene.jogador;
-    if (this.puxando && !j.morto && Math.abs(j.x - this.x) < FEIXE.largura / 2 && j.pe > this.y + 24) {
-      j.corpo.body.setVelocityY(Math.max(j.corpo.body.velocity.y - dt * 1.6, -70));
+    const dentro = this.puxando && !j.morto && Math.abs(j.x - this.x) < MEIO_RAIO && j.pe > this.y + 24;
+    this.noRaio = dentro ? (this.noRaio || 0) + dt : 0;
+    if (this.noRaio > DEMORA_PUXAR) {
+      j.corpo.body.setVelocityY(Math.max(j.corpo.body.velocity.y - dt * 1.2, -50));
     }
   }
 }

@@ -1,7 +1,8 @@
 // Tiros dos inimigos, em pool. 'volante' é bala rápida; 'raio' é o tiro verde lento do xeremita.
+// mira: ângulo máximo (rad) que o tiro pode apontar para o Lampião; 0 = sai reto.
 const TIPOS = {
-  volante: { textura: 'bala', velocidade: 200 },
-  raio: { textura: 'raio', velocidade: 120 },
+  volante: { textura: 'bala', velocidade: 200, mira: 0.2 },
+  raio: { textura: 'raio', velocidade: 110, mira: 0 },
 };
 
 export class BalasInimigas {
@@ -21,7 +22,7 @@ export class BalasInimigas {
     });
   }
 
-  // Mira no peito do alvo, com ângulo limitado (no máximo ~30 graus).
+  // Mira no peito do alvo, com ângulo limitado pelo tipo (o raio do xeremita sai reto).
   disparar(x, y, direcao, tipo, alvoX = null, alvoY = null) {
     const cfg = TIPOS[tipo];
     const bala = this.grupo.get(x, y, cfg.textura);
@@ -30,9 +31,9 @@ export class BalasInimigas {
     bala.body.reset(x, y);
     bala.body.setSize(bala.width, bala.height);
     let ang = direcao > 0 ? 0 : Math.PI;
-    if (alvoX !== null) {
+    if (alvoX !== null && cfg.mira) {
       const bruto = Math.atan2(alvoY - y, (alvoX - x) * direcao);
-      ang = Phaser.Math.Clamp(bruto, -0.5, 0.5);
+      ang = Phaser.Math.Clamp(bruto, -cfg.mira, cfg.mira);
       if (direcao < 0) ang = Math.PI - ang;
     }
     bala.setFlipX(false).setRotation(ang);

@@ -34,7 +34,7 @@ export function gerarSprites(cena) {
   texturaDeTexto(cena, 'chumbo', ['xC', 'CW'], { x: 'cinza_medio', C: 'cinza_claro', W: 'branco' });
   texturaDeTexto(cena, 'rojao', ['..ddRRTTU.', 'adddRTTTUH', '..ddRRTTU.'], { a: 'couro_escuro', d: 'couro', R: 'vermelho_esc', T: 'vermelho', U: 'laranja_fogo', H: 'amarelo_claro' });
   texturaDeTexto(cena, 'desintegra', ['..00!!??**W.', '0!!??**WWWWW', '..00!!??**W.'], { 0: 'alien_medio', '!': 'alien', '?': 'alien_luz', '*': 'alien_brilho', W: 'branco' });
-  gerarCaixasDeArma(cena);
+  gerarItens(cena);
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });
   texturaDeTexto(cena, 'granada', ['.g.', 'GGG', 'GgG', 'GGG'], { g: 'cinza', G: 'caatinga_esc' });
   // Clarão do cano, voltado para a direita (a origem fica na boca do cano).
@@ -62,44 +62,76 @@ export function gerarSprites(cena) {
   texturaDesenhada(cena, 'bola', 6, 6, (ctx) => disco(ctx, 3, 3, 2, '#ffffff'));
 }
 
-// Caixa de madeira com a letra da arma (como as caixas de arma do Metal Slug).
+// Itens de arma no estilo Metal Slug: letra grande e grossa, com volume
+// (degradê de cima para baixo), extrusão escura para dar profundidade,
+// contorno preto e brilho no canto. A chave é item_<nome da arma>.
 const LETRAS = {
-  M: ['X...X', 'XX.XX', 'X.X.X', 'X...X', 'X...X'],
-  B: ['XXXX.', 'X...X', 'XXXX.', 'X...X', 'XXXX.'],
-  R: ['XXXX.', 'X...X', 'XXXX.', 'X..X.', 'X...X'],
-  D: ['XXXX.', 'X...X', 'X...X', 'X...X', 'XXXX.'],
-  G: ['.XXX.', 'X....', 'X.XXX', 'X...X', '.XXX.'],
-  L: ['X....', 'X....', 'X....', 'X....', 'XXXXX'],
-  F: ['XXXXX', 'X....', 'XXXX.', 'X....', 'X....'],
-  O: ['.XXX.', 'X...X', 'X...X', 'X...X', '.XXX.'],
-  C: ['.XXXX', 'X....', 'X....', 'X....', '.XXXX'],
+  M: ['XXX......XXX', 'XXXX....XXXX', 'XXXXX..XXXXX', 'XXX.XXXX.XXX', 'XXX..XX..XXX', 'XXX......XXX',
+    'XXX......XXX', 'XXX......XXX', 'XXX......XXX', 'XXX......XXX', 'XXX......XXX', 'XXX......XXX'],
+  B: ['XXXXXXXX..', 'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX...XXX.', 'XXXXXXXX..',
+    'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXXXXXXXX.', 'XXXXXXXX..'],
+  R: ['XXXXXXXX..', 'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXXXXXXXX.',
+    'XXXXXXXX..', 'XXX..XXX..', 'XXX...XXX.', 'XXX...XXX.', 'XXX....XXX', 'XXX....XXX'],
+  D: ['XXXXXXX...', 'XXXXXXXX..', 'XXX...XXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX',
+    'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXX...XXX.', 'XXXXXXXX..', 'XXXXXXX...'],
+  G: ['..XXXXXX..', '.XXXXXXXX.', 'XXX....XXX', 'XXX.......', 'XXX.......', 'XXX..XXXXX',
+    'XXX..XXXXX', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', '.XXXXXXXX.', '..XXXXXX..'],
 };
 
-function gerarCaixasDeArma(cena) {
-  const base = [
-    'OOOOOOOOOOOOOO',
-    'OcvvvvvvvvvvxO',
-    'OvhggggggggfxO',
-    'OvgffffffffdxO',
-    'OvgffffffffdxO',
-    'OvgffffffffdxO',
-    'OvgffffffffdxO',
-    'OvgffffffffdxO',
-    'OvgffffffffdxO',
-    'OvgddddddddsxO',
-    'OcxxxxxxxxxxXO',
-    'OOOOOOOOOOOOOO',
-  ];
-  const mapa = { O: 'sombra', c: 'cinza', v: 'cinza_claro', x: 'cinza_escuro', X: 'cinza_medio', h: 'couro_luz',
-    g: 'couro_claro', f: 'couro_medio', d: 'couro', s: 'couro_escuro', W: 'amarelo_fogo', K: 'couro_profundo' };
-  for (const [letra, glifo] of Object.entries(LETRAS)) {
-    const linhas = base.map((l) => l.split(''));
+// Degradê de cada cor: brilho, claro, médio, escuro (extrusão).
+const RAMPAS = {
+  vermelho: ['amarelo_claro', 'laranja_fogo', 'vermelho', 'vermelho_esc'],
+  ouro: ['branco', 'amarelo_claro', 'ouro_escuro', 'laranja_escuro'],
+  laranja_fogo: ['amarelo_claro', 'amarelo_fogo', 'laranja_fogo', 'vermelho_medio'],
+  alien: ['branco', 'alien_brilho', 'alien', 'alien_profundo'],
+  caatinga: ['amarelo_claro', 'mandacaru_luz', 'mandacaru', 'caatinga_esc'],
+};
+
+export const ITENS = {
+  madsen: { letra: 'M', rampa: 'vermelho' },
+  bacamarte: { letra: 'B', rampa: 'ouro' },
+  rojao: { letra: 'R', rampa: 'laranja_fogo' },
+  desintegrador: { letra: 'D', rampa: 'alien' },
+  granadas: { letra: 'G', rampa: 'caatinga' },
+};
+
+function gerarItens(cena) {
+  for (const [nome, { letra, rampa }] of Object.entries(ITENS)) {
+    const glifo = LETRAS[letra];
+    const [brilho, claro, medio, escuro] = RAMPAS[rampa];
+    const w = glifo[0].length + 4;
+    const h = glifo.length + 4;
+    const grade = Array.from({ length: h }, () => Array(w).fill(null));
+    const cheio = (x, y) => glifo[y] && glifo[y][x] === 'X';
+    // Extrusão: a letra repetida 1 px para baixo e para a direita, em tom escuro.
+    glifo.forEach((l, y) => [...l].forEach((ch, x) => { if (ch === 'X') grade[y + 2][x + 2] = escuro; }));
+    // Letra com degradê vertical e brilho na quina de cima à esquerda.
     glifo.forEach((l, y) => [...l].forEach((ch, x) => {
-      if (ch === 'X') {
-        linhas[3 + y][5 + x] = 'W';
-        linhas[4 + y][6 + x] = linhas[4 + y][6 + x] === 'W' ? 'W' : 'K';
-      }
+      if (ch !== 'X') return;
+      let cor = y < 3 ? claro : medio;
+      if (y >= glifo.length - 3) cor = medio;
+      if (!cheio(x - 1, y) && !cheio(x, y - 1)) cor = brilho;
+      else if (!cheio(x, y - 1) && y < 6) cor = brilho;
+      grade[y + 1][x + 1] = cor;
     }));
-    texturaDeTexto(cena, `caixa_${letra}`, linhas.map((l) => l.join('')), mapa);
+    // Contorno preto em volta de tudo.
+    const contorno = grade.map((l) => l.slice());
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (grade[y][x]) continue;
+        let perto = false;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (grade[y + dy]?.[x + dx]) perto = true;
+        if (perto) contorno[y][x] = 'preto';
+      }
+    }
+    texturaDesenhada(cena, `item_${nome}`, w, h, (ctx, cor) => {
+      contorno.forEach((l, y) => l.forEach((c, x) => {
+        if (!c) return;
+        ctx.fillStyle = cor(c);
+        ctx.fillRect(x, y, 1, 1);
+      }));
+    });
   }
+  // Tábua de caixote quebrado.
+  texturaDeTexto(cena, 'tabua', ['ssss.', 'ffffs', 'ddddd'], { s: 'couro_luz', f: 'couro_claro', d: 'couro' });
 }

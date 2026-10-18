@@ -2,10 +2,10 @@ import { hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { REFEM } from '../quadros.js';
 
-const PREMIOS = ['madsen', 'bacamarte', 'rojao', 'desintegrador'];
+const PREMIOS = ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'granadas'];
 
 // Romeiro amarrado. Um tiro ou um toque solta a corda: ele bate continência,
-// deixa uma caixa de arma e sai correndo (como os prisioneiros do Metal Slug).
+// deixa um item e sai correndo (como os prisioneiros do Metal Slug).
 export class Refem extends Phaser.Physics.Arcade.Sprite {
   constructor(cena, x, y) {
     super(cena, x, y, 'refem', REFEM.amarrado[0]);
@@ -42,7 +42,7 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
     cena.efeitos.faisca(this.x, this.y - 18, 8);
     this.fala.setText('OBRIGADO!').setPosition(this.x, this.y - 44).setVisible(true).setAlpha(1);
     cena.tweens.add({ targets: this.fala, alpha: 0, delay: 600, duration: 300 });
-    cena.soltarCaixa(this.x + 12, this.y, Phaser.Utils.Array.GetRandom(PREMIOS));
+    cena.soltarItem(this.x + 12, this.y - 20, Phaser.Utils.Array.GetRandom(PREMIOS));
   }
 
   preUpdate(t, dt) {
