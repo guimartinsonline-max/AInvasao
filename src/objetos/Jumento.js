@@ -117,7 +117,15 @@ export class Jumento {
       b.reset(j.corpo.x, cena.chaoAbaixo(j.x, -60) - 30);
       b.setVelocity(0, 0);
     }
-    const noChao = b.blocked.down;
+    // Nunca afunda: se o pé passou do chão que está logo embaixo, volta para cima dele.
+    const chao = cena.chaoAbaixo(j.x, j.pe - 30);
+    if (j.pe > chao + 2 && b.velocity.y >= 0) {
+      j.corpo.y -= j.pe - chao;
+      b.setVelocityY(0);
+      b.updateFromGameObject?.();
+    }
+    const noChao = b.blocked.down || b.touching.down || chao - j.pe < 3;
+    this.noAr = noChao ? 0 : (this.noAr || 0) + dt;
     // Descer: baixo + pulo.
     if (c.estado.baixo && c.apertou('pular') && noChao) {
       this.desmontar();
@@ -136,7 +144,8 @@ export class Jumento {
     // Mira: frente, diagonal, cima; no ar, para baixo. A metralhadora gira até lá.
     let alvo = 0;
     if (c.estado.cima) alvo = c.eixoX !== 0 ? -Math.PI / 4 : -Math.PI / 2;
-    else if (c.estado.baixo && !noChao) alvo = Math.PI / 2;
+    // Para baixo só no ar de verdade (pulando alto), nunca andando no chão.
+    else if (c.estado.baixo && this.noAr > 150 && chao - j.pe > 14) alvo = Math.PI / 2;
     const passo = GIRO * dt / 1000;
     this.ang += Phaser.Math.Clamp(alvo - this.ang, -passo, passo);
 
@@ -172,12 +181,14 @@ export class Jumento {
   // Boca da metralhadora no mundo.
   boca() {
     const a = this.direcao > 0 ? this.ang : Math.PI - this.ang;
-    return [this.mg.x + Math.cos(a) * 24, this.mg.y + Math.sin(a) * 24];
+    return [this.mg.x + Math.cos(a) * 27, this.mg.y + Math.sin(a) * 27];
   }
 
   posicionarMg() {
     const d = this.direcao;
-    this.mg.setPosition(Math.round(this.s.x + d * 6.5), Math.round(this.s.y - 42));
+    // Arma baixa no ombro do jumento (como a do camelo): o tiro sai na altura dos soldados.
+    const sobe = this.s.frame && (this.s.frame.name === 1 || this.s.frame.name === 3) ? 1 : this.s.frame && this.s.frame.name === 5 ? 3 : 0;
+    this.mg.setPosition(Math.round(this.s.x + d * 17), Math.round(this.s.y - 26 - sobe));
     this.mg.setFlipY(d < 0).setRotation(d > 0 ? this.ang : Math.PI - this.ang);
   }
 

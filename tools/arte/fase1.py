@@ -517,8 +517,13 @@ def lajedo(w, h=40, semente=0):
              t.elipse(x + r, y + r, r, r) | t.elipse(x + larg - r, y + r, r, r) |
              t.elipse(x + r, y + alt - r, r, r) | t.elipse(x + larg - r, y + alt - r, r, r))
         m &= (t.yy >= 0) & ~tudo
-        t.volume(m, GRANITO, achatado=3, suave=0.9, ambiente=0.2, textura=0.22, semente=semente * 31 + k,
-                 luz=(-0.45, -0.85))
+        t.volume(m, GRANITO, achatado=3.5, suave=1.0, ambiente=0.2, textura=0.06, semente=semente * 31 + k,
+                 luz=(-0.45, -0.85), brilho=1.15)
+        # Faces lascadas: um plano de luz em diagonal no alto do bloco e a base em sombra fria.
+        plano = m & (t.yy < y + alt * 0.45) & (t.xx < x + larg * 0.55) & (t.yy - y > (t.xx - x) * 0.25 - 1)
+        t.px[plano & np.isin(t.px, [IDX[c] for c in GRANITO[3:6]])] = IDX["areia_media"]
+        base_ = m & (t.yy > y + alt - 3)
+        t.px[base_] = ESCURO[t.px[base_]]
         tudo |= m
         ids[m] = k
     # Fendas escuras entre os blocos e um fio de luz na borda de cima de cada um.
@@ -538,9 +543,21 @@ def lajedo(w, h=40, semente=0):
             x += rng.uniform(-0.7, 0.7)
             if 0 <= int(x) < w and tudo[yy, int(x)] and rng.random() < 0.8:
                 t.px[yy, int(x)] = IDX["sombra"]
-    # Líquen.
-    liquen = (ruido(h, w, 1.0, semente + 3) > 1.4) & tudo & (t.yy > 3)
-    t.px[liquen] = IDX["mandacaru_luz"]
+    # Líquen em manchas (miolo verde, borda clara) e escorrido escuro de chuva.
+    liquen = (ruido(h, w, 1.3, semente + 3) > 1.5) & tudo & (t.yy > 3)
+    t.px[liquen] = IDX["caatinga_media"]
+    borda_l = liquen & ~ndimage.binary_erosion(liquen)
+    t.px[borda_l] = IDX["mandacaru_luz"]
+    for _ in range(max(1, w // 25)):
+        x = int(rng.uniform(3, w - 3))
+        for yy in range(3, min(h, 3 + int(rng.uniform(6, 14)))):
+            if tudo[yy, x] and rng.random() < 0.85:
+                t.px[yy, x] = ESCURO[t.px[yy, x]]
+    # Pedregulhos soltos e terra na base.
+    for _ in range(max(2, w // 14)):
+        x = rng.uniform(2, w - 2)
+        m = t.elipse(x, h - 1.5, rng.uniform(1.5, 3), rng.uniform(1, 1.8))
+        t.volume(m, GRANITO[1:], achatado=1, suave=0.3, ambiente=0.3)
     t.contorno("sombra")
     return t
 
@@ -877,17 +894,14 @@ def camada_jogo():
         colar(t, lj, sx - 2, y(sy) - 2)
     # Trincheira de sacos de areia.
     sx, sy, sw, sh = FASE["solidos"][2]
-    sa = sacos_areia(4, 3)
+    sa = sacos_detalhados(4, 3, 1)
     assentar(t, sa, sx - 3, yc, afundar=3)
     # Giraus: tábuas sobre forquilhas.
     for k in (7, 9, 11):
         gx, gy, gw = FASE["solidos"][k][:3]
-        for px in (gx + 2, gx + gw - 5):
-            m = t.capsula(px + 1, y(gy) + 3, px + 1, y(CHAO), 1.5, 1.6)
-            t.volume(m, MADEIRA, achatado=1, suave=0.4, ambiente=0.2)
-        tab = tabuas(gw, 5, vertical=True, semente=gx)
-        tab.contorno("sombra")
-        colar(t, tab, gx, y(gy))
+        gr = girau(gw, y(CHAO) - y(gy), semente=gx)
+        sombra_contato(t, gx + gw / 2, yc + 1, gw * 1.1, 3)
+        colar(t, gr, gx - 4, y(gy))
     # Cerca no fim do primeiro trecho.
     assentar(t, cerca_farpada(90, 3), 2860, yc)
     # ---- Vila de taipa: casas e capela (os soldados saem pelas portas), cruzeiro.
@@ -903,7 +917,7 @@ def camada_jogo():
     # ---- Acampamento da Volante: barracas, torre de vigia, mastro, munição.
     assentar(t, ext.barraca(84, 44, semente=1), 4740, yc + 1)
     assentar(t, ext.caixas_municao(3, 1), 4862, yc)
-    sa2 = sacos_areia(4, 3)
+    sa2 = sacos_detalhados(4, 3, 2)
     for sx_ in (4900, 5400):
         assentar(t, sa2, sx_ - 3, yc, afundar=3)
     tv = ext.torre_vigia(98, 40)
@@ -1090,3 +1104,150 @@ def exportar(saida, raiz):
     pasta = raiz / "assets/fases"
     pasta.mkdir(parents=True, exist_ok=True)
     (pasta / "fase1.json").write_text(json.dumps(dados, ensure_ascii=False, separators=(",", ":")))
+
+
+# ---------------------------------------------------------------- peças detalhadas (nível Metal Slug)
+CASCA = ["preto", "marrom_noite", "couro_profundo", "couro_escuro", "couro", "couro_medio"]
+CERNE = ["couro_escuro", "couro", "couro_medio", "couro_claro", "couro_luz", "areia_luz"]
+CORDA = ["terra", "terra_media", "areia_media", "areia", "areia_luz"]
+ESTOPA = ["terra_escura", "terra", "terra_media", "areia_media", "areia", "areia_luz", "areia_clara"]
+
+
+def tora(t, x0, y0, x1, y1, r, semente=0, pontas=True):
+    """Tronco roliço com casca: volume, estrias de casca ao comprido, nós e a ponta
+    cortada mostrando os anéis claros."""
+    m = t.capsula(x0, y0, x1, y1, r, r * 0.9)
+    t.volume(m, CASCA, achatado=r * 0.9, suave=0.5, ambiente=0.3)
+    rng = np.random.default_rng(semente)
+    L = max(1, math.hypot(x1 - x0, y1 - y0))
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L
+    nx, ny = -uy, ux
+    # Estrias de casca (riscos escuros curtos ao longo do tronco).
+    for k in range(int(L * r * 0.18)):
+        s = rng.uniform(0, L)
+        o = rng.uniform(-r * 0.7, r * 0.7)
+        cx, cy = x0 + ux * s + nx * o, y0 + uy * s + ny * o
+        t.linha(cx, cy, cx + ux * rng.uniform(1.5, 3.5), cy + uy * rng.uniform(1.5, 3.5), "marrom_noite")
+    # Nós.
+    for _ in range(int(L // 22) + 1):
+        s = rng.uniform(4, max(5, L - 4))
+        cx, cy = x0 + ux * s + nx * r * 0.2, y0 + uy * s + ny * r * 0.2
+        t.chapado(t.elipse(cx, cy, 1.4, 1.1) & m, "preto")
+        t.ponto(int(cx) - 1, int(cy) - 1, "couro_medio")
+    if pontas:
+        # Ponta serrada com anéis.
+        topo = t.elipse(x1, y1, r * 0.9, r * 0.9)
+        t.volume(topo, CERNE, achatado=1, suave=0.3, ambiente=0.5)
+        t.chapado(t.elipse(x1, y1, r * 0.45, r * 0.45) & ~t.elipse(x1, y1, r * 0.25, r * 0.25), "couro")
+    return m
+
+
+def amarra(t, x, y, r=2.5):
+    """Amarração de corda em volta de uma junta: voltas claras com sombra entre elas."""
+    for k in range(3):
+        m = t.elipse(x, y - 1.6 + k * 1.6, r + 0.6, 0.9)
+        t.volume(m, CORDA, achatado=0.8, suave=0.2, ambiente=0.45)
+    t.linha(x + r, y + 2, x + r + 1, y + 5, "terra_media")  # ponta solta
+
+
+def girau(w, alto, semente=0):
+    """Girau de madeira do sertão: forquilhas de tronco com casca, travessas em X
+    amarradas com corda, estrado de varas roliças e tábuas por cima com pontas
+    sobrando, pregos, sombra embaixo e uma cabaça pendurada. O topo (linha 0 a 5)
+    é onde se pisa."""
+    H = alto + 1
+    t = Tela(w + 8, H)
+    rng = np.random.default_rng(semente)
+    ox = 4
+    postes = [ox + 3, ox + w - 4] + ([ox + w // 2] if w > 60 else [])
+    # Travessas em X atrás (mais escuras).
+    for a, b in zip(postes[:-1], postes[1:]):
+        tora(t, a + 1, 9, b - 1, H - 6, 1.3, semente + a, pontas=False)
+        tora(t, b - 1, 9, a + 1, H - 6, 1.3, semente + b, pontas=False)
+    t.px[(t.px != VAZIO)] = ESCURO[t.px[t.px != VAZIO]]
+    # Forquilhas: tronco com a forquilha em cima segurando a viga.
+    for k, px in enumerate(postes):
+        tora(t, px, H - 1, px + rng.uniform(-0.6, 0.6), 6, 2.4, semente + 10 + k, pontas=False)
+        tora(t, px, 8, px - 3, 3, 1.2, semente + 20 + k)
+        tora(t, px, 8, px + 3, 3, 1.2, semente + 30 + k)
+        t.volume(t.elipse(px, H - 1.5, 4.5, 1.6), ["terra_escura", "terra", "terra_media"], achatado=1, suave=0.3)
+    # Viga roliça atravessada nas forquilhas.
+    tora(t, ox - 2, 7, ox + w + 1, 7, 2.2, semente + 40)
+    # Tábuas do piso por cima, com pontas sobrando e uma meio solta.
+    tab = tabuas(w + 2, 5, vertical=True, semente=semente + 50, rampa=MADEIRA)
+    tab.contorno("sombra")
+    colar(t, tab, ox - 1, 0)
+    t.linha(ox - 1, 0, ox + w, 0, "couro_luz")  # quina de cima pegando luz
+    solta = int(ox + w * 0.65)
+    t.chapado(t.retangulo(solta, 4, 5, 1), "preto")  # vão da tábua empenada
+    # Amarrações nas juntas.
+    for px in postes:
+        amarra(t, px, 7)
+    for a, b in zip(postes[:-1], postes[1:]):
+        amarra(t, (a + b) / 2, 9 + (H - 15) / 2, 1.6)
+    # Cabaça e corda penduradas na viga.
+    cx = ox + int(w * 0.3)
+    t.linha(cx, 8, cx, 15, "terra")
+    t.volume(t.elipse(cx, 19, 3, 3.6) | t.elipse(cx, 15.5, 1.8, 1.8), ESTOPA[1:6], achatado=1.5, suave=0.4,
+             ambiente=0.4)
+    t.contorno("sombra")
+    return t
+
+
+def saco(t, cx, cy, rx, ry, semente=0, virado=0.0):
+    """Um saco de estopa cheio, em forma de travesseiro: barriga estufada que cede
+    embaixo, pontas amarradas com orelhinha, costura e vincos da estopa."""
+    rng = np.random.default_rng(semente)
+    corpo = t.capsula(cx - rx + ry * 0.8, cy + virado * rx, cx + rx - ry * 0.8, cy - virado * rx, ry, ry * 0.95)
+    corpo &= ~(t.yy > cy + ry * 0.9)  # assentado: base um pouco achatada
+    t.volume(corpo, ESTOPA, achatado=ry * 1.3, suave=1.1, ambiente=0.15, brilho=1.25, luz=(-0.5, -0.85))
+    # Orelhinhas amarradas nas pontas.
+    for lado in (-1, 1):
+        ox_ = cx + lado * (rx + 0.6)
+        orelha = t.elipse(ox_, cy - ry * 0.35, 1.5, 1.2)
+        t.volume(orelha & ~corpo, ESTOPA[1:5], achatado=1, suave=0.3, ambiente=0.35)
+        t.ponto(int(cx + lado * (rx - 1.2)), int(cy - ry * 0.3), "terra")
+    # Costura da boca (pontinhos) e vincos que sobem da base.
+    for k in range(int(rx * 2) - 3):
+        x = cx - rx + 2 + k
+        if k % 2 == 0 and corpo[min(t.h - 1, int(cy - ry * 0.55)), min(t.w - 1, int(x))]:
+            t.ponto(int(x), int(cy - ry * 0.55), "terra_media")
+    for _ in range(2):
+        vx = cx + rng.uniform(-rx * 0.45, rx * 0.45)
+        for d in range(3):
+            yy, xx = int(cy + ry * 0.6 - d), int(vx + d * 0.4)
+            if 0 <= yy < t.h and 0 <= xx < t.w and corpo[yy, xx]:
+                t.px[yy, xx] = IDX["terra_media"]
+    return corpo
+
+
+def sacos_detalhados(n=4, filas=3, semente=0):
+    """Barricada de sacos de estopa: sacos estufados de tamanhos diferentes,
+    fileiras desencontradas, um furado vazando areia, sombra de contato."""
+    W = n * 14 + 8
+    H = filas * 8 + 6
+    t = Tela(W, H)
+    rng = np.random.default_rng(semente)
+    tudo = np.zeros((H, W), bool)
+    for f in range(filas):
+        y = H - 6 - f * 7.5
+        desloc = 7 if f % 2 else 0
+        for k in range(n - (f % 2)):
+            x = 4 + desloc + k * 14 + rng.uniform(-1, 1)
+            antes = t.px.copy()
+            m = saco(t, x + 7, y, 6.3 + rng.uniform(-0.6, 0.6), 4.2, semente=f * 10 + k + semente,
+                     virado=rng.uniform(-0.08, 0.08))
+            # Sombra de um saco no de baixo (encosta).
+            baixo = (np.roll(m, 1, 0) | np.roll(m, 2, 0)) & ~m & tudo
+            t.px[baixo] = IDX["terra"]
+            tudo |= m
+    # Um saco furado: areia escorrendo e montinho no chão.
+    fx = int(W * 0.62)
+    fy = int(H - 7)
+    t.chapado(t.elipse(fx, fy, 1.4, 1), "terra_escura")
+    for k in range(4):
+        t.ponto(fx + (k % 2), fy + 2 + k, "areia_luz" if k % 2 else "areia")
+    t.volume(t.elipse(fx + 1, H - 1.5, 4, 1.5), ["terra_media", "areia_media", "areia", "areia_luz"], achatado=1,
+             suave=0.3)
+    t.contorno("sombra")
+    return t

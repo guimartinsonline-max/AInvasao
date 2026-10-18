@@ -165,6 +165,14 @@ def _fim(g):
     return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
 
 
+def cabelo(g, dy):
+    """Cabeleira de cangaceiro no lugar do chapéu (que voou longe)."""
+    for k, txt in enumerate(lp.CABELO):
+        lp.pintar(g, 3 + k + dy, 7, txt)
+    for k, txt in enumerate(lp.MECHA):
+        lp.pintar(g, 8 + k + dy, 9, txt)
+
+
 def quadro_morte(nome):
     """Morte do Lampião, sem arma (ela cai da mão), como no Metal Slug:
     morte1: levou o tiro, voa para trás de braços para cima com careta de dor (o chapéu voa à parte);
@@ -174,6 +182,7 @@ def quadro_morte(nome):
         braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (6, 15 + dy), (5, 8 + dy), escurecer=1)
         for y, x, txt in lp.TRONCO:
             lp.pintar(g, y + dy, x, txt)
+        cabelo(g, dy)
         for k, txt in enumerate(lp.ROSTOS["dor"]):
             lp.pintar(g, 8 + k + dy, 7, txt)
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (25, 15 + dy), (29, 9 + dy))
@@ -191,6 +200,7 @@ def quadro_morte(nome):
     braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (8, 14 + dy), (7, 6 + dy), escurecer=1)
     for y, x, txt in lp.TRONCO:
         lp.pintar(g, y + dy, x, txt)
+    cabelo(g, dy)
     for k, txt in enumerate(lp.ROSTOS["morto" if nome == "morte2" else "morto2"]):
         lp.pintar(g, 8 + k + dy, 7, txt)
     braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (21, 14 + dy), (23, 6 + dy))

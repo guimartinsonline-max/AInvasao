@@ -26,6 +26,18 @@ CHAPEU = [  # 24 colunas, colocado em x=3: meia-lua com as pontas para cima
     "....OOsssssssssssssssOO.",
     "......OOOOOOOOOOOOOOO...",
 ]
+# Cabelo do Lampião, para quando o chapéu voa (morte): cabeleira preta comprida
+# de cangaceiro com brilho, testa de fora. 20 colunas em x=7, linhas 3 a 7 (o rosto começa na 8).
+CABELO = [
+    "......OOOOOOOO......",
+    "....OOKKKxxKKKOO....",
+    "...OKKKKxKKKxKKKO...",
+    "..OKKKKKKKKKK33KKO..",
+    "..OKKKKK3445555KO...",
+]
+# Mecha caindo atrás da nuca, por cima do pescoço (linhas 8 a 12, coluna 4).
+MECHA = ["OKO", "OKKO", "OKKO", ".OKO", "..O"]
+
 ROSTOS = {  # 20 colunas, colocado em x=7, começando na linha 7
     # Bravo, gritando (ação).
     "grito": [
