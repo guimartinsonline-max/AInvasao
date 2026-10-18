@@ -288,8 +288,13 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.body.enable = true;
     this.body.checkCollision.none = false;
     this.body.setAngularVelocity(0).setDragX(0);
-    this.body.reset(this.inicioX, this.inicioY - 140);
-    this.caindo = true;
+    // Nunca surge do nada: se o lugar de origem está na tela, volta entrando
+    // andando pela borda mais perto (vem de fora da tela, pelo chão).
+    const v = this.scene.cameras.main.worldView;
+    let x = this.inicioX;
+    if (x > v.x - 20 && x < v.right + 20) x = x - v.x < v.right - x ? v.x - 24 : v.right + 24;
+    x = Phaser.Math.Clamp(x, 8, this.scene.larguraMundo - 8);
+    this.body.reset(x, this.scene.chaoAbaixo(x, -60) - 2);
   }
 
   preUpdate(t, dt) {

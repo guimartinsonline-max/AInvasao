@@ -75,59 +75,59 @@ def volante(pose=None):
 
 
 # ---------------------------------------------------------------- Disco abdutor
-def disco(quadro=0):
-    """Disco abdutor no tamanho certo para o xeremita pilotar: casco de 88 px com
-    aro de luzes, cúpula de vidro e o xeremita (cabeça do tamanho da dele em
-    terra) olhando para baixo pelo vidro, com as mãos no painel."""
-    import math
+def disco(quadro=0, k=1.4):
+    """Disco abdutor: casco com aro de luzes, cúpula de vidro e o xeremita olhando
+    para baixo pelo vidro, com as mãos no painel. k: escala do desenho (1,4 desde
+    que a resolução subiu para 548x308, para o disco manter o tamanho na tela)."""
     import numpy as np
-    W_, H_ = 88, 40
+    W_, H_ = int(round(88 * k)), int(round(40 * k))
     t = Tela(W_, H_)
-    cx = 44
+    cx = W_ / 2
+    f = lambda v: v * k  # noqa: E731
     METAL = ["sombra", "sombra_media", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz", "cinza_claro"]
     VIDRO_ = ["azul_sombra", "azul_medio", "ceu_escuro", "ceu_medio", "ceu_claro", "horizonte"]
     ALIEN_ = ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"]
     # Cúpula: fundo de vidro escuro, piloto, depois o reflexo por cima.
-    cup = t.elipse(cx, 19, 17, 15) & (t.yy < 20)
+    cup = t.elipse(cx, f(19), f(17), f(15)) & (t.yy < f(20))
     t.volume(cup, VIDRO_, achatado=5, suave=1.5, ambiente=0.15, brilho=0.8)
     # Xeremita no comando: cabeçona com caroços e olhão olhando para baixo.
-    cab = t.elipse(cx + 1, 12, 8.5, 7.5)
+    cab = t.elipse(cx + f(1), f(12), f(8.5), f(7.5))
     t.volume(cab, ALIEN_, achatado=3, suave=0.8, ambiente=0.25)
-    t.volume(t.elipse(cx - 7, 18.5, 3.5, 2.2) | t.elipse(cx + 9, 18.5, 3.5, 2.2), ALIEN_, achatado=1, suave=0.4,
-             ambiente=0.3)  # mãos no painel
-    t.chapado(t.elipse(cx + 3, 12.5, 4, 4.3), "preto")
-    t.chapado(t.elipse(cx + 3, 12.5, 3, 3.3), "branco")
-    t.chapado(t.elipse(cx + 3.5, 14 + (quadro % 2) * 0.5, 1.7, 1.9), "preto")
-    t.ponto(cx + 3, 13, "branco")
-    t.linha(cx - 2, 18, cx + 4, 18, "alien_profundo")
-    for (x, y) in ((cx - 4, 7), (cx - 6, 11), (cx + 6, 7)):
-        t.ponto(x, y, "alien_luz")
-    t.linha(cx - 1, 4, cx - 3, 1, "alien_esc")
-    t.chapado(t.elipse(cx - 3.5, 1, 1.3, 1.3), "alien_brilho" if quadro % 2 else "alien")
+    t.volume(t.elipse(cx - f(7), f(18.5), f(3.5), f(2.2)) | t.elipse(cx + f(9), f(18.5), f(3.5), f(2.2)), ALIEN_,
+             achatado=1, suave=0.4, ambiente=0.3)  # mãos no painel
+    t.chapado(t.elipse(cx + f(3), f(12.5), f(4), f(4.3)), "preto")
+    t.chapado(t.elipse(cx + f(3), f(12.5), f(3), f(3.3)), "branco")
+    t.chapado(t.elipse(cx + f(3.5), f(14) + (quadro % 2) * 0.7, f(1.7), f(1.9)), "preto")
+    t.ponto(cx + f(3), f(13), "branco")
+    t.linha(cx - f(2), f(18), cx + f(4), f(18), "alien_profundo")
+    for (x, y) in ((-4, 7), (-6, 11), (6, 7)):
+        t.ponto(cx + f(x), f(y), "alien_luz")
+    t.linha(cx - f(1), f(4), cx - f(3), f(1.2), "alien_esc")
+    t.chapado(t.elipse(cx - f(3.5), f(1.2), f(1.3), f(1.3)), "alien_brilho" if quadro % 2 else "alien")
     # Reflexo do vidro por cima do piloto.
-    reflexo = t.elipse(cx - 9, 10, 3, 5, ang=0.5) & cup
+    reflexo = t.elipse(cx - f(9), f(10), f(3), f(5), ang=0.5) & cup
     t.px[reflexo] = IDX["horizonte"]
-    t.chapado(t.elipse(cx - 10, 9, 1, 2.2, ang=0.5) & cup, "branco")
-    borda_cup = cup & ~t.elipse(cx, 19, 16, 14)
+    t.chapado(t.elipse(cx - f(10), f(9), f(1), f(2.2), ang=0.5) & cup, "branco")
+    borda_cup = cup & ~t.elipse(cx, f(19), f(17) - 1, f(15) - 1)
     t.px[borda_cup] = IDX["azul_sombra"]
     # Casco em duas abas, com volume metálico, rebites e aro de luzes.
-    casco = t.elipse(cx, 24, 43, 8) & (t.yy > 17)
+    casco = t.elipse(cx, f(24), f(43), f(8)) & (t.yy > f(17))
     t.volume(casco, METAL, achatado=4, suave=1.0, ambiente=0.3, textura=0.12, semente=quadro)
-    t.px[casco & (np.abs(t.yy - 24.5) < 0.6)] = IDX["sombra"]
-    for k, x in enumerate(range(8, 81, 8)):
-        cor = "alien_brilho" if (k + quadro) % 3 == 0 else ("alien" if (k + quadro) % 3 == 1 else "alien_esc")
-        t.chapado(t.elipse(x, 26.5, 1.8, 1.3), cor)
-        t.ponto(x - 1, 26, "branco") if cor == "alien_brilho" else None
-    for x in range(12, 77, 6):
-        t.ponto(x, 21, "cinza_claro")
-    barriga = t.elipse(cx, 31, 22, 5) & (t.yy > 28)
+    t.px[casco & (np.abs(t.yy - f(24.5)) < 0.6)] = IDX["sombra"]
+    for n, x in enumerate(range(8, 81, 8)):
+        cor = "alien_brilho" if (n + quadro) % 3 == 0 else ("alien" if (n + quadro) % 3 == 1 else "alien_esc")
+        t.chapado(t.elipse(f(x), f(26.5), f(1.8), f(1.3)), cor)
+        t.ponto(f(x) - 1, f(26.5) - 1, "branco") if cor == "alien_brilho" else None
+    for x in range(12, 77, 5):
+        t.ponto(f(x), f(21), "cinza_claro")
+    barriga = t.elipse(cx, f(31), f(22), f(5)) & (t.yy > f(28))
     t.volume(barriga, METAL, achatado=2, suave=0.6, ambiente=0.15, deslocar=-0.1)
     # Emissor do raio e antenas embaixo.
-    t.chapado(t.elipse(cx, 35.5, 6, 2.2), "sombra")
-    t.chapado(t.elipse(cx, 35.5, 4.5, 1.6), "alien_brilho" if quadro % 2 == 0 else "alien")
-    t.ponto(cx - 1, 35, "branco")
-    for x in (cx - 14, cx + 14):
-        t.linha(x, 34, x + (2 if x > cx else -2), 38, "cinza_escuro")
+    t.chapado(t.elipse(cx, f(35.5), f(6), f(2.2)), "sombra")
+    t.chapado(t.elipse(cx, f(35.5), f(4.5), f(1.6)), "alien_brilho" if quadro % 2 == 0 else "alien")
+    t.ponto(cx - f(1), f(35), "branco")
+    for x in (-14, 14):
+        t.linha(cx + f(x), f(34), cx + f(x) + (3 if x > 0 else -3), f(38.5), "cinza_escuro")
     t.contorno("sombra")
     return t
 

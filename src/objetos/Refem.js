@@ -90,6 +90,16 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
     this.falar('OBRIGADO!');
   }
 
+  // Altura do sólido logo à esquerda dos pés (0 se o caminho está livre).
+  obstaculoAEsquerda() {
+    const fisica = this.scene.physics;
+    const x = this.x - 14;
+    if (!fisica.overlapRect(x - 1, this.y - 26, 2, 22, false, true).length) return 0;
+    let yy = this.y - 4;
+    while (yy > this.y - 90 && fisica.overlapRect(x - 1, yy - 1, 2, 1, false, true).length) yy--;
+    return this.y - yy;
+  }
+
   falar(texto) {
     this.fala.setText(texto).setPosition(this.x, this.y - 52).setVisible(true).setAlpha(1);
     this.scene.tweens.killTweensOf(this.fala);
@@ -145,8 +155,17 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
         this.setFlipX(true).setOrigin((REFEM.largura - REFEM.peX) / REFEM.largura, REFEM.peY / REFEM.altura);
         this.body.setOffset(REFEM.largura - REFEM.peX - 8, REFEM.peY - 30);
       }
+      // Corre para a esquerda como os prisioneiros do Metal Slug, pulando o que
+      // estiver no caminho (caixote, lajedo, sacos de areia).
       this.body.setVelocityX(-110);
-      this.setFrame(REFEM.corrida[Math.floor(t / 90) % REFEM.corrida.length]);
+      const noChao = this.body.blocked.down;
+      if (noChao) {
+        const altura = this.obstaculoAEsquerda();
+        if (altura > 0 || this.body.blocked.left) {
+          this.body.setVelocityY(-Math.sqrt(2 * this.scene.physics.world.gravity.y * (Math.min(altura || 30, 80) + 10)));
+        }
+      }
+      this.setFrame(noChao ? REFEM.corrida[Math.floor(t / 90) % REFEM.corrida.length] : REFEM.solto);
       if (this.x < this.scene.cameras.main.worldView.x - 30) {
         this.estado = 'longe';
         this.setVisible(false);

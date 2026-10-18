@@ -2,7 +2,7 @@ import { hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { DISCO, FEIXE, BODE } from '../quadros.js';
 
-const ALTURA_VOO = 56;
+const ALTURA_VOO = 44;
 const VIDA = 10;
 const PUXADA = 14; // px/s que a vítima sobe
 // O raio só levanta o Lampião bem no centro e depois de um tempo dentro dele;
@@ -19,7 +19,7 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
     cena.physics.add.existing(this);
     this.body.allowGravity = false;
     this.voa = true; // não colide com o chão
-    this.body.setSize(84, 22).setOffset(2, 14);
+    this.body.setSize(118, 31).setOffset(3, 20);
     this.setDepth(12);
     this.vitimas = vitimas;
     this.feixe = cena.add.sprite(x, ALTURA_VOO, 'feixe', 0).setOrigin(0.5, 0).setAlpha(0.55).setDepth(11).setVisible(false);
@@ -144,7 +144,7 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
       this.body.setVelocityX(0);
       v.body.setVelocity(0, -PUXADA);
       v.x = this.x;
-      if (v.y < this.y + 16) {
+      if (v.y < this.y + 22) {
         // Abduzido: some dentro do disco e volta ao chão depois (campo de treino).
         this.puxando = false;
         v.setVisible(false);
@@ -166,8 +166,8 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
       }
     }
     // Raio do disco até o chão.
-    this.feixe.setVisible(this.puxando).setPosition(this.x, this.y + 16);
-    this.feixe.setCrop(0, 0, FEIXE.largura, Math.max(0, 192 - (this.y + 16)));
+    this.feixe.setVisible(this.puxando).setPosition(this.x, this.y + 22);
+    this.feixe.setCrop(0, 0, FEIXE.largura, Math.max(0, 192 - (this.y + 22)));
     // Lampião dentro do raio sobe junto.
     const j = this.scene.jogador;
     const dentro = this.puxando && !j.morto && Math.abs(j.x - this.x) < MEIO_RAIO && j.pe > this.y + 24;

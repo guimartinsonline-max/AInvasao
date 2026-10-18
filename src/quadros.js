@@ -37,8 +37,13 @@ for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao']) I
 // Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).
 export const REFEM = { largura: 44, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,
   entrega: 5, continencia: 6, corrida: [7, 8, 9, 10], pendurado: [11, 12], maosY: 43.5, maosX: 2 };
-export const DISCO = { largura: 88, altura: 40 };
-export const FEIXE = { largura: 14, altura: 120 };
+export const DISCO = { largura: 123, altura: 56 };
+export const FEIXE = { largura: 14, altura: 160 };
+// Veículos da Volante (tools/arte/veiculos.py), virados para a direita; pé no centro de baixo.
+export const VEICULOS = {
+  caminhao: { largura: 124, altura: 62, andar: [0, 1], aberto: 2, destruido: 3 },
+  blindado: { largura: 132, altura: 76, andar: [0, 1], tiro: 2, quebrado: 3, destruido: 4 },
+};
 export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };
 
 export const ALIEN = { largura: 40, altura: 44, peX: 20, peY: 42, aberto: 0, fechado: 1 };

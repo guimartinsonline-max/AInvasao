@@ -731,7 +731,8 @@ def destrocos(semente=0):
 
 
 # ================================================================ a fase
-LARGURA_FASE = 3200
+LARGURA_FASE = 5800
+PEDACO = 2048
 CHAO = 194  # topo do chão sólido (o desenho do chão começa 2 px acima)
 
 # Tudo o que compõe a fase. Coordenadas do mundo; pé = y do chão onde a coisa pisa.
@@ -750,6 +751,18 @@ FASE = {
         [2120, 170, 90, 24],          # barranco
         [2300, 150, 72, 6, True],     # girau
         [2780, 172, 30, 22],          # pedra grande
+        # --- vila de taipa
+        [3290, 160, 64, 6, True],     # girau da vila
+        # --- leito de rio seco: barrancos em degrau e a ponte por cima
+        [3940, 176, 40, 18],
+        [3972, 146, 52, 48],
+        [4024, 146, 556, 6, True],    # ponte
+        [4580, 146, 56, 48],
+        [4636, 176, 40, 18],
+        # --- acampamento da Volante
+        [4900, 176, 56, 18],          # trincheira de sacos de areia
+        [5030, 116, 52, 6, True],     # plataforma da torre de vigia
+        [5400, 176, 56, 18],          # trincheira
     ],
     "caixotes": [
         [250, CHAO - 18], [740, CHAO - 18], [764, CHAO - 18], [752, CHAO - 36],
@@ -757,11 +770,15 @@ FASE = {
         [1230, 152 - 18], [1760, CHAO - 24, "barril"], [1778, CHAO - 24, "barril"], [1769, CHAO - 48, "barril"],
         [1800, CHAO - 18], [1824, CHAO - 18], [2150, 170 - 18], [2560, CHAO - 18], [2584, CHAO - 18],
         [2700, CHAO - 24, "barril"],
+        [3200, CHAO - 18], [3224, CHAO - 18], [3212, CHAO - 36], [3800, CHAO - 24, "barril"],
+        [3818, CHAO - 24, "barril"], [4450, CHAO - 18], [4980, CHAO - 24, "barril"], [4998, CHAO - 24, "barril"],
+        [4989, CHAO - 48, "barril"], [5300, CHAO - 18], [5560, CHAO - 18], [5584, CHAO - 18],
     ],
     "refens": [[330, CHAO], [1300, 138], [1700, CHAO], [2330, 150], [2640, CHAO],
-               [1048, 166, {"pendurado": 124}], [2448, 166, {"pendurado": 124}]],
+               [1048, 166, {"pendurado": 124}], [2448, 166, {"pendurado": 124}],
+               [3350, CHAO], [4300, 188, {"pendurado": 152}], [5120, CHAO]],
     "itens": [[560, CHAO - 20, "madsen"]],
-    "bodes": [[1400, CHAO]],
+    "bodes": [[1400, CHAO], [4400, CHAO]],
     "discos": [],
     # Inimigos que já estão no lugar quando o Lampião chega.
     "inimigos": [
@@ -769,9 +786,14 @@ FASE = {
         [968, CHAO, "volante", {"distraido": True}], [995, CHAO, "volante", {"escudo": True}],
         [1250, 152, "volante"], [1312, 138, "rojao"], [1650, 158, "granadeiro", {"distraido": True}],
         [2160, 170, "metralhador"], [2340, 150, "granadeiro"], [2560, CHAO, "rojao", {"distraido": True}],
+        [3330, 160, "granadeiro"], [3520, CHAO, "volante", {"distraido": True}], [4300, 146, "volante"],
+        [4480, CHAO, "facao"], [5056, 116, "rojao"], [5250, CHAO, "volante", {"distraido": True}],
+        [5280, CHAO, "granadeiro", {"distraido": True}],
     ],
     # Ondas: ao passar do gatilho, a câmera trava entre trava[0] e trava[1] até todos caírem.
-    # Cada inimigo: [tipo, de onde vem ("dir", "esq" ou "ceu"), atraso em ms, opções].
+    # Cada inimigo: [tipo, de onde vem, atraso em ms, opções]. De onde vem: "dir"/"esq" (entra pela
+    # borda), "salta:x" (pula de um esconderijo), "porta:x" (sai de uma porta). Tipos "caminhao"
+    # (traz soldados) e "blindado" são veículos.
     "ondas": [
         {"gatilho": 300, "trava": [140, 524], "inimigos": [["volante", "dir", 0], ["volante", "dir", 900],
                                                            ["volante", "salta:500", 1700]]},
@@ -786,18 +808,33 @@ FASE = {
                                                               ["volante", "dir", 1000, {"escudo": True}],
                                                               ["facao", "esq", 1400], ["granadeiro", "dir", 1800],
                                                               ["volante", "salta:2382", 2200]]},
+        # Vila: a Volante sai das casas e da capela, e chega um caminhão.
+        {"gatilho": 3250, "trava": [3060, 3608], "inimigos": [["volante", "porta:3098", 0], ["volante", "porta:3468", 600],
+                                                              ["caminhao", "dir", 1200, {"soldados": ["volante", "granadeiro", "volante"]}],
+                                                              ["facao", "porta:3468", 3400], ["volante", "esq", 4000]]},
+        # Rio seco: soldados pelo leito e pulando da ponte.
+        {"gatilho": 4150, "trava": [3990, 4538], "inimigos": [["volante", "dir", 0], ["granadeiro", "salta:4320", 500],
+                                                              ["metralhador", "dir", 1500], ["rojao", "esq", 2300],
+                                                              ["volante", "salta:4440", 2800], ["facao", "dir", 3400]]},
+        # Acampamento: saem das barracas e de um caminhão.
+        {"gatilho": 4880, "trava": [4700, 5248], "inimigos": [["volante", "porta:4782", 0],
+                                                              ["caminhao", "dir", 600, {"soldados": ["volante", "facao", "granadeiro", "volante"]}],
+                                                              ["metralhador", "salta:4930", 1800], ["volante", "porta:5222", 3000]]},
+        # Carro blindado da Volante.
+        {"gatilho": 5420, "trava": [5230, 5778], "inimigos": [["blindado", "dir", 300, {"para": 5640}],
+                                                              ["volante", "esq", 5000], ["volante", "esq", 9000]]},
     ],
-    "fogueiras": [[918, CHAO], [2580, CHAO]],
+    "fogueiras": [[918, CHAO], [2580, CHAO], [5266, CHAO]],
     "forquilhas": [[1010, 90], [2410, 90]],
     "buracos": [1862, 2382],
-    "fim": 2920,
+    "fim": 5720,
 }
 
 
 def camada_jogo():
     """Plano do jogo: chão em corte, lajedos, trincheira, giraus, barranco,
     mais os enfeites que ficam no chão."""
-    alt = 104
+    alt = 140  # alto o bastante para a capela, a torre de vigia e o mastro
     topo = 216 - alt  # y do mundo onde a camada começa
     t = Tela(LARGURA_FASE, alt)
     rng = np.random.default_rng(1)
@@ -807,12 +844,14 @@ def camada_jogo():
         if rng.random() < 0.55:
             c = capim(semente=x, seco=True)
             colar(t, c, x + rng.integers(-3, 3), y(CHAO) - c.h + 1)
-    # Chão de terra batida a fase inteira.
+    # Chão de terra batida; no leito do rio, lama seca rachada.
+    import fase1_extra as ext
     t.colar(chao(LARGURA_FASE, 26, semente=3), 0, y(CHAO) - 2)
+    t.colar(ext.chao_rachado(4636 - 3972, 26, semente=8), 3972, y(CHAO) - 2)
     yc = y(CHAO) - 1  # linha do chão na camada
-    for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050):
+    for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050, 3870, 4760, 5160, 5700):
         assentar(t, xiquexique(semente=x), x, yc)
-    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850, 3000)):
+    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850, 3000, 3640, 4100, 4520, 5350, 5750)):
         assentar(t, pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=k + 20), x, yc, afundar=2)
     assentar(t, cranio_boi(), 1880, yc)
     assentar(t, cranio_boi(), 2540, yc)
@@ -831,7 +870,7 @@ def camada_jogo():
                     (2500, carroca_quebrada()), (180, cerca_farpada(70, 1)), (1950, cerca_farpada(100, 2))):
         assentar(t, peca, x, yc)
     # Lajedos e barranco (sólidos).
-    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10)], range(7)):
+    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10, 12, 13, 15, 16)], range(11)):
         lj = lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
         sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
@@ -840,7 +879,7 @@ def camada_jogo():
     sa = sacos_areia(4, 3)
     assentar(t, sa, sx - 3, yc, afundar=3)
     # Giraus: tábuas sobre forquilhas.
-    for k in (7, 9):
+    for k in (7, 9, 11):
         gx, gy, gw = FASE["solidos"][k][:3]
         for px in (gx + 2, gx + gw - 5):
             m = t.capsula(px + 1, y(gy) + 3, px + 1, y(CHAO), 1.5, 1.6)
@@ -848,8 +887,32 @@ def camada_jogo():
         tab = tabuas(gw, 5, vertical=True, semente=gx)
         tab.contorno("sombra")
         colar(t, tab, gx, y(gy))
-    # Cerca no fim do trecho.
+    # Cerca no fim do primeiro trecho.
     assentar(t, cerca_farpada(90, 3), 2860, yc)
+    # ---- Vila de taipa: casas e capela (os soldados saem pelas portas), cruzeiro.
+    assentar(t, casa_taipa(130, 84, semente=21, quebrada=False), 3060, yc + 1)
+    assentar(t, ext.capela(96, 112, semente=3), 3420, yc + 1)
+    assentar(t, ext.cruzeiro(), 3590, yc)
+    assentar(t, casa_taipa(110, 72, semente=22), 3680, yc + 1)
+    for x, peca in ((3200 - 30, pote_barro(7)), (3400, cabacas()), (3800 + 40, pilao()), (3560, pote_barro(8, 12))):
+        assentar(t, peca, x, yc)
+    # ---- Leito de rio seco: canoa velha encalhada, ossada, ponte com corrimão.
+    assentar(t, ext.canoa(), 4170, yc, afundar=3)
+    assentar(t, cranio_boi(), 4390, yc)
+    pt = ext.ponte(4580 - 4024, 48, semente=2)
+    colar(t, pt, 4024, y(146))
+    colar(t, ext.corrimao(4580 - 4024), 4024, y(146) - 12)
+    # ---- Acampamento da Volante: barracas, torre de vigia, mastro, munição.
+    assentar(t, ext.barraca(84, 44, semente=1), 4740, yc + 1)
+    assentar(t, ext.caixas_municao(3, 1), 4862, yc)
+    sa2 = sacos_areia(4, 3)
+    for sx_ in (4900, 5400):
+        assentar(t, sa2, sx_ - 3, yc, afundar=3)
+    tv = ext.torre_vigia(98, 40)
+    colar(t, tv, 5030, y(CHAO) - tv.h + 1)
+    assentar(t, ext.barraca(84, 44, semente=2), 5180, yc + 1)
+    assentar(t, ext.mastro(110), 5330, yc)
+    assentar(t, ext.caixas_municao(2, 2), 5470, yc)
     return t, topo
 
 
@@ -857,16 +920,18 @@ def camada_perto():
     """Atrás do plano do jogo (anda a 0,75 da câmera): casa de taipa, árvores
     grandes, mandacarus, cerca do curral, cata-vento e pedras grandes."""
     fator = 0.75
-    W = int(LARGURA_FASE * fator + 384)
+    W = int(LARGURA_FASE * fator + 548)
     alt = 112
     base = alt - 2
     t = Tela(W, alt)
     rng = np.random.default_rng(2)
     lx = lambda wx: int(wx * fator)  # noqa: E731
     pecas = []
-    for k, wx in enumerate((20, 330, 560, 1000, 1500, 2050, 2400, 2700)):
+    import fase1_extra as ext
+    import veiculos as vc
+    for k, wx in enumerate((20, 330, 560, 1000, 1500, 2050, 2400, 2700, 3000, 3900, 5600)):
         pecas.append((lx(wx), arvore(int(rng.integers(64, 84)), semente=k + 100)))
-    for k, wx in enumerate((150, 460, 880, 1240, 1880, 2250, 2600)):
+    for k, wx in enumerate((150, 460, 880, 1240, 1880, 2250, 2600, 2950, 3820, 4720, 5500)):
         pecas.append((lx(wx), mandacaru(int(rng.integers(36, 56)), semente=k + 200, bracos=int(rng.integers(1, 4)))))
     for k, wx in enumerate((270, 1120, 2150)):
         pecas.append((lx(wx), pedra(int(rng.integers(34, 52)), int(rng.integers(20, 30)), semente=k + 300)))
@@ -876,6 +941,16 @@ def camada_perto():
     pecas.append((lx(1480), cerca(110, semente=9)))
     pecas.append((lx(1590), cata_vento(78)))
     pecas.append((lx(2460), casa_taipa(100, 70, semente=8)))
+    # Vila: mais casas atrás, uma ao lado da outra.
+    for k, (wx, w_, h_) in enumerate(((3150, 96, 66), (3300, 80, 58), (3560, 104, 70), (3760, 88, 60))):
+        pecas.append((lx(wx), casa_taipa(w_, h_, semente=40 + k, quebrada=k % 2 == 1)))
+    # Rio seco: carnaúbas na beira.
+    for k, wx in enumerate((3980, 4080, 4230, 4380, 4520, 4640)):
+        pecas.append((lx(wx), ext.carnauba(int(rng.integers(70, 96)), semente=k + 60)))
+    # Acampamento: barracas enfileiradas e um caminhão parado.
+    for k, wx in enumerate((4800, 4960, 5260, 5450)):
+        pecas.append((lx(wx), ext.barraca(70, 38, semente=k + 10, aberta=k % 2 == 0)))
+    pecas.append((lx(5120), vc.caminhao(0)))
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
         colar(t, p, x, base - p.h + 2)
     return t, fator
@@ -885,7 +960,7 @@ def camada_meio():
     """Longe (anda a 0,45 da câmera): morros baixos com caatinga miúda e uma casinha.
     (O disco que cai no fim passa atrás dela, animado no jogo.)"""
     fator = 0.45
-    W = int(LARGURA_FASE * fator + 384)
+    W = int(LARGURA_FASE * fator + 548)
     alt = 64
     t = Tela(W, alt)
     rng = np.random.default_rng(3)
@@ -911,6 +986,11 @@ def camada_meio():
         x += int(rng.integers(6, 30))
     casinha = casa_taipa(40, 30, semente=12, quebrada=False)
     colar(t, casinha, int(900 * fator), alto[int(900 * fator)] - 26)
+    # A vila vista de longe: casinhas juntas no morro.
+    for k, wx in enumerate((3200, 3260, 3330, 3420, 3500)):
+        c = casa_taipa(int(rng.integers(26, 40)), int(rng.integers(20, 30)), semente=70 + k, quebrada=False)
+        xx = int(wx * fator)
+        colar(t, c, xx, alto[min(W - 1, xx)] - c.h + 5)
     return t, fator
 
 
@@ -918,7 +998,7 @@ def camada_frente():
     """Na frente do Lampião (anda a 1,1 da câmera): tufos e pedras escuras,
     poucos e espalhados, para dar profundidade sem atrapalhar."""
     fator = 1.1
-    W = int(LARGURA_FASE * fator + 384)
+    W = int(LARGURA_FASE * fator + 548)
     alt = 22
     t = Tela(W, alt)
     rng = np.random.default_rng(4)
@@ -947,8 +1027,20 @@ def exportar(saida, raiz):
     perto, fp = camada_perto()
     meio, fm = camada_meio()
     frente, ff = camada_frente()
+    # Cada camada vai em pedaços de até 2048 px (o iPhone não aceita textura larga demais).
+    pedacos = {}
     for nome, c in (("f1_jogo", jogo), ("f1_perto", perto), ("f1_meio", meio), ("f1_frente", frente)):
-        c.imagem().save(saida / f"{nome}.png", optimize=True)
+        im = c.imagem()
+        n = (im.width + PEDACO - 1) // PEDACO
+        for k in range(n):
+            im.crop((k * PEDACO, 0, min(im.width, (k + 1) * PEDACO), im.height)).save(saida / f"{nome}_{k}.png", optimize=True)
+        velho = saida / f"{nome}.png"
+        if velho.exists():
+            velho.unlink()
+        pedacos[nome] = n
+    (raiz / "src/fase1_pedacos.js").write_text(
+        "// Gerado por tools/arte/fase1.py: quantos pedaços (de " + str(PEDACO) + " px) tem cada camada da fase 1.\n"
+        "export const PEDACO = " + str(PEDACO) + ";\nexport const PEDACOS = " + json.dumps(pedacos) + ";\n")
     dados = dict(FASE)
     dados["camadas"] = {
         "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp},

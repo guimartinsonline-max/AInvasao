@@ -177,6 +177,7 @@ class Tela:
         return mascara
 
     def ponto(self, x, y, cor):
+        x, y = int(round(x)), int(round(y))
         if 0 <= x < self.w and 0 <= y < self.h:
             self.px[y, x] = IDX[cor]
 

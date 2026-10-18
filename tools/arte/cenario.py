@@ -43,9 +43,10 @@ def degrade(t, y0, y1, cor_cima, cor_baixo, x0=0, x1=None, mascara=None):
             t.px[y, x0:x1] = linha
 
 
-def ceu(h=216):
-    t = Tela(L, h)
-    faixas = [(0, "ceu_escuro"), (56, "ceu"), (112, "ceu_claro"), (150, "horizonte")]
+def ceu(h=308, w=548):
+    """Céu da tela inteira (548x308): a faixa clara do horizonte fica atrás das serras."""
+    t = Tela(w, h)
+    faixas = [(0, "ceu_escuro"), (92, "ceu"), (176, "ceu_claro"), (240, "horizonte")]
     for k, (y, cor) in enumerate(faixas):
         fim = faixas[k + 1][0] if k + 1 < len(faixas) else h
         t.px[y:fim] = IDX[cor]
@@ -76,33 +77,39 @@ def nuvens(semente=3):
     return t
 
 
-def serras():
-    t = Tela(L, 70)
+def serras(h=200):
+    """Serras azuladas ao longe, altas, enchendo o céu atrás dos paredões
+    (a tela de 548x308 mostra mais céu)."""
+    t = Tela(L, h)
     x = np.arange(L)
-    perfil = (26 + 10 * np.sin(x / L * 2 * np.pi * 2 + 1) + 5 * np.sin(x / L * 2 * np.pi * 5 + 2)
-              + 1.5 * ruido(1, L, 6, 7)[0])
+    # Serras do sertão: lombos arredondados, nada de pico pontudo.
+    perfil = (58 + 13 * np.sin(x / L * 2 * np.pi * 2 + 1) + 6 * np.sin(x / L * 2 * np.pi * 5 + 2)
+              + 1.5 * ruido(1, L, 8, 7)[0])
+    perfil = ndimage.uniform_filter1d(perfil, 9, mode="wrap")
     m = t.yy >= perfil[None, :]
-    t.cel(m, SERRA, sombra=0, luz=1, linha=False)
+    t.cel(m, SERRA, sombra=0, luz=0, linha=False)
     # Lado sombreado das encostas: onde o perfil desce para a direita.
     desce = np.gradient(perfil) > 0.12
     for xx in np.where(desce)[0]:
         y0 = int(perfil[xx]) + 1
-        col = t.px[y0:y0 + 26, xx]
+        col = t.px[y0:y0 + 40, xx]
         col[col != VAZIO] = IDX["ceu"]
-    degrade(t, 52, 70, "ceu_claro", "horizonte", mascara=m)
+    # Névoa: as serras clareiam para baixo até sumir no horizonte.
+    degrade(t, 90, 130, "ceu", "ceu_claro", mascara=m)
+    t.px[m & (t.yy >= 130)] = IDX["ceu_claro"]
+    degrade(t, h - 30, h, "ceu_claro", "horizonte", mascara=m)
     return t
 
 
-def paredoes(semente=11):
+def paredoes(semente=11, h=130):
     """Paredões de arenito com camadas, rachaduras e sombra fria."""
-    h = 90
     t = Tela(L, h)
     rng = np.random.default_rng(semente)
     perfil = np.full(L, h, dtype=float)
     x = 0
     while x < L:
         largura = rng.integers(50, 110)
-        topo = rng.integers(14, 46)
+        topo = rng.integers(8, 52)
         rampa = rng.integers(4, 10)
         for k in range(largura):
             xx = (x + k) % L

@@ -3,14 +3,17 @@ import { P, hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { ARMAS } from '../armas.js';
 
-const RAIO_DIRECIONAL = 18;
+// Os botões foram feitos para a tela de 384x216; K mantém o mesmo tamanho no vidro
+// do celular na resolução atual, contando a partir do canto de baixo à direita.
+const K = LARGURA / 384;
+const RAIO_DIRECIONAL = 18 * K;
 const ZONA_DIRECIONAL = 0.45; // fração da tela, à esquerda, que vira direcional
 
 const BOTOES = [
   { acao: 'atirar', x: 346, y: 170, r: 21, rotulo: 'TIRO' },
   { acao: 'pular', x: 300, y: 192, r: 16, rotulo: 'PULO' },
   { acao: 'granada', x: 356, y: 122, r: 13, rotulo: 'GR' },
-];
+].map((b) => ({ ...b, x: LARGURA - (384 - b.x) * K, y: ALTURA - (216 - b.y) * K, r: b.r * K }));
 
 const DICAS = {
   teclado: 'SETAS MOVER  Z TIRO  X PULO  C GRANADA',
@@ -82,7 +85,7 @@ export class HudScene extends Phaser.Scene {
   criarToque() {
     this.toque = this.add.container(0, 0);
     this.base = this.add.circle(0, 0, RAIO_DIRECIONAL + 4, P.branco, 0.12).setStrokeStyle(1, P.branco, 0.35);
-    this.pino = this.add.circle(0, 0, 8, P.branco, 0.35);
+    this.pino = this.add.circle(0, 0, 8 * K, P.branco, 0.35);
     this.toque.add([this.base, this.pino]);
     this.pinoVisivel(false);
 
@@ -129,7 +132,7 @@ export class HudScene extends Phaser.Scene {
     let menor = Infinity;
     for (const b of BOTOES) {
       const d = Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y);
-      if (d < b.r + 16 && d - b.r < menor) {
+      if (d < b.r + 16 * K && d - b.r < menor) {
         melhor = b;
         menor = d - b.r;
       }

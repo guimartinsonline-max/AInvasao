@@ -1,7 +1,8 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA, LAMPIAO, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS } from './quadros.js';
+import { TOUCEIRA, LAMPIAO, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS } from './quadros.js';
 import { BOCAS } from './maos.js';
 import { VERSAO } from './config.js';
+import { PEDACOS } from './fase1_pedacos.js';
 
 // Personagens e cenário vêm de PNGs gerados por tools/arte/exportar.py.
 // Aqui ficam só as texturas pequenas de efeitos, desenhadas em código.
@@ -10,7 +11,7 @@ export function carregarSprites(cena) {
   const s = (nome) => `assets/sprites/${nome}.png?v=${VERSAO}`;
   cena.load.spritesheet('lampiao', s('lampiao'), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
   cena.load.spritesheet('alien', s('alien'), { frameWidth: 40, frameHeight: 44 });
-  for (const [nome, q] of Object.entries({ ...INIMIGOS, refem: REFEM, disco_voador: DISCO, feixe: FEIXE, bode: BODE })) {
+  for (const [nome, q] of Object.entries({ ...INIMIGOS, ...VEICULOS, refem: REFEM, disco_voador: DISCO, feixe: FEIXE, bode: BODE })) {
     cena.load.spritesheet(nome, s(nome === 'disco_voador' ? 'disco' : nome), { frameWidth: q.largura, frameHeight: q.altura });
   }
   for (const [nome, q] of Object.entries(EFEITOS)) {
@@ -24,9 +25,12 @@ export function carregarSprites(cena) {
   }
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
-  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje',
-    'f1_jogo', 'f1_perto', 'f1_meio', 'f1_frente']) {
+  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
     cena.load.image(nome, s(nome));
+  }
+  // Camadas da fase 1, em pedaços.
+  for (const [nome, n] of Object.entries(PEDACOS)) {
+    for (let k = 0; k < n; k++) cena.load.image(`${nome}_${k}`, s(`${nome}_${k}`));
   }
 }
 

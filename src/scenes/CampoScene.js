@@ -1,4 +1,4 @@
-import { CenaJogo, CHAO_Y, LARGURA, ALTURA } from './CenaJogo.js';
+import { CenaJogo, CHAO_Y, LARGURA, ALTURA, DY } from './CenaJogo.js';
 import { Refem } from '../objetos/Refem.js';
 import { Disco, Bode } from '../objetos/Disco.js';
 import { Caixotes } from '../objetos/Caixotes.js';
@@ -24,17 +24,17 @@ export class CampoScene extends CenaJogo {
     this.nuvens = camada('nuvens', 6, 0.03);
     this.camadas = [
       this.nuvens,
-      camada('serras', 96, 0.08),
-      camada('paredoes', 86, 0.2),
-      camada('planicie', 168, 0.35),
-      camada('caatinga', 122, 0.5),
+      camada('serras', DY - 32, 0.08),
+      camada('paredoes', 46 + DY, 0.2),
+      camada('planicie', 168 + DY, 0.35),
+      camada('caatinga', 122 + DY, 0.5),
     ];
     this.ventoNuvens = 0;
   }
 
   montarCenario() {
-    this.add.tileSprite(0, CHAO_Y, LARGURA_MUNDO, ALTURA - CHAO_Y, 'chao').setOrigin(0).setDepth(5);
-    this.solido(0, CHAO_Y + 2, LARGURA_MUNDO, ALTURA - CHAO_Y);
+    this.add.tileSprite(0, CHAO_Y, LARGURA_MUNDO, 216 - CHAO_Y, 'chao').setOrigin(0).setDepth(5);
+    this.solido(0, CHAO_Y + 2, LARGURA_MUNDO, 216 - CHAO_Y);
     // Capim seco na beira do chão.
     for (let x = 8; x < LARGURA_MUNDO; x += Phaser.Math.Between(30, 70)) {
       this.add.image(x, CHAO_Y + 3, 'touceiras', Phaser.Math.Between(0, 3)).setOrigin(0.5, 1).setDepth(6);

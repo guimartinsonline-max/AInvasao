@@ -1,10 +1,11 @@
-import { CenaJogo, LARGURA, ALTURA } from './CenaJogo.js';
+import { CenaJogo, LARGURA, ALTURA, DY } from './CenaJogo.js';
 import { Refem } from '../objetos/Refem.js';
 import { Disco, Bode } from '../objetos/Disco.js';
 import { Caixotes } from '../objetos/Caixotes.js';
 import { estiloTexto } from '../texto.js';
 import { hex } from '../paleta.js';
 import { PREMIOS } from '../armas.js';
+import { PEDACO, PEDACOS } from '../fase1_pedacos.js';
 
 // Fase 1 é só contra a Volante: nada de arma alienígena.
 const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
@@ -41,12 +42,16 @@ export class Fase1Scene extends CenaJogo {
     const repete = (chave, y, fator) => [this.add.tileSprite(0, y, LARGURA, this.textures.get(chave).source[0].height, chave)
       .setOrigin(0).setScrollFactor(0).setDepth(-8), fator];
     this.nuvens = repete('nuvens', 6, 0.03);
-    this.camadas = [this.nuvens, repete('serras', 96, 0.08), repete('paredoes', 86, 0.2)];
+    this.camadas = [this.nuvens, repete('serras', DY - 32, 0.08), repete('paredoes', 46 + DY, 0.2)];
     this.ventoNuvens = 0;
     // Camadas pintadas da fase, cada uma andando numa velocidade (parallax).
+    // Camadas pintadas da fase (em pedaços lado a lado), cada uma numa velocidade (parallax).
     const pintada = (chave, base, fator, prof) => {
-      const h = this.textures.get(chave).source[0].height;
-      return this.add.image(0, base - h, chave).setOrigin(0).setScrollFactor(fator, 0).setDepth(prof);
+      for (let k = 0; k < PEDACOS[chave]; k++) {
+        const img = `${chave}_${k}`;
+        const h = this.textures.get(img).source[0].height;
+        this.add.image(k * PEDACO, base - h + DY, img).setOrigin(0).setScrollFactor(fator, 0).setDepth(prof);
+      }
     };
     pintada('f1_meio', d.meio.base, d.meio.fator, -3);
     pintada('f1_perto', d.perto.base, d.perto.fator, -2);
@@ -55,7 +60,9 @@ export class Fase1Scene extends CenaJogo {
 
   montarCenario() {
     const d = this.dados;
-    this.add.image(0, d.camadas.jogo.y, 'f1_jogo').setOrigin(0).setDepth(5);
+    for (let k = 0; k < PEDACOS.f1_jogo; k++) {
+      this.add.image(k * PEDACO, d.camadas.jogo.y, `f1_jogo_${k}`).setOrigin(0).setDepth(5);
+    }
     for (const [x, y, w, h, umLado] of d.solidos) this.solido(x, y, w, h, !!umLado);
     this.caixotes = new Caixotes(this, d.caixotes);
   }
@@ -100,11 +107,11 @@ export class Fase1Scene extends CenaJogo {
     this.terminou = false;
 
     // Mensagens no meio da tela (fora da HUD para ficarem por baixo dos botões de toque).
-    this.aviso = this.add.text(LARGURA / 2, 70, '', estiloTexto(hex('amarelo_fogo'), 16)).setOrigin(0.5)
+    this.aviso = this.add.text(LARGURA / 2, 70 + DY / 2, '', estiloTexto(hex('amarelo_fogo'), 16)).setOrigin(0.5)
       .setScrollFactor(0).setDepth(40).setVisible(false);
-    this.subaviso = this.add.text(LARGURA / 2, 94, '', estiloTexto(hex('branco'))).setOrigin(0.5)
+    this.subaviso = this.add.text(LARGURA / 2, 94 + DY / 2, '', estiloTexto(hex('branco'))).setOrigin(0.5)
       .setScrollFactor(0).setDepth(40).setVisible(false);
-    this.seta = this.add.text(LARGURA - 8, 90, 'VAI! >>', estiloTexto(hex('amarelo_fogo'), 8)).setOrigin(1, 0.5)
+    this.seta = this.add.text(LARGURA - 8, 90 + DY / 2, 'VAI! >>', estiloTexto(hex('amarelo_fogo'), 8)).setOrigin(1, 0.5)
       .setScrollFactor(0).setDepth(40).setVisible(false);
     this.mostrar('MISSÃO 1', 'CAATINGA, 1936', 2200);
   }
@@ -126,12 +133,29 @@ export class Fase1Scene extends CenaJogo {
     this.onda = onda;
     this.seta.setVisible(false);
     const [x0, x1] = onda.trava;
-    cam.setBounds(x0, 0, x1 - x0, ALTURA);
+    cam.setBounds(x0, -DY, x1 - x0, ALTURA);
     for (const [tipo, lado, atraso, opcoes] of onda.inimigos) {
       this.time.delayedCall(atraso, () => {
         const v = cam.worldView;
         let x;
         let y;
+        if (tipo === 'caminhao' || tipo === 'blindado') {
+          this.chegarVeiculo(tipo, lado, opcoes || {}, onda);
+          onda.faltam--;
+          return;
+        }
+        const porta = typeof lado === 'string' && lado.startsWith('porta:');
+        if (porta) {
+          // Sai pela porta de uma casa, da capela ou de uma barraca: começa atrás da parede.
+          const px = Number(lado.slice(6));
+          const inimigo = this.adicionarInimigo(px, this.chaoAbaixo(px, 120), tipo, opcoes || {});
+          inimigo.virar(this.jogador.x > px ? 1 : -1);
+          inimigo.setDepth(4);
+          this.time.delayedCall(420, () => inimigo.setDepth(9));
+          onda.vivos.push(inimigo);
+          onda.faltam--;
+          return;
+        }
         const salta = typeof lado === 'string' && lado.startsWith('salta:');
         if (salta) {
           // Sai de um esconderijo (buraco, sacos de areia, atrás do lajedo) num pulo.
@@ -172,7 +196,7 @@ export class Fase1Scene extends CenaJogo {
     onda.estado = 'feita';
     this.tempo = TEMPO;
     this.onda = null;
-    this.cameras.main.setBounds(this.minX, 0, this.larguraMundo - this.minX, ALTURA);
+    this.cameras.main.setBounds(this.minX, -DY, this.larguraMundo - this.minX, ALTURA);
     this.seta.setVisible(true);
     this.tweens.killTweensOf(this.seta);
     this.seta.setAlpha(1);
@@ -221,7 +245,7 @@ export class Fase1Scene extends CenaJogo {
       `TOTAL ${this.pontos + bonus}`,
     ];
     linhas.forEach((txt, k) => {
-      const t = this.add.text(LARGURA / 2, 100 + k * 14, txt, estiloTexto(hex(k === 2 ? 'amarelo_fogo' : 'branco')))
+      const t = this.add.text(LARGURA / 2, 100 + DY / 2 + k * 14, txt, estiloTexto(hex(k === 2 ? 'amarelo_fogo' : 'branco')))
         .setOrigin(0.5).setScrollFactor(0).setDepth(40).setAlpha(0);
       this.tweens.add({ targets: t, alpha: 1, delay: 600 + k * 700, duration: 150 });
     });
@@ -256,7 +280,7 @@ export class Fase1Scene extends CenaJogo {
     // A câmera não volta para trás (como no Metal Slug).
     if (!this.onda && cam.scrollX > this.minX) {
       this.minX = Math.floor(cam.scrollX);
-      cam.setBounds(this.minX, 0, this.larguraMundo - this.minX, ALTURA);
+      cam.setBounds(this.minX, -DY, this.larguraMundo - this.minX, ALTURA);
     }
     // O Lampião não sai da tela.
     const v = cam.worldView;
@@ -287,7 +311,7 @@ export class Fase1Scene extends CenaJogo {
     const x0 = cam.scrollX + LARGURA + 40;
     const x1 = cam.scrollX + 110;
     const yChao = this.dados.camadas.meio.base - 22;
-    const disco = this.add.image(x0, 18, 'disco_voador', 0).setDepth(prof).setScale(0.5).setTint(0xd9a07a);
+    const disco = this.add.image(x0, -50, 'disco_voador', 0).setDepth(prof).setScale(0.4).setTint(0xd9a07a);
     const rastro = this.time.addEvent({
       delay: 45, loop: true, callback: () => {
         const fumaca = ef.animar('fumaca', disco.x + 10, disco.y - 2, { profundidade: prof - 0.1, anim: 'fumaca_lenta', escala: 0.7 });
@@ -302,7 +326,7 @@ export class Fase1Scene extends CenaJogo {
       onUpdate: (tw) => {
         // Cai em curva, cada vez mais rápido, girando torto.
         const k = tw.progress;
-        disco.y = 18 + (yChao - 18) * k * k;
+        disco.y = -50 + (yChao + 50) * k * k;
         disco.rotation = -0.25 - k * 0.9 + Math.sin(k * 30) * 0.08;
       },
       onComplete: () => {

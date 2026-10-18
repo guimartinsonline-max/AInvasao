@@ -1,7 +1,7 @@
 // Tiros dos inimigos, em pool. 'volante' é bala rápida; 'raio' é o tiro verde lento do xeremita.
 // mira: ângulo máximo (rad) que o tiro pode apontar para o Lampião; 0 = sai reto.
 const TIPOS = {
-  volante: { textura: 'tracer', velocidade: 200, mira: 0.2 },
+  volante: { textura: 'tracer', velocidade: 200, mira: 0 },
   raio: { textura: 'raio', velocidade: 110, mira: 0 },
 };
 

@@ -1,4 +1,4 @@
-import { LARGURA, ALTURA } from '../config.js';
+import { LARGURA, ALTURA, DY } from '../config.js';
 import { Efeitos } from '../efeitos.js';
 import { Jogador } from '../objetos/Jogador.js';
 import { Inimigo } from '../objetos/Inimigo.js';
@@ -8,6 +8,7 @@ import { ARMAS, PREMIOS } from '../armas.js';
 import { Refem } from '../objetos/Refem.js';
 import { Itens } from '../objetos/Itens.js';
 import { Caixotes } from '../objetos/Caixotes.js';
+import { Caminhao, Blindado } from '../objetos/Veiculos.js';
 import { estiloTexto } from '../texto.js';
 import { hex } from '../paleta.js';
 
@@ -77,7 +78,7 @@ export class CenaJogo extends Phaser.Scene {
     this.corte = this.add.image(0, 0, 'corte').setVisible(false).setDepth(20);
 
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, largura, ALTURA);
+    cam.setBounds(0, -DY, largura, ALTURA);
     cam.startFollow(this.jogador.corpo, true, 0.12, 0.12);
     cam.setDeadzone(24, ALTURA);
     this.olhar = 0;
@@ -106,6 +107,32 @@ export class CenaJogo extends Phaser.Scene {
     this.alvos.add(inimigo);
     inimigo.ajustarCorpo();
     return inimigo;
+  }
+
+  // Veículo entra pela borda da tela (caminhão traz soldados; blindado luta).
+  // Numa onda, os soldados que descem entram na conta dela.
+  chegarVeiculo(tipo, lado, opcoes = {}, onda = null) {
+    const v = this.cameras.main.worldView;
+    const direcao = lado === 'esq' ? 1 : -1;
+    const x = lado === 'esq' ? v.x - 80 : v.right + 80;
+    const para = opcoes.para ?? (lado === 'esq' ? v.x + 110 : v.right - 120);
+    let veiculo;
+    if (tipo === 'caminhao') {
+      const soldados = opcoes.soldados || ['volante', 'volante', 'volante'];
+      if (onda) onda.faltam += soldados.length;
+      veiculo = new Caminhao(this, x, this.chaoAbaixo(x, 60), {
+        direcao, para, soldados,
+        aoSoltar: (inimigo) => { if (onda) { onda.vivos.push(inimigo); onda.faltam--; } },
+        aoPerder: () => { if (onda) onda.faltam--; },
+      });
+    } else {
+      veiculo = new Blindado(this, x, this.chaoAbaixo(x, 60), { direcao, para });
+      this.mostrar?.('CUIDADO!', 'CARRO BLINDADO', 1600);
+    }
+    this.alvos.add(veiculo);
+    veiculo.body.allowGravity = false;
+    if (onda) onda.vivos.push(veiculo);
+    return veiculo;
   }
 
   alvoProximo(x, y, direcao, alcance) {
@@ -298,4 +325,4 @@ export class CenaJogo extends Phaser.Scene {
   atualizarFase() {}
 }
 
-export { LARGURA, ALTURA };
+export { LARGURA, ALTURA, DY };

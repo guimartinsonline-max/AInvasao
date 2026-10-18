@@ -74,7 +74,7 @@ folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura",
                       "corre1", "corre2", "corre3", "corre4", "pendurado1", "pendurado2"]], SAIDA / "refem.png")
 import inimigos as ini  # noqa: E402
 folha([ini.disco(0), ini.disco(1)], SAIDA / "disco.png")
-folha([ini.feixe(0, h=120), ini.feixe(1, h=120)], SAIDA / "feixe.png")
+folha([ini.feixe(0, h=160), ini.feixe(1, h=160)], SAIDA / "feixe.png")
 folha([ini.bode("parado"), ini.bode("mastiga"), ini.bode("abduzido")], SAIDA / "bode.png")
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
@@ -115,6 +115,9 @@ fase1.exportar(SAIDA, RAIZ)
 import objetos as obj  # noqa: E402
 folha([obj.barril(0), obj.barril(1)], SAIDA / "barril.png")
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")
+import veiculos as vc  # noqa: E402
+folha([vc.caminhao(q) for q in range(4)], SAIDA / "caminhao.png")
+folha([vc.blindado(q) for q in range(5)], SAIDA / "blindado.png")
 
 for nome, tela in {
     "ceu": cn.ceu(),

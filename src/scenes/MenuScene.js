@@ -1,4 +1,4 @@
-import { LARGURA, ALTURA } from '../config.js';
+import { LARGURA, ALTURA, DY } from '../config.js';
 import { hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { pedirTelaCheia } from '../escala.js';
@@ -18,30 +18,30 @@ export class MenuScene extends Phaser.Scene {
   create() {
     this.controles = this.game.controles;
     this.add.image(0, 0, 'ceu').setOrigin(0);
-    this.add.image(0, 6, 'nuvens').setOrigin(0);
-    this.add.image(0, 96, 'serras').setOrigin(0);
-    this.add.image(-40, 86, 'paredoes').setOrigin(0);
-    this.add.image(344, 86, 'paredoes').setOrigin(0);
-    this.add.image(0, 168, 'planicie').setOrigin(0);
-    this.add.image(-60, 122, 'caatinga').setOrigin(0);
-    this.add.image(324, 122, 'caatinga').setOrigin(0);
-    this.add.tileSprite(0, 192, LARGURA, 24, 'chao').setOrigin(0);
-        this.add.image(196, 194, 'lampiao', LAMPIAO.parado).setOrigin(LAMPIAO.peX / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
-    for (const [x, tipo] of [[270, 'xeremita'], [320, 'volante']]) {
+    // O cenário fica embaixo, no mesmo lugar da fase (DY a mais de céu em cima).
+    const faixa = (chave, y, x = 0) => this.add.tileSprite(x, y, LARGURA - x, this.textures.get(chave).source[0].height, chave).setOrigin(0);
+    faixa('nuvens', 6);
+    faixa('serras', DY - 32);
+    faixa('paredoes', 46 + DY).tilePositionX = 40;
+    faixa('planicie', 168 + DY);
+    faixa('caatinga', 122 + DY).tilePositionX = 60;
+    this.add.tileSprite(0, 192 + DY, LARGURA, 24, 'chao').setOrigin(0);
+        this.add.image(LARGURA / 2, 194 + DY, 'lampiao', LAMPIAO.parado).setOrigin(LAMPIAO.peX / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
+    for (const [x, tipo] of [[LARGURA / 2 + 74, 'xeremita'], [LARGURA / 2 + 124, 'volante']]) {
       const q = INIMIGOS[tipo];
-      this.add.image(x, 194, tipo, q.parado).setFlipX(true).setOrigin((q.largura - q.peX) / q.largura, q.peY / q.altura);
+      this.add.image(x, 194 + DY, tipo, q.parado).setFlipX(true).setOrigin((q.largura - q.peX) / q.largura, q.peY / q.altura);
     }
 
-    this.add.text(LARGURA / 2 + 2, 50, 'A INVASÃO', estiloTexto(hex('azul_sombra'), 24)).setOrigin(0.5);
-    this.add.text(LARGURA / 2, 48, 'A INVASÃO', estiloTexto(hex('amarelo_fogo'), 24)).setOrigin(0.5);
-    this.add.text(LARGURA / 2, 76, 'SERTÃO, 1936', estiloTexto(hex('branco'))).setOrigin(0.5);
+    this.add.text(LARGURA / 2 + 2, 50 + DY / 2, 'A INVASÃO', estiloTexto(hex('azul_sombra'), 24)).setOrigin(0.5);
+    this.add.text(LARGURA / 2, 48 + DY / 2, 'A INVASÃO', estiloTexto(hex('amarelo_fogo'), 24)).setOrigin(0.5);
+    this.add.text(LARGURA / 2, 76 + DY / 2, 'SERTÃO, 1936', estiloTexto(hex('branco'))).setOrigin(0.5);
 
     // Opções: a fase 1 e o campo de treino (todas as armas, tudo volta).
     this.opcoes = [
       { cena: 'Fase1', texto: 'MISSÃO 1' },
       { cena: 'Campo', texto: 'CAMPO DE TREINO' },
     ].map((o, k) => {
-      const t = this.add.text(LARGURA / 2, 122 + k * 16, o.texto, estiloTexto(hex('branco'))).setOrigin(0.5)
+      const t = this.add.text(LARGURA / 2, 122 + DY / 2 + k * 16, o.texto, estiloTexto(hex('branco'))).setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
       t.on('pointerdown', (p, x, y, e) => {
         e.stopPropagation();
@@ -52,7 +52,7 @@ export class MenuScene extends Phaser.Scene {
     });
     this.escolha = 0;
     this.marcar();
-    this.aviso = this.add.text(LARGURA / 2, 100, '', estiloTexto(hex('branco'))).setOrigin(0.5);
+    this.aviso = this.add.text(LARGURA / 2, 100 + DY / 2, '', estiloTexto(hex('branco'))).setOrigin(0.5);
     this.time.addEvent({ delay: 500, loop: true, callback: () => this.aviso.setVisible(!this.aviso.visible) });
     this.mostrarAviso(this.controles.fonte);
     const desligar = this.controles.aoMudarFonte((f) => this.mostrarAviso(f));
