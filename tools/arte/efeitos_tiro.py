@@ -30,7 +30,7 @@ def ralo(t, mascara, fracao, semente=0):
 # ---------------------------------------------------------------- clarão do cano
 def clarao(k, grande=False):
     """Estrela de fogo na boca do cano, voltada para a direita (3 quadros)."""
-    e = 1.4 if grande else 1.0
+    e = (grande if grande not in (True, False) else 1.4) if grande else 1.0
     t = Tela(int(24 * e), int(18 * e))
     cy = t.h / 2
     r = [5.5, 4, 2.2][k] * e
@@ -64,6 +64,44 @@ def tracer(k, cores=("laranja_fogo", "amarelo_fogo", "branco")):
     t.chapado(t.retangulo(9, 1, 3, 1), w)
     return t
 
+
+
+def bala_pesada(k):
+    """Bala da metralhadora do blindado: projétil grosso e brilhante com rastro
+    de fogo comprido que pisca (2 quadros)."""
+    t = Tela(26, 8)
+    comp = 18 if k == 0 else 14
+    x0 = 20 - comp
+    t.chapado(t.capsula(x0, 4, 20, 4, 0.8, 2.6), "vermelho_medio")
+    t.chapado(t.capsula(x0 + 4, 4, 20, 4, 0.5, 2.0), "laranja_fogo")
+    t.chapado(t.capsula(x0 + 9, 4, 21, 4, 0.4, 1.5), "amarelo_fogo")
+    t.chapado(t.elipse(21, 4, 4, 3), "amarelo_fogo")
+    t.chapado(t.elipse(22, 4, 3, 2), "amarelo_claro")
+    t.chapado(t.elipse(22.5, 4, 1.6, 1.1), "branco")
+    if k == 1:
+        t.pontos([(x0 + 2, 2), (x0 + 6, 6)], "laranja_fogo")
+    return t
+
+
+def obus(k):
+    """Obus do canhão do blindado: granada de latão com ponta escura, girando,
+    e labareda com faíscas atrás (3 quadros)."""
+    t = Tela(30, 14)
+    cy = 7
+    comp = (12, 9, 11)[k]
+    t.chapado(t.capsula(14, cy, 14 - comp, cy + (k - 1) * 0.6, 4.2, 1.0), "vermelho_medio")
+    t.chapado(t.capsula(14, cy, 14 - comp * 0.75, cy, 3.0, 0.6), "laranja_fogo")
+    t.chapado(t.capsula(14, cy, 14 - comp * 0.45, cy, 1.8, 0.4), "amarelo_fogo")
+    for (x, y) in ((1, 3 + k), (3, 11 - k), (5, 5)):
+        t.ponto(x, y, "amarelo_claro")
+    corpo = t.retangulo(14, cy - 3.5, 10, 7) | t.poligono([(24, cy - 3.5), (29, cy), (24, cy + 3.5)])
+    t.cel(corpo, ["couro_profundo", "ouro_escuro", "amarelo_fogo", "amarelo_claro"], sombra=1)
+    t.chapado(t.poligono([(24, cy - 3.5), (29, cy), (24, cy + 3.5)]), "cinza_escuro")
+    t.ponto(25, cy - 1, "cinza_luz")
+    t.chapado(t.retangulo(16 + k * 2, cy - 3.5, 1, 7), "laranja_escuro")  # cinta girando
+    t.chapado(t.retangulo(14, cy - 3.5, 2, 7), "couro_profundo")
+    t.contorno("sombra")
+    return t
 
 
 def bala_papo(k):

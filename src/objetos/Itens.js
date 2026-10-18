@@ -1,7 +1,8 @@
 import { P } from '../paleta.js';
+import { CAIXA_ITEM } from '../sprites.js';
 
-// Itens de arma no chão, como os do Metal Slug: letra grande e grossa que
-// quica ao cair e pisca. Reaproveitados de um pool fixo.
+// Itens de arma no chão, como os do Metal Slug: caixa quadrada com a letra da
+// arma, que quica ao cair e pisca. Reaproveitados de um pool fixo.
 const QUANTOS = 16;
 const PISCA = 900; // ms entre um brilho e outro
 
@@ -11,7 +12,7 @@ export class Itens {
     this.grupo = cena.physics.add.group({ maxSize: QUANTOS });
     for (let k = 0; k < QUANTOS; k++) {
       const item = this.grupo.create(-100, -100, 'item_M').setOrigin(0.5, 1).setDepth(7);
-      item.body.setSize(16, 16).setOffset(-1, 0);
+      item.body.setSize(CAIXA_ITEM.largura - 2, CAIXA_ITEM.altura - 2).setOffset(1, 1);
       item.body.setBounce(0.35).setDrag(120, 0).setMaxVelocityY(400);
       item.disableBody(true, true);
     }

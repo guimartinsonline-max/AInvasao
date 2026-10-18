@@ -31,8 +31,9 @@ OMBRO_FRENTE = (17, 22)
 OMBRO_TRAS = (11, 22)
 
 QUADROS = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4", "corre5", "corre6",
-           "pulo", "agachado", "mira_cima", "susto", "arremesso", "facada", "facada1", "mira_baixo", "recarga"]
-ROSTO = {"parado": "serio", "agachado": "serio", "susto": "susto", "mira_baixo": "baixo"}
+           "pulo", "agachado", "mira_cima", "susto", "arremesso", "facada", "facada1", "mira_baixo", "recarga",
+           "morte1", "morte2", "morte3"]
+ROSTO = {"parado": "serio", "agachado": "serio", "susto": "susto", "mira_baixo": "baixo", "mira_cima": "cima"}
 # Braço de trás erguido atirando a granada (por cima do ombro, como no Metal Slug).
 ARREMESSO = {"cotovelo": (4, 15), "mao": (5, 3)}
 
@@ -142,6 +143,53 @@ def cabeca(g, dy, rosto, baixa=0):
         lp.pintar(g, 1 + k + dy + baixa, 4 + baixa, txt)
 
 
+def quadro_morte(nome):
+    """Morte do Lampião, sem arma (ela cai da mão), como no Metal Slug:
+    morte1: levou o tiro, voa para trás de braços para cima, careta de dor e o chapéu saltando;
+    morte2 e morte3: estatelado de costas no chão, olhos em X (no 3 com a língua de fora)."""
+    if nome == "morte1":
+        g, dy, _ = base("pulo")
+        braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (6, 15 + dy), (5, 8 + dy), escurecer=1)
+        for y, x, txt in lp.TRONCO:
+            lp.pintar(g, y + dy, x, txt)
+        for k, txt in enumerate(lp.ROSTOS["dor"]):
+            lp.pintar(g, 8 + k + dy, 7, txt)
+        for k, txt in enumerate(lp.CHAPEU):  # chapéu pulando da cabeça
+            lp.pintar(g, 1 + k + dy - 4, 6, txt)
+        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (25, 15 + dy), (29, 9 + dy))
+        punho_fechado(g, 5, 8 + dy)
+        punho_fechado(g, 29, 9 + dy)
+        return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
+    # Deitado: desenha em pé com os braços largados e gira 90 graus (cabeça para trás).
+    if nome == "morte3":
+        # Perna da frente esticada para cima, tremendo (cômico).
+        g = [["."] * lp.W for _ in range(lp.H)]
+        tras, _f, dy = lp.POSES_PERNAS["parado"]
+        dy += lp.MARGEM
+        qy = lp.QUADRIL_Y + dy
+        lp.perna(g, (11, qy), *tras, atras=True)
+        lp.perna(g, (16, qy), (7, 1), (13, 0), atras=False)
+    else:
+        g, dy, _ = base("parado")
+    # Braços largados ao longo do corpo.
+    braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (8, 27 + dy), (7, 32 + dy), escurecer=1)
+    cabeca(g, dy, "morto" if nome == "morte2" else "morto2")
+    braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (19, 27 + dy), (20, 32 + dy))
+    punho_fechado(g, 20, 32 + dy)
+    arr = np.array(g)
+    rot = np.rot90(arr, 1)  # anti-horário: o topo (cabeça) vai para a esquerda
+    cheio = rot != "."
+    linhas, colunas = np.where(cheio)
+    saida = np.full((lp.H, lp.W), ".", dtype=rot.dtype)
+    desce = (lp.H - 1) - linhas.max()
+    esq = 1 - colunas.min()
+    for y, x in zip(linhas, colunas):
+        ny, nx = y + desce, x + esq
+        if 0 <= ny < lp.H and 0 <= nx < lp.W:
+            saida[ny, nx] = rot[y, x]
+    return pixel.de_texto("\n".join("".join(l) for l in saida), w=lp.W, h=lp.H)
+
+
 def puxa_baladeira(nome, pose):
     """Onde a mão de trás segura a pedra na liga: perto da forquilha (parado), puxada até
     o rosto (recarga, mirando) ou aberta depois de soltar (atirando)."""
@@ -161,12 +209,15 @@ def quadro(nome, arma, bocas=None):
     pose = POSES[arma]
     g, dy, rosto = base(nome)
 
+    if nome.startswith("morte"):
+        return quadro_morte(nome)
+
     if nome == "mira_cima":
-        # Arma de pé nas duas mãos, na frente do rosto.
-        cabeca(g, dy, rosto)
+        # Arma de pé nas duas mãos, na frente do rosto, com a cabeça inclinada para trás olhando o alto.
+        cabeca(g, dy, rosto, baixa=-2)
         linhas = linhas_da_arma(tela, girar=True, recorte=pose.get("recorte"))
         gx, gy = py, ar.W - 1 - px  # o punho depois de girar
-        mx, my = 23, 14 + dy
+        mx, my = 26, 14 + dy  # arma um pouco à frente do rosto, para o olho para cima aparecer
         braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (15, 25 + dy), (mx - 1, my + 6), escurecer=1)
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (21, 23 + dy), (mx, my))
         for k, l in enumerate(linhas):

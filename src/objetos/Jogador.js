@@ -17,6 +17,7 @@ const ALTURA_AGACHADO = 28;
 const GRANADAS = 10;
 export const VIDAS = 3;
 const INVULNERAVEL = 2000; // ms piscando depois de renascer
+const MORTE = 1900; // ms da animação de morte até renascer
 
 export class Jogador {
   constructor(cena, x, y) {
@@ -31,7 +32,6 @@ export class Jogador {
     this.memoriaPulo = 0;
     this.desdeTiro = 1000;
     this.noChao = false;
-    this.agachado = false;
     this.passo = 0;
     this.recuo = 0;
     this.miraCima = false;
@@ -51,9 +51,30 @@ export class Jogador {
   atualizar(dt, c) {
     const corpo = this.corpo.body;
     if (this.morto) {
-      if (corpo.blocked.down) corpo.setVelocityX(corpo.velocity.x * 0.85);
-      this.visual.setFrame(LAMPIAO.susto);
-      this.visual.setPosition(Math.round(this.x), Math.round(this.pe));
+      // Morte como no Metal Slug: voa para trás de braços para cima, cai estatelado,
+      // a perna treme duas vezes e ele pisca antes de renascer.
+      this.desdeMorte += dt;
+      const v = this.visual;
+      if (corpo.blocked.down) {
+        corpo.setVelocityX(corpo.velocity.x * 0.85);
+        if (!this.caiuEm) {
+          this.caiuEm = this.desdeMorte;
+          this.cena.efeitos.poeira(this.x, this.pe, 8);
+          this.cena.efeitos.tremer(0.004, 80);
+        }
+      }
+      let quadro = 'morte1';
+      if (this.caiuEm && this.desdeMorte > 120) {
+        const k = Math.floor((this.desdeMorte - this.caiuEm) / 160);
+        quadro = k === 2 || k === 4 ? 'morte3' : 'morte2';
+      }
+      v.setFrame(LAMPIAO[quadro]);
+      // Cai de costas: a cabeça vai para o lado de onde ele voou.
+      const d = this.direcaoMorte;
+      v.setFlipX(d < 0);
+      v.setOrigin((d > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX) / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
+      if (this.desdeMorte > MORTE - 450) v.setVisible(Math.floor(this.desdeMorte / 60) % 2 === 0);
+      v.setPosition(Math.round(this.x), Math.round(this.pe));
       return;
     }
     if (this.invulneravel) this.visual.setVisible(Math.floor(this.cena.time.now / 70) % 2 === 0);
@@ -152,10 +173,14 @@ export class Jogador {
     this.vidas--;
     const lado = Math.sign(vxBala) || -this.direcao;
     this.corpo.body.setVelocity(lado * 90, -240);
+    this.desdeMorte = 0;
+    this.caiuEm = 0;
+    // Voa para trás: vira de frente para quem atirou (a cabeça cai do lado de lá).
+    this.direcaoMorte = -lado;
     cena.efeitos.parar(120);
     cena.efeitos.tremer(0.01, 220);
     cena.efeitos.faisca(this.x, this.pe - 24, 10);
-    cena.time.delayedCall(1300, () => this.renascer());
+    cena.time.delayedCall(MORTE, () => this.renascer());
   }
 
   // Depois do "continuar?": vidas cheias e volta ao jogo.

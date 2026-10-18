@@ -280,8 +280,9 @@ export class Blindado extends Veiculo {
         cena.time.delayedCall(k * 110, () => {
           if (!this.vivo) return;
           const [x, y] = this.ponto(this.q.largura / 2 + 2, 29);
-          cena.balasInimigas.disparar(x, y, this.direcao, 'volante');
-          cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI);
+          cena.balasInimigas.disparar(x, y, this.direcao, 'pesada');
+          cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'grande');
+          cena.efeitos.capsula(x - this.direcao * 14, y + 2, -this.direcao);
         });
       }
     }
@@ -291,10 +292,10 @@ export class Blindado extends Veiculo {
       this.setFrame(this.q.tiro);
       cena.time.delayedCall(160, () => this.vivo && this.torre && this.setFrame(this.q.andar[0]));
       const [x, y] = this.ponto(this.q.largura / 2 - 8, 58);
-      cena.balasInimigas.lancarRojao(x, y, this.direcao, Math.abs(j.x - x));
-      cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'grande');
-      cena.efeitos.fumaca(x, y);
-      cena.efeitos.tremer(0.005, 100);
+      cena.balasInimigas.lancarObus(x, y, this.direcao, Math.abs(j.x - x));
+      cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'canhao');
+      for (let k = 0; k < 3; k++) cena.efeitos.fumaca(x + this.direcao * k * 6, y - k * 2);
+      cena.efeitos.tremer(0.008, 140);
     }
   }
 }

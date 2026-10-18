@@ -2,7 +2,8 @@
 
 // Lampião pixel a pixel (tools/arte/pixel/lampiao.txt), ordem de tools/arte/exportar.py.
 const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6',
-  'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada', 'facada1', 'mira_baixo', 'recarga'];
+  'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada', 'facada1', 'mira_baixo', 'recarga',
+  'morte1', 'morte2', 'morte3'];
 
 export const LAMPIAO = { largura: 44, altura: 46, peX: 14, peY: 45 };
 QUADROS_LAMPIAO.forEach((nome, i) => { LAMPIAO[nome] = i; });
@@ -55,6 +56,9 @@ export const EFEITOS = {
   clarao: { largura: 24, altura: 18, quadros: 3 },
   clarao_g: { largura: 33, altura: 25, quadros: 3 },
   tracer: { largura: 12, altura: 3, quadros: 2 },
+  bala_pesada: { largura: 26, altura: 8, quadros: 2 },
+  obus: { largura: 30, altura: 14, quadros: 3 },
+  clarao_canhao: { largura: 50, altura: 37, quadros: 3 },
   bala_papo: { largura: 20, altura: 3, quadros: 2 },
   chumbo: { largura: 3, altura: 3, quadros: 1 },
   pedra: { largura: 7, altura: 7, quadros: 2 },

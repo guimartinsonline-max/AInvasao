@@ -3,6 +3,8 @@
 const TIPOS = {
   volante: { textura: 'tracer', velocidade: 200, mira: 0 },
   raio: { textura: 'raio', velocidade: 110, mira: 0 },
+  // Metralhadora do blindado: bala grossa com rastro de fogo, animada.
+  pesada: { textura: 'bala_pesada', velocidade: 230, mira: 0, quadros: 2 },
 };
 
 export class BalasInimigas {
@@ -53,6 +55,21 @@ export class BalasInimigas {
     d.proximaFumaca = 0;
   }
 
+  // Obus do canhão do blindado: arco mais alto, gira a cinta, rastro de fumaça e explosão maior.
+  lancarObus(x, y, direcao, distancia) {
+    const d = this.dinamites.get(x, y, 'obus');
+    if (!d) return;
+    d.setTexture('obus', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
+    d.body.reset(x, y);
+    d.body.setSize(12, 8);
+    d.body.setAngularVelocity(0);
+    d.rojao = true;
+    d.obus = true;
+    const vx = Phaser.Math.Clamp(distancia * 0.75, 90, 240);
+    d.body.setVelocity(direcao * vx, -220);
+    d.proximaFumaca = 0;
+  }
+
   explodirDinamite(d) {
     if (!d.active) return;
     const cena = this.cena;
@@ -62,10 +79,12 @@ export class BalasInimigas {
     d.body.stop();
     d.body.reset(-100, -100);
     const forte = d.rojao;
+    const obus = d.obus;
     d.rojao = false;
-    cena.efeitos.explosao(x, y - 4, forte ? 0.9 : 0.6);
+    d.obus = false;
+    cena.efeitos.explosao(x, y - 4, obus ? 1.4 : forte ? 0.9 : 0.6);
     const j = this.jogador;
-    const raio = forte ? 28 : 20;
+    const raio = obus ? 36 : forte ? 28 : 20;
     if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < raio && Math.abs(j.pe - 14 - y) < 26) j.morrer(j.x - x);
   }
 
@@ -83,6 +102,7 @@ export class BalasInimigas {
       ang = Phaser.Math.Clamp(bruto, -cfg.mira, cfg.mira);
       if (direcao < 0) ang = Math.PI - ang;
     }
+    bala.quadros = cfg.quadros || 1;
     bala.setFlipX(false).setRotation(ang);
     bala.body.setVelocity(Math.cos(ang) * cfg.velocidade, Math.sin(ang) * cfg.velocidade);
   }
@@ -100,13 +120,16 @@ export class BalasInimigas {
       if (!d.active || !d.rojao) continue;
       // O rojão aponta para onde vai e solta fumaça.
       d.setRotation(Math.atan2(d.body.velocity.y, d.body.velocity.x));
+      if (d.obus) d.setFrame(Math.floor(agora / 60) % 3);
       if (agora > d.proximaFumaca) {
         d.proximaFumaca = agora + 50;
         this.cena.efeitos.fumaca(d.x - Math.cos(d.rotation) * 10, d.y - Math.sin(d.rotation) * 10);
       }
     }
     for (const bala of this.grupo.getChildren()) {
-      if (bala.active && (bala.x < v.x - 16 || bala.x > v.right + 16)) this.recolher(bala);
+      if (!bala.active) continue;
+      if (bala.quadros > 1) bala.setFrame(Math.floor(agora / 70) % bala.quadros);
+      if (bala.x < v.x - 16 || bala.x > v.right + 16) this.recolher(bala);
     }
   }
 }

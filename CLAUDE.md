@@ -44,6 +44,8 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - Ataque corpo a corpo: peixeira, como a faca do Metal Slug: sai sozinha quando o inimigo está colado e **mata na hora**. Golpe em dois tempos (quadros "facada1" levantando e "facada" descendo) com arco de corte largo (`corte_arco`).
 - **No pulo apertando para baixo:** curva a cabeça olhando o chão e aponta a arma para baixo (quadro "mira_baixo", boca `baixo` em `src/maos.js`), como no Metal Slug.
 - **Baladeira** anima a cada tiro: solta a liga ("atirando") e puxa a próxima pedra até o rosto ("recarga"). **Madsen** gira a mira aos poucos entre frente e cima, varrendo na diagonal (como a HMG).
+- **Morte do Lampião** como no Metal Slug: careta de dor voando para trás de braços para cima com o chapéu saltando ("morte1"), cai estatelado de costas com olhos em X ("morte2"), a perna treme e a língua sai ("morte3"), pisca e renasce.
+- **Mirando para cima** inclina a cabeça para trás e olha para o alto (rosto "cima"); no pulo para baixo, curva a cabeça olhando o chão.
 - Arma inicial: **pistola Mauser semiautomática** (um tiro por toque), numa mão só.
 - **Cada arma tem o jeito próprio de segurar** (quadros em `tools/arte/lampiao_armas.py`, folhas `lampiao_<arma>.png`): Madsen no quadril, Bacamarte baixo na cintura, Papo-amarelo no ombro mirando, Rojão apoiado no ombro, Desintegrador numa mão só, Candeeiro com a lata nas costas, Baladeira puxando a liga, Buscapé no peito. Braços atrás da arma, só as mãos por cima. Armas no tamanho do fuzil (30x12). Boca do cano gerada em `src/maos.js`.
 
@@ -60,7 +62,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Refém:** romeiro do mesmo porte do Lampião (chapéu de palha com fitas, barba branca, terço, bornal). Amarrado se debate; solto pula, procura no bornal, entrega o item, bate continência e foge. Alguns ficam **pendurados** pelas mãos num galho seco (ou embaixo da ponte): o tiro corta a corda e ele cai. Depois de salvo, foge correndo pela esquerda e pula o que estiver no caminho.
 - **Tiro dos soldados sempre reto** (nada de diagonal); dinamite e rojão continuam em arco.
 - **Ninguém surge do nada:** soldados entram pela borda da tela, pulam de esconderijos (`salta:x`), saem de portas de casas, capela e barracas (`porta:x`) ou descem de caminhão. No campo de treino, quem renasce entra andando pela borda.
-- **Veículos da Volante** (`tools/arte/veiculos.py`, `src/objetos/Veiculos.js`): **caminhão** (chega, freia, abre a lona e despeja soldados, depois vai embora; dá para explodir) e **carro blindado** (vai e vem, metralhadora reta na altura do peito, canhão com obus em arco; com metade da vida a torre quebra e perde o canhão; explosão em cadeia). Andando, atropelam o Lampião e esmagam caixotes. Acompanham o terreno.
+- **Veículos da Volante** (`tools/arte/veiculos.py`, `src/objetos/Veiculos.js`): **caminhão** (chega, freia, abre a lona e despeja soldados, depois vai embora; dá para explodir) e **carro blindado** (detalhado: tripulante na escotilha, antena com flâmula, estepe, pá, galão, farol, rebites e lama; vai e vem, metralhadora de bala grossa animada na altura do peito, canhão com obus de latão em arco, clarão grande e explosão maior; com metade da vida a torre quebra e perde o canhão; explosão em cadeia). Andando, atropelam o Lampião e esmagam caixotes. Acompanham o terreno.
 - **Inteligência dos soldados:** obstáculo baixo (até 26 px) eles pulam, alto (até 74 px) escalam agarrados na borda; na beirada, descem pulando se o Lampião estiver embaixo. Nunca ficam presos (pulo tem tempo limite).
 - **Alienígenas só a partir da fase 2** (a fase 1 é só contra a Volante). Campo de treino mantém xeremita e disco.
 - **Disco abdutor:** 88x40, com o piloto xeremita visível na cúpula de vidro; raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
@@ -85,7 +87,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 ## Mecânicas
 
 - Correr, pular, agachar, atirar para frente, para cima e para baixo no ar.
-- Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são letras grandes no estilo Metal Slug.
+- Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são **caixas quadradas de chapa com a letra da arma** no meio, no estilo Metal Slug. Drop de armas reduzido: caixote solta arma em ~28% das vezes; refém dá arma ou granadas (meio a meio).
 - **Armas aprovadas:** M Metralhadora Madsen, B Bacamarte, R Rojão de São João, D Raio Desintegrador, C Candeeiro (lança-chamas; deixa o inimigo pegando fogo), P Papo-amarelo (atravessa a fila), E Baladeira (pedras que quicam), F Fogos Buscapé (perseguem o inimigo). Item G dá granadas. Tabela em `src/armas.js`.
 - Painel de munição no canto (ARMA e GRANADA), como no Metal Slug.
 - **Arma grande:** pegar a mesma arma de novo deixa ela SUPER (tiro 1,5x maior e mais forte, munição somada).

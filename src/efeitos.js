@@ -2,7 +2,7 @@ import { P } from './paleta.js';
 import { EFEITOS } from './quadros.js';
 
 // Velocidade (quadros por segundo) de cada efeito animado.
-const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14, rajada: 20, corte_arco: 26 };
+const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14, rajada: 20, corte_arco: 26, clarao_canhao: 36 };
 
 // Efeitos de impacto (game feel). Tudo é criado uma vez e reaproveitado.
 export class Efeitos {
@@ -161,7 +161,8 @@ export class Efeitos {
       this.animar('impacto_verde', x, y, { profundidade: 20 });
       return;
     }
-    this.animar(tipo === 'grande' ? 'clarao_g' : 'clarao', x, y, { rotacao: angulo, origemX: 0.05, profundidade: 20 });
+    const chave = tipo === 'canhao' ? 'clarao_canhao' : tipo === 'grande' ? 'clarao_g' : 'clarao';
+    this.animar(chave, x, y, { rotacao: angulo, origemX: 0.05, profundidade: 20 });
   }
 
   impacto(x, y, tipo = 'comum') {

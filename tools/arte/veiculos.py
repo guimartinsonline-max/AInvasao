@@ -149,6 +149,13 @@ def caminhao(quadro=0):
     return t
 
 
+def rebites(t, pontos):
+    """Rebites com luz em cima e sombra embaixo."""
+    for x, y in pontos:
+        t.ponto(x, y, "mandacaru_luz")
+        t.ponto(x, y + 1, "caatinga_esc")
+
+
 def blindado(quadro=0):
     W, H = 132, 76
     t = Tela(W, H)
@@ -156,64 +163,135 @@ def blindado(quadro=0):
     andando = quadro in (0, 1)
     y0 = -1 if quadro == 1 else 0
     torre_quebrada = quadro in (3, 4)
-    # Canhão (atrás da torre, sai pela frente). No tiro recua 4 px.
+    rng = np.random.default_rng(4)
+    # --- Atrás de tudo: estepe pendurado na traseira, antena e escapamento.
+    estepe = t.elipse(9, 44 + y0, 7, 10)
+    t.volume(estepe, PNEU, achatado=2, suave=0.6, ambiente=0.15)
+    t.volume(t.elipse(9, 44 + y0, 3, 5), FERRO, achatado=1, suave=0.3)
+    if not torre_quebrada:
+        t.linha(50, 14 + y0, 40, 0, "cinza_escuro")  # antena chicote
+        bandeira = t.poligono([(41, 1), (49, 3), (42, 6)])
+        t.chapado(bandeira, "caatinga")
+        t.chapado(t.poligono([(41, 3), (46, 3.5), (41, 5)]) & bandeira, "amarelo_fogo")
+    # --- Canhão (atrás da torre, sai pela frente). No tiro recua 4 px.
     rec = 4 if quadro == 2 else 0
     if not torre_quebrada:
-        cano = t.capsula(78 - rec, 19 + y0, 120 - rec, 18 + y0, 2.4)
+        cano = t.capsula(78 - rec, 19 + y0, 120 - rec, 18 + y0, 2.6)
         t.volume(cano, FERRO, achatado=1.5, suave=0.4, ambiente=0.2, brilho=1.1)
-        t.volume(t.retangulo(116 - rec, 15.5 + y0, 7, 6), FERRO, achatado=1.5, suave=0.4)  # freio de boca
+        t.linha(84 - rec, 17 + y0, 116 - rec, 16.5 + y0, "cinza_claro")  # brilho do cano
+        for x in (96, 106):
+            t.chapado(t.retangulo(x - rec, 15.5 + y0, 2, 6), "cinza_escuro")  # anéis
+        t.volume(t.retangulo(115 - rec, 14.5 + y0, 8, 8), FERRO, achatado=1.5, suave=0.4)  # freio de boca
+        t.chapado(t.retangulo(117 - rec, 15.5 + y0, 1, 6), "sombra")
         t.chapado(t.retangulo(121 - rec, 17 + y0, 2, 2), "preto")
     else:
-        t.volume(t.capsula(78, 19 + y0, 88, 21 + y0, 2.4), FERRO, achatado=1.5, suave=0.4)  # toco quebrado
-        for k, (x, y) in enumerate(((88, 18), (89, 22), (90, 20))):
+        t.volume(t.capsula(78, 19 + y0, 90, 21 + y0, 2.6), FERRO, achatado=1.5, suave=0.4)  # toco quebrado
+        for k, (x, y) in enumerate(((90, 18), (91, 22), (92, 20), (91, 16))):
             t.ponto(x, y + y0, "cinza_luz" if k % 2 else "sombra")
-    # Torre arredondada com escotilha e periscópio.
+    # --- Torre arredondada, mantelete do canhão, escotilha e fenda de visão.
     torre = t.poligono([(42, 32 + y0), (46, 15 + y0), (56, 9 + y0), (78, 9 + y0), (86, 16 + y0), (88, 32 + y0)])
-    t.volume(torre, OLIVA, achatado=4, suave=1.2, ambiente=0.25, textura=0.08, semente=9)
-    t.volume(t.elipse(64, 8 + y0, 9, 3) & (t.yy < 9 + y0), OLIVA_ESC, achatado=1.5, suave=0.4)  # escotilha
-    t.volume(t.retangulo(72, 3 + y0, 3, 6), FERRO, achatado=1, suave=0.3)
-    t.chapado(t.retangulo(78, 18 + y0, 6, 2), "preto")  # fenda de visão
-    for x in range(48, 86, 6):
-        t.ponto(x, 29 + y0, "mandacaru")
+    t.volume(torre, OLIVA, achatado=4, suave=1.2, ambiente=0.25, textura=0.1, semente=9)
+    t.linha(47, 15 + y0, 56, 10 + y0, "mandacaru_luz")
+    t.linha(56, 10 + y0, 77, 10 + y0, "mandacaru_luz")
+    if not torre_quebrada:
+        mant = t.retangulo(80, 12 + y0, 9, 14)
+        t.volume(mant, OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35, textura=0.1, semente=3)
+        rebites(t, [(82, 14 + y0), (87, 14 + y0), (82, 23 + y0), (87, 23 + y0)])
+    # Tripulante da Volante espiando pela escotilha (quepe, narigão, bigode).
+    if not torre_quebrada:
+        cab = t.elipse(64, 5 + y0, 4.6, 4.2)
+        t.volume(cab, ["pele_sombra", "pele_media", "pele", "pele_luz"], achatado=2, suave=0.5, ambiente=0.3)
+        quepe = t.retangulo(59, 0, 11, 3 + y0) | t.retangulo(64, 2 + y0, 8, 1.5)
+        t.volume(quepe, OLIVA, achatado=1, suave=0.3, ambiente=0.3)
+        t.ponto(62, 1, "amarelo_fogo")
+        t.chapado(t.elipse(68.5, 6 + y0, 2.2, 1.8), "pele_media")  # narigão
+        t.ponto(69, 5 + y0, "pele_luz")
+        t.linha(65, 8 + y0, 70, 8 + y0, "preto")  # bigode
+        t.ponto(66, 4 + y0, "preto")  # olho
+    t.volume(t.elipse(64, 9 + y0, 9, 2.5), OLIVA_ESC, achatado=1.5, suave=0.4)  # aro da escotilha
+    t.volume(t.retangulo(52, 4 + y0, 6, 6) & (t.yy < 10 + y0), OLIVA, achatado=1, suave=0.3)  # tampa aberta
+    t.chapado(t.retangulo(76, 18 + y0, 4, 2), "preto")  # fenda de visão
+    t.ponto(77, 18 + y0, "ceu_medio")
+    t.linha(44, 31 + y0, 87, 31 + y0, "sombra")  # anel da torre
+    rebites(t, [(x, 28 + y0) for x in range(48, 86, 5)])
     if torre_quebrada:
-        # Chapa furada e retorcida.
-        t.chapado(t.elipse(70, 18 + y0, 7, 5), "preto")
-        t.chapado(t.elipse(70, 18 + y0, 4, 3), "vermelho_esc")
-        t.chapado(t.elipse(70, 18 + y0, 2, 1.5), "laranja_fogo")
-        for (x0, y_, x1, y1) in ((63, 13, 60, 9), (77, 14, 81, 10), (64, 23, 61, 26)):
+        # Chapa furada e retorcida, fumegando por dentro.
+        t.chapado(t.elipse(70, 18 + y0, 8, 6), "preto")
+        t.chapado(t.elipse(70, 18 + y0, 5, 3.5), "vermelho_esc")
+        t.chapado(t.elipse(70, 18 + y0, 2.5, 1.8), "laranja_fogo")
+        t.ponto(70, 18 + y0, "amarelo_claro")
+        for (x0, y_, x1, y1) in ((62, 13, 58, 8), (78, 14, 83, 9), (63, 23, 59, 27), (77, 22, 82, 25)):
             t.linha(x0, y_ + y0, x1, y1 + y0, "cinza_luz")
-    # Casco de chapas inclinadas com rebites.
+            t.ponto(x1, y1 + y0, "cinza_claro")
+    # --- Casco de chapas inclinadas.
     casco = t.poligono([(4, 60 + y0), (8, 40 + y0), (26, 31 + y0), (104, 31 + y0), (124, 42 + y0), (126, 60 + y0)])
-    t.volume(casco, OLIVA, achatado=5, suave=1.4, ambiente=0.22, textura=0.08, semente=11)
-    # Faixas de chapa e sombra das dobras.
+    t.volume(casco, OLIVA, achatado=5, suave=1.4, ambiente=0.22, textura=0.1, semente=11)
+    t.linha(26, 32 + y0, 104, 32 + y0, "mandacaru_luz")  # quina de cima iluminada
+    t.linha(104, 32 + y0, 123, 42 + y0, "mandacaru")
+    # Emendas das chapas, com rebites.
     t.linha(9, 41 + y0, 123, 43 + y0, "caatinga_esc")
     t.linha(6, 52 + y0, 125, 52 + y0, "caatinga_esc")
-    for x in range(12, 122, 7):
-        t.ponto(x, 44 + y0, "mandacaru")
-        t.ponto(x + 3, 55 + y0, "caatinga_esc")
+    for x in (40, 70, 100):
+        t.linha(x, 33 + y0, x, 51 + y0, "caatinga_esc")
+    rebites(t, [(x, 44 + y0) for x in range(12, 122, 6)] + [(x, 54 + y0) for x in range(10, 124, 6)])
+    # Bloco de visão do motorista na chapa da frente (vidro grosso).
+    t.volume(t.retangulo(106, 34 + y0, 10, 5), FERRO, achatado=1, suave=0.3)
+    t.chapado(t.retangulo(108, 35 + y0, 6, 2), "azul_medio")
+    t.ponto(109, 35 + y0, "ceu_luz")
+    # Farol com grade na frente e gancho de reboque.
+    t.volume(t.elipse(120, 44 + y0, 3.5, 3.5), FERRO, achatado=1, suave=0.3)
+    t.chapado(t.elipse(121, 44 + y0, 2, 2), "amarelo_claro")
+    t.linha(118, 44 + y0, 123, 44 + y0, "cinza_escuro")
+    t.volume(t.capsula(122, 57 + y0, 128, 57 + y0, 1.3), FERRO, achatado=1, suave=0.3)
+    # Caixa de ferramentas e pá amarradas na lateral.
+    caixa = t.retangulo(44, 45 + y0, 20, 6)
+    t.volume(caixa, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.35)
+    t.chapado(t.retangulo(53, 47 + y0, 2, 2), "cinza_claro")
+    t.volume(t.capsula(14, 38 + y0, 34, 36 + y0, 1.0), TABUA, achatado=1, suave=0.3)  # cabo da pá
+    t.volume(t.poligono([(34, 34 + y0), (41, 33 + y0), (41, 39 + y0), (34, 38 + y0)]), FERRO, achatado=1, suave=0.3)
+    for x in (20, 30):
+        t.linha(x, 35 + y0, x, 39 + y0, "couro_escuro")  # correias
+    # Galão de combustível na traseira.
+    t.volume(t.retangulo(14, 44 + y0, 8, 9), ["vermelho_esc", "vermelho_medio", "vermelho"], achatado=1.5, suave=0.4)
+    t.chapado(t.retangulo(16, 43 + y0, 3, 1), "cinza_escuro")
     # Seteiras e a metralhadora no casco, na altura do peito do Lampião.
-    for x in (30, 52, 74):
+    for x in (74, 86):
         t.chapado(t.retangulo(x, 46 + y0, 7, 2), "preto")
-    t.volume(t.capsula(116, 47 + y0, 130, 47 + y0, 1.4), FERRO, achatado=1, suave=0.3)
-    t.volume(t.elipse(117, 47 + y0, 3.4, 3.4), OLIVA_ESC, achatado=1.5, suave=0.4)
-    # Estrela da Volante.
-    sx, sy = 96, 46 + y0
+        t.ponto(x, 45 + y0, "caatinga_esc")
+    t.volume(t.elipse(117, 47 + y0, 4, 4), OLIVA_ESC, achatado=1.5, suave=0.4)
+    t.volume(t.capsula(116, 47 + y0, 131, 47 + y0, 1.6), FERRO, achatado=1, suave=0.3)
+    t.chapado(t.retangulo(126, 45.5 + y0, 1, 3), "cinza_escuro")  # quebra-chamas
+    # Estrela da Volante e número pintado.
+    sx, sy = 97, 38 + y0
     est = t.poligono([(sx + np.cos(a) * (4 if k % 2 == 0 else 1.6), sy + np.sin(a) * (4 if k % 2 == 0 else 1.6))
                       for k, a in enumerate(np.linspace(-np.pi / 2, 3 * np.pi / 2, 11)[:-1])])
     t.chapado(est, "branco")
-    # Para-lamas e rodas grandes.
+    # Tinta descascada e arranhões.
+    cheio = t.px >= 0
+    for _ in range(26):
+        x, y = rng.integers(10, 120), rng.integers(33, 58)
+        if cheio[y + y0, x] and t.px[y + y0, x] in (IDX["caatinga"], IDX["caatinga_media"]):
+            t.ponto(x, y + y0, "cinza_luz" if rng.random() < 0.5 else "terra_media")
+    # Escapamento com fuligem na traseira.
+    t.volume(t.capsula(2, 58 + y0, 8, 58 + y0, 1.6), FERRO, achatado=1, suave=0.3)
+    t.ponto(2, 58 + y0, "preto")
+    # Saia de lama embaixo: barro em degradê pontilhado.
+    from motor import BAYER4
+    for y in range(54, 61):
+        for x in range(6, 126):
+            if t.px[y + y0, x] >= 0 and BAYER4[y % 4, x % 4] < (y - 53) / 7:
+                t.px[y + y0, x] = IDX["terra" if y > 57 else "terra_media"]
+    # Para-lamas, aba de lama e rodas grandes.
     for cx in (28, 102):
         pl = t.elipse(cx, 62 + y0, 16, 10) & (t.yy < 61 + y0) & ~t.elipse(cx, 62, 13, 9)
         t.volume(pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
+        t.chapado(t.retangulo(cx - 17, 58 + y0, 2, 9), "sombra")  # aba de borracha
     q = quadro if andando else 0
-    roda(t, 28, chao - 11, 11, q, raios=3)
-    roda(t, 102, chao - 11, 11, q, raios=3)
-    # Lama nas chapas de baixo.
-    rng = np.random.default_rng(4)
-    for _ in range(18):
-        x, y = rng.integers(8, 124), rng.integers(54, 60)
-        if t.px[y, x] >= 0:
-            t.ponto(x, y, "terra")
+    for cx in (28, 102):
+        roda(t, cx, chao - 11, 11, q, raios=3)
+        for k in range(5):  # porcas do cubo
+            a = k / 5 * 2 * np.pi + q * 0.6
+            t.ponto(cx + np.cos(a) * 3.6, chao - 11 + np.sin(a) * 3.6, "cinza_claro")
     t.contorno("sombra")
     if quadro == 4:
         queimar(t, 13)

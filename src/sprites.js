@@ -121,37 +121,75 @@ export const ITENS = {
   granadas: { letra: 'G', rampa: 'caatinga' },
 };
 
+// Caixa do item, como no Metal Slug: quadrado de chapa com bisel (luz em cima à
+// esquerda, sombra embaixo à direita), rebites nos cantos, fundo afundado escuro
+// e a letra grossa colorida da arma no meio, com extrusão e contorno.
+export const CAIXA_ITEM = { largura: 24, altura: 22 };
+
 function gerarItens(cena) {
+  const { largura: W, altura: H } = CAIXA_ITEM;
   for (const [nome, { letra, rampa }] of Object.entries(ITENS)) {
     const glifo = LETRAS[letra];
     const [brilho, claro, medio, escuro] = RAMPAS[rampa];
-    const w = glifo[0].length + 4;
-    const h = glifo.length + 4;
-    const grade = Array.from({ length: h }, () => Array(w).fill(null));
+    const grade = Array.from({ length: H }, () => Array(W).fill(null));
+    const pinta = (x, y, c) => { if (y >= 0 && y < H && x >= 0 && x < W) grade[y][x] = c; };
+    // Chapa da caixa (1 px de contorno preto em volta).
+    for (let y = 1; y < H - 1; y++) {
+      for (let x = 1; x < W - 1; x++) {
+        const borda = Math.min(x - 1, y - 1, W - 2 - x, H - 2 - y);
+        let c = 'cinza';
+        if (borda <= 1) c = (x - 1 < 2 || y - 1 < 2) && x + y < W + H - 8 ? 'cinza_claro' : 'cinza_escuro';
+        if (borda === 0 && (x === 1 || y === 1)) c = 'branco';
+        if (borda === 0 && (x === W - 2 || y === H - 2)) c = 'sombra';
+        pinta(x, y, c);
+      }
+    }
+    // Fundo afundado onde fica a letra (sombra em cima/esquerda, luz embaixo/direita).
+    for (let y = 4; y < H - 4; y++) {
+      for (let x = 4; x < W - 4; x++) {
+        let c = 'sombra';
+        if (y === 4 || x === 4) c = 'preto';
+        if (y === H - 5 || x === W - 5) c = 'cinza_medio';
+        pinta(x, y, c);
+      }
+    }
+    // Rebites.
+    for (const [x, y] of [[3, 3], [W - 4, 3], [3, H - 4], [W - 4, H - 4]]) {
+      pinta(x, y, 'cinza_luz');
+      pinta(x + 1, y + 1, 'sombra_media');
+    }
+    // Faixa colorida da arma no topo da chapa.
+    for (let x = 6; x < W - 6; x++) pinta(x, 2, medio);
+    // Letra: centralizada no fundo, com extrusão escura e degradê.
+    const lw = glifo[0].length;
+    const lh = glifo.length;
+    const ox = Math.floor((W - lw) / 2) - 1;
+    const oy = Math.floor((H - lh) / 2) - 1;
     const cheio = (x, y) => glifo[y] && glifo[y][x] === 'X';
-    // Extrusão: a letra repetida 1 px para baixo e para a direita, em tom escuro.
-    glifo.forEach((l, y) => [...l].forEach((ch, x) => { if (ch === 'X') grade[y + 2][x + 2] = escuro; }));
-    // Letra com degradê vertical e brilho na quina de cima à esquerda.
     glifo.forEach((l, y) => [...l].forEach((ch, x) => {
       if (ch !== 'X') return;
-      let cor = y < 3 ? claro : medio;
-      if (y >= glifo.length - 3) cor = medio;
-      if (!cheio(x - 1, y) && !cheio(x, y - 1)) cor = brilho;
-      else if (!cheio(x, y - 1) && y < 6) cor = brilho;
-      grade[y + 1][x + 1] = cor;
+      pinta(ox + x + 1, oy + y + 1, escuro);
+      pinta(ox + x + 2, oy + y + 1, 'preto');
     }));
-    // Contorno preto em volta de tudo.
-    const contorno = grade.map((l) => l.slice());
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
+    glifo.forEach((l, y) => [...l].forEach((ch, x) => {
+      if (ch !== 'X') return;
+      let cor = y < lh / 2 ? claro : medio;
+      if (!cheio(x - 1, y) && !cheio(x, y - 1)) cor = brilho;
+      else if (!cheio(x, y - 1) && y < 5) cor = brilho;
+      pinta(ox + x, oy + y, cor);
+    }));
+    // Contorno preto em volta da caixa.
+    const final = grade.map((l) => l.slice());
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         if (grade[y][x]) continue;
         let perto = false;
         for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (grade[y + dy]?.[x + dx]) perto = true;
-        if (perto) contorno[y][x] = 'preto';
+        if (perto) final[y][x] = 'preto';
       }
     }
-    texturaDesenhada(cena, `item_${nome}`, w, h, (ctx, cor) => {
-      contorno.forEach((l, y) => l.forEach((c, x) => {
+    texturaDesenhada(cena, `item_${nome}`, W, H, (ctx, cor) => {
+      final.forEach((l, y) => l.forEach((c, x) => {
         if (!c) return;
         ctx.fillStyle = cor(c);
         ctx.fillRect(x, y, 1, 1);
