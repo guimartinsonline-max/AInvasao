@@ -87,6 +87,27 @@ for arma in la.ar.ARMAS:
     if arma != "pistola":
         folha(la.folha_da_arma(arma), SAIDA / f"lampiao_{arma}.png")
 la.gravar_bocas(RAIZ / "src/maos.js")
+
+
+def engordar(t, x0=8, x1=20, extra=5):
+    """Lampião gordo (comeu demais): estica a faixa do meio do corpo (barriga,
+    rosto e pernas) para os lados, sem tocar na arma na frente."""
+    import numpy as np
+    from motor import Tela as _T
+    largura = x1 - x0 + extra
+    idx = (np.arange(largura) * (x1 - x0) / largura).astype(int) + x0
+    novo = _T(t.w + extra, t.h)
+    novo.px = np.concatenate([t.px[:, :x0], t.px[:, idx], t.px[:, x1:]], axis=1)
+    return novo
+
+
+folha([engordar(q) for q in la.folha_da_arma("pistola")], SAIDA / "lampiao_gordo.png")
+for arma in la.ar.ARMAS:
+    if arma != "pistola":
+        folha([engordar(q) for q in la.folha_da_arma(arma)], SAIDA / f"lampiao_{arma}_gordo.png")
+import comidas as cm  # noqa: E402
+for nome, (fn, _pts) in cm.COMIDAS.items():
+    folha([fn()], SAIDA / f"comida_{nome}.png")
 folha([la.chapeu()], SAIDA / "chapeu.png")
 for nome, quadros in {
     "clarao": [ef.clarao(k) for k in range(3)],

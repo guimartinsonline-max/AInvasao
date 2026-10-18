@@ -1,5 +1,5 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA, LAMPIAO, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS } from './quadros.js';
+import { TOUCEIRA, LAMPIAO, LAMPIAO_GORDO, COMIDAS, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS } from './quadros.js';
 import { BOCAS } from './maos.js';
 import { VERSAO } from './config.js';
 import { PEDACOS } from './fase1_pedacos.js';
@@ -25,6 +25,12 @@ export function carregarSprites(cena) {
   }
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.image('chapeu', s('chapeu'));
+  // Lampião gordo com cada arma, e as comidas.
+  cena.load.spritesheet('lampiao_gordo', s('lampiao_gordo'), { frameWidth: LAMPIAO_GORDO.largura, frameHeight: LAMPIAO_GORDO.altura });
+  for (const arma of Object.keys(BOCAS).filter((a) => a !== 'pistola')) {
+    cena.load.spritesheet(`lampiao_${arma}_gordo`, s(`lampiao_${arma}_gordo`), { frameWidth: LAMPIAO_GORDO.largura, frameHeight: LAMPIAO_GORDO.altura });
+  }
+  for (const nome of Object.keys(COMIDAS)) cena.load.image(`comida_${nome}`, s(`comida_${nome}`));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
   for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
     cena.load.image(nome, s(nome));

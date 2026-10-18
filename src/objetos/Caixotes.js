@@ -17,6 +17,7 @@ function surpresa() {
   if (r < 0.17) return 'item'; // arma: bem menos que no começo
   if (r < 0.29) return 'refem';
   if (r < 0.41) return 'bode';
+  if (r < 0.66) return 'comida';
   return null;
 }
 
@@ -87,6 +88,7 @@ class Caixote {
       if (dentro === 'item') cena.soltarItem(cx, cy, Phaser.Utils.Array.GetRandom(cena.premios));
       else if (dentro === 'refem') cena.surpresaRefem(cx, this.y);
       else if (dentro === 'bode') cena.surpresaBode(cx, this.y);
+      else if (dentro === 'comida') cena.soltarItem(cx, cy, cena.comidaSorteada());
     }
     cena.caixotes.derrubarSobre(cx, topo);
     if (cena.tudoVolta) cena.time.delayedCall(VOLTA, () => this.voltar());

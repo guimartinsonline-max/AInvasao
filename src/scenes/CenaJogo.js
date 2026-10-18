@@ -212,6 +212,10 @@ export class CenaJogo extends Phaser.Scene {
   }
 
   pegarItem(arma, item) {
+    if (arma.startsWith('comida_')) {
+      this.jogador.comer(arma.slice(7), item);
+      return;
+    }
     this.efeitos.faisca(item.x, item.y - 8, 12);
     if (arma === 'granadas') {
       this.jogador.granadas = Math.min(this.jogador.granadas + 5, 20);
@@ -242,6 +246,16 @@ export class CenaJogo extends Phaser.Scene {
   }
 
   // Item que sai saltando de um caixote quebrado ou de um refém solto.
+  // Comida sorteada: as baratas aparecem mais, a buchada é rara.
+  comidaSorteada() {
+    const r = Math.random();
+    if (r < 0.35) return 'comida_caja';
+    if (r < 0.6) return 'comida_rapadura';
+    if (r < 0.8) return 'comida_queijo';
+    if (r < 0.94) return 'comida_cuscuz';
+    return 'comida_buchada';
+  }
+
   soltarItem(x, y, arma) {
     this.itens.colocar(x, y, arma, { pulo: true });
   }

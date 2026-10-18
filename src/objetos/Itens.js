@@ -29,7 +29,9 @@ export class Itens {
   colocar(x, y, arma, { pulo = false, fixo = false } = {}) {
     const item = this.grupo.getFirstDead(false) || this.grupo.getChildren()[0];
     item.enableBody(true, x, y, true, true);
-    item.setTexture(`item_${arma}`).clearTint();
+    // Comida usa o próprio desenho; arma e granada usam a caixa com a letra.
+    item.setTexture(arma.startsWith('comida_') ? arma : `item_${arma}`).clearTint();
+    item.body.setSize(item.width - 2, item.height - 2).setOffset(1, 1);
     item.arma = arma;
     item.fixo = fixo ? { x, y } : null;
     item.fase = Math.random() * PISCA;

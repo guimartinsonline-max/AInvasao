@@ -1,4 +1,4 @@
-import { LAMPIAO } from '../quadros.js';
+import { LAMPIAO, LAMPIAO_GORDO, COMIDAS } from '../quadros.js';
 import { BOCAS } from '../maos.js';
 import { ARMAS } from '../armas.js';
 
@@ -18,6 +18,9 @@ const GRANADAS = 10;
 export const VIDAS = 3;
 const INVULNERAVEL = 2000; // ms piscando depois de renascer
 const MORTE = 1900; // ms da animação de morte até renascer
+const ENGORDA = 6; // comidas seguidas para ficar gordo
+const DIGERE = 9000; // ms para a barriga baixar uma comida
+const TEMPO_GORDO = 25000; // ms gordo até emagrecer
 
 export class Jogador {
   constructor(cena, x, y) {
@@ -79,6 +82,7 @@ export class Jogador {
         this.cena.tweens.add({ targets: this.poca, scaleX: 1, scaleY: 1, duration: 700, ease: 'Quad.easeOut' });
         this.cena.efeitos.sangue(this.x, this.pe - 6, 10);
       }
+      if (v.texture.key.endsWith('_gordo')) v.setTexture(v.texture.key.slice(0, -6));
       v.setFrame(LAMPIAO[quadro]);
       // Cai de costas: a cabeça vai para o lado de onde ele voou.
       const d = this.direcaoMorte;
@@ -112,7 +116,8 @@ export class Jogador {
 
     // Correr.
     if (c.eixoX !== 0) this.direcao = c.eixoX;
-    corpo.setVelocityX(c.eixoX * (this.agachado ? VEL_AGACHADO : VEL_CORRER));
+    // Gordo anda mais devagar.
+    corpo.setVelocityX(c.eixoX * (this.agachado ? VEL_AGACHADO : VEL_CORRER) * (this.gordo ? 0.7 : 1));
 
     // Pular, com tolerância de beirada e memória do botão.
     if (this.memoriaPulo > 0 && this.beirada > 0) {
@@ -122,7 +127,7 @@ export class Jogador {
         this.agachado = false;
         this.ajustarAltura(ALTURA_EM_PE);
       }
-      corpo.setVelocityY(VEL_PULO);
+      corpo.setVelocityY(VEL_PULO * (this.gordo ? 0.86 : 1));
       this.cena.efeitos.poeira(this.x, this.pe, 6);
       this.esticar(0.75, 1.3);
     }
@@ -152,6 +157,13 @@ export class Jogador {
       this.cena.lancarGranada(this.x + this.direcao * gx, this.pe - gy, this.direcao, corpo.velocity.x);
     }
 
+    // Digestão: a barriga baixa com o tempo; gordo, emagrece depois de um tempo sem comer.
+    const agora = this.cena.time.now;
+    if (this.barriga > 0 && agora > this.digereEm) {
+      this.barriga--;
+      this.digereEm = agora + DIGERE;
+    }
+    if (this.gordo && agora > this.gordoAte) this.emagrecer();
     this.miraCima = c.estado.cima && !this.agachado;
     this.miraBaixo = !this.noChao && c.estado.baixo && !this.miraCima;
     // Ângulo da varredura (0 = frente, 1 = cima): gira em ~150 ms.
@@ -175,7 +187,8 @@ export class Jogador {
   }
 
   get forca() {
-    return this.nivel === 2 ? 1.5 : 1;
+    // Arma SUPER ou Lampião gordo: tiro maior e mais forte.
+    return this.nivel === 2 || this.gordo ? 1.5 : 1;
   }
 
   // Um tiro mata, como no Metal Slug: careta de susto, voa para trás e renasce piscando.
@@ -190,6 +203,7 @@ export class Jogador {
     cena.efeitos.sangue(this.x, this.pe - 24, 28);
     this.desdeMorte = 0;
     this.caiuEm = 0;
+    this.emagrecer(true);
     this.bateu = false;
     // O chapéu voa da cabeça girando e cai do lado.
     this.chapeu.setPosition(this.x, this.pe - 44).setVisible(true).setAlpha(1).setRotation(0);
@@ -200,6 +214,33 @@ export class Jogador {
     cena.efeitos.tremer(0.01, 220);
     cena.efeitos.faisca(this.x, this.pe - 24, 10);
     cena.time.delayedCall(MORTE, () => this.renascer());
+  }
+
+  // Comeu: pontos no lugar e a barriga enche; muitas seguidas e ele engorda.
+  comer(nome, item) {
+    const cena = this.cena;
+    cena.pontuar(COMIDAS[nome] || 100, item.x, item.y - 16);
+    cena.efeitos.faisca(item.x, item.y - 8, 6);
+    this.barriga = (this.barriga || 0) + 1;
+    this.digereEm = cena.time.now + DIGERE;
+    if (!this.gordo && this.barriga >= ENGORDA) {
+      this.gordo = true;
+      this.gordoAte = cena.time.now + TEMPO_GORDO;
+      cena.events.emit('arma', 'GORDO!');
+      cena.efeitos.poeira(this.x, this.pe, 12);
+      cena.efeitos.tremer(0.004, 120);
+    } else if (this.gordo) {
+      this.gordoAte = cena.time.now + TEMPO_GORDO; // comer mais segura a barriga
+    }
+  }
+
+  emagrecer(semAviso = false) {
+    if (this.gordo && !semAviso) {
+      this.cena.events.emit('arma', 'EMAGRECEU');
+      this.cena.efeitos.poeira(this.x, this.pe, 8);
+    }
+    this.gordo = false;
+    this.barriga = 0;
   }
 
   // Chapéu solto: sobe girando, cai e assenta no chão (fica lá até ele renascer).
@@ -280,21 +321,23 @@ export class Jogador {
 
     let x, y, ang;
     const folha = this.arma === 'padrao' ? 'pistola' : this.arma;
+    // Gordo: a arma fica 5 px mais para a frente (a barriga empurra).
+    const g = this.gordo ? 5 : 0;
     if (mira === 'baixo') {
       // No ar olhando para baixo: o tiro sai da arma apontada para o chão.
       const [bx, by] = BOCAS[folha].baixo;
-      x = this.x + d * bx; y = this.pe - by; ang = Math.PI / 2;
+      x = this.x + d * (bx + g); y = this.pe - by; ang = Math.PI / 2;
     } else if (varre) {
       const k = this.angVarre;
       const [fx, fy] = BOCAS[folha].frente;
       const [cx, cy] = BOCAS[folha].cima;
-      x = this.x + d * (fx + (cx - fx) * k);
+      x = this.x + d * (fx + (cx - fx) * k + g);
       y = this.pe - (fy + (cy - fy) * k);
       ang = d > 0 ? -k * Math.PI / 2 : Math.PI + k * Math.PI / 2;
     } else {
       // Tiro sai da boca da arma, na pose do Lampião segurando aquela arma (a padrão é a pistola).
       const [bx, by] = BOCAS[folha][mira === 'cima' ? 'cima' : this.agachado ? 'agachado' : 'frente'];
-      x = this.x + d * bx;
+      x = this.x + d * (bx + g);
       y = this.pe - by + (mira === 'cima' ? 0 : Phaser.Math.Between(-1, 1) * (this.arma === 'padrao' ? 1 : 0));
       ang = mira === 'cima' ? -Math.PI / 2 : d > 0 ? 0 : Math.PI;
     }
@@ -363,13 +406,14 @@ export class Jogador {
       quadro = this.desdeTiro < 160 ? 'atirando' : 'parado';
     }
     // Com arma pesada, usa a folha do Lampião segurando aquela arma.
-    const folha = this.arma === 'padrao' ? 'lampiao' : `lampiao_${this.arma}`;
+    const folha = (this.arma === 'padrao' ? 'lampiao' : `lampiao_${this.arma}`) + (this.gordo ? '_gordo' : '');
     if (v.texture.key !== folha) v.setTexture(folha);
     v.setFrame(LAMPIAO[quadro]);
     v.setFlipX(this.direcao < 0);
     // O pé fica na origem; ao virar, o desenho espelha e o centro muda de lado.
-    const ox = this.direcao > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX;
-    v.setOrigin(ox / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
+    const Q = this.gordo ? LAMPIAO_GORDO : LAMPIAO;
+    const ox = this.direcao > 0 ? Q.peX : Q.largura - Q.peX;
+    v.setOrigin(ox / Q.largura, Q.peY / Q.altura);
 
     const recuo = this.recuo > 0 ? -this.direcao : 0;
     this.recuo -= dt;

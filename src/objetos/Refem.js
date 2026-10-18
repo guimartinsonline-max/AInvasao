@@ -116,7 +116,7 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
       const r = Math.random();
       if (r < 0.3) this.scene.soltarItem(this.x + 18, this.y - 26, Phaser.Utils.Array.GetRandom(this.scene.premios));
       else if (r < 0.55) this.scene.soltarItem(this.x + 18, this.y - 26, 'granadas');
-      else this.scene.pontuar(1000, this.x + 14, this.y - 40);
+      else this.scene.soltarItem(this.x + 18, this.y - 26, this.scene.comidaSorteada());
     }
   }
 
