@@ -8,6 +8,10 @@ const TIPOS = {
 export class BalasInimigas {
   constructor(cena, solidos, jogador) {
     this.cena = cena;
+    this.jogador = jogador;
+    this.dinamites = cena.physics.add.group({ defaultKey: 'dinamite', maxSize: 8 });
+    cena.physics.add.collider(this.dinamites, solidos, (d) => this.explodirDinamite(d));
+    cena.physics.add.overlap(this.dinamites, jogador.corpo, (a, b) => this.explodirDinamite(a === jogador.corpo ? b : a));
     this.grupo = cena.physics.add.group({ defaultKey: 'raio', maxSize: 24, allowGravity: false });
     cena.physics.add.overlap(this.grupo, solidos, (bala) => {
       if (!bala.active) return;
@@ -20,6 +24,31 @@ export class BalasInimigas {
       this.recolher(bala);
       jogador.morrer(bala.body.velocity.x);
     });
+  }
+
+  // Dinamite do granadeiro: voa em arco girando e explode ao tocar o chão ou o Lampião.
+  lancarDinamite(x, y, direcao, distancia) {
+    const d = this.dinamites.get(x, y, 'dinamite');
+    if (!d) return;
+    d.setActive(true).setVisible(true).setDepth(14);
+    d.body.reset(x, y);
+    d.body.setSize(6, 6);
+    const vx = Phaser.Math.Clamp(distancia * 1.05, 50, 190);
+    d.body.setVelocity(direcao * vx, -230);
+    d.body.setAngularVelocity(direcao * 720);
+  }
+
+  explodirDinamite(d) {
+    if (!d.active) return;
+    const cena = this.cena;
+    const x = d.x;
+    const y = d.y;
+    d.setActive(false).setVisible(false);
+    d.body.stop();
+    d.body.reset(-100, -100);
+    cena.efeitos.explosao(x, y - 4, 0.6);
+    const j = this.jogador;
+    if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < 20 && Math.abs(j.pe - 14 - y) < 24) j.morrer(j.x - x);
   }
 
   // Mira no peito do alvo, com ângulo limitado pelo tipo (o raio do xeremita sai reto).

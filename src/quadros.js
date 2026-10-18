@@ -20,6 +20,13 @@ export const INIMIGOS = {
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 17] },
   xeremita: { largura: 44, altura: 46, peX: 17, peY: 45, corpoL: 14, corpoA: 38,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [23, 16] },
+  // Variações da Volante: granadeiro (dinamite), metralhador (rajada) e sargento do facão.
+  granadeiro: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [0, 38] },
+  metralhador: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 16] },
+  facao: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [24, 20] },
 };
 
 // Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).

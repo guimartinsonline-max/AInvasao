@@ -87,8 +87,10 @@ def suor(t, x, y):
 
 
 # ================================================================ Volante
-def volante(rosto="serio", pose="parado", passo=0):
-    """Soldado da Volante: quepe, narigão, bigodão, barriga redonda e fuzil."""
+def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
+    """Soldado da Volante: narigão, bigodão, barriga redonda. Variações (tipo):
+    fuzil (quepe), granadeiro (capacete, dinamite), metralhador (capacete,
+    metralhadora, mais gordo) e facao (sargento de quepe com faixa vermelha)."""
     t = Tela(W, H)
     pulo = 0
     if pose == "anda":
@@ -107,8 +109,11 @@ def volante(rosto="serio", pose="parado", passo=0):
     else:
         membro(t, (12, 25), (15, 31), (22, 31), 2.2, 2.0, FARDA, -1)
 
-    # Barriga redonda com cinto e cartucheira.
-    corpo = t.elipse(15, 29.5, 7.5, 6.5) | t.retangulo(9, 24.5, 12, 8)
+    # Barriga redonda com cinto e cartucheira (o metralhador é mais gordo).
+    if tipo == "metralhador":
+        corpo = t.elipse(15, 29.5, 8.8, 7.2) | t.retangulo(8, 24, 14, 8)
+    else:
+        corpo = t.elipse(15, 29.5, 7.5, 6.5) | t.retangulo(9, 24.5, 12, 8)
     t.cel(corpo, FARDA, sombra=2)
     t.chapado(t.capsula(9, 23, 21, 33, 0.9) & corpo, "couro")
     t.chapado(t.capsula(9, 22.5, 21, 32.5, 0.5) & corpo, "couro_medio")
@@ -116,6 +121,11 @@ def volante(rosto="serio", pose="parado", passo=0):
     t.chapado(t.retangulo(19, 33, 2, 2), "amarelo_fogo")
     for x in (10, 13):
         t.chapado(t.retangulo(x, 30, 2, 3) & corpo, "couro")
+    if tipo == "granadeiro":
+        # Bananas de dinamite presas na cartucheira.
+        for k in range(4):
+            t.chapado(t.retangulo(10 + k * 2.6, 24.5 + k * 2.2, 1.6, 3), "vermelho")
+            t.ponto(int(10 + k * 2.6), int(24.5 + k * 2.2), "amarelo_claro")
 
     if pose == "anda":
         ciclo = [(-3, 3), (0, 0), (3, -3), (0, 0)][passo]
@@ -136,12 +146,19 @@ def volante(rosto="serio", pose="parado", passo=0):
     t.px[queixo & xadrez & (t.px != IDX["pele_luz"])] = IDX["pele_media"]
     t.chapado(t.elipse(20.5, hy + 2.5, 1.3, 0.9), "rosa_poeira")
 
-    # Quepe com aba (sobe de susto no pânico).
     q = -2 if pose == "panico" else 0
-    t.cel(t.poligono([(9.5, hy - 4 + q), (11, hy - 10 + q), (23, hy - 11 + q), (24.5, hy - 5 + q)]), FARDA_ESC, sombra=1)
-    t.chapado(t.retangulo(10, hy - 6 + q, 14.5, 1.6), "caatinga_esc")
-    t.cel(t.poligono([(20, hy - 5 + q), (27.5, hy - 4.5 + q), (27.5, hy - 3.2 + q), (20, hy - 3.2 + q)]), BOTA, sombra=0)
-    t.chapado(t.retangulo(16, hy - 9 + q, 2, 2), "amarelo_fogo")
+    if tipo in ("granadeiro", "metralhador"):
+        # Capacete Adrian (usado pelo Exército nos anos 30): cúpula com crista e aba em volta.
+        t.cel(t.elipse(17, hy - 3.5 + q, 10.5, 1.8), FARDA_ESC, sombra=1)
+        t.cel(t.elipse(17, hy - 5 + q, 8, 5.5) & (t.yy < hy - 3.5 + q), FARDA_ESC, sombra=1)
+        t.cel(t.capsula(12, hy - 9 + q, 21, hy - 10 + q, 0.9), FARDA, sombra=0)
+        t.chapado(t.elipse(14, hy - 7 + q, 1.6, 1), "caatinga")
+    else:
+        # Quepe com aba (sobe de susto no pânico); o sargento do facão tem faixa vermelha.
+        t.cel(t.poligono([(9.5, hy - 4 + q), (11, hy - 10 + q), (23, hy - 11 + q), (24.5, hy - 5 + q)]), FARDA_ESC, sombra=1)
+        t.chapado(t.retangulo(10, hy - 6 + q, 14.5, 1.6), "vermelho" if tipo == "facao" else "caatinga_esc")
+        t.cel(t.poligono([(20, hy - 5 + q), (27.5, hy - 4.5 + q), (27.5, hy - 3.2 + q), (20, hy - 3.2 + q)]), BOTA, sombra=0)
+        t.chapado(t.retangulo(16, hy - 9 + q, 2, 2), "amarelo_fogo")
 
     # Rosto.
     ox, oy = 22, hy - 0.5
@@ -180,12 +197,53 @@ def volante(rosto="serio", pose="parado", passo=0):
     else:
         t.linha(22, hy + 6.5, 24, hy + 6.5, "couro_profundo")
 
-    # Braço da frente e fuzil.
+    # Braço da frente e a arma de cada tipo.
+    recuo = -1 if rosto == "grito" else 0
     if pose == "panico":
         membro(t, (18, 24), (22, 18), (24, 11), 2.2, 2.0, FARDA)
         t.cel(t.elipse(24.5, 10, 2.2, 2.2), PELE, sombra=1)
+    elif tipo == "metralhador":
+        # Metralhadora pesada no quadril: camisa do cano furada e carregador em cima.
+        t.cel(t.poligono([(9 + recuo, 27.5), (17 + recuo, 27.5), (17 + recuo, 31.5), (11 + recuo, 32)]), MADEIRA, sombra=1)
+        t.cel(t.retangulo(17 + recuo, 27, 8, 4), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=1)
+        t.cel(t.retangulo(19 + recuo, 23.5, 3.5, 3.5), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=0)
+        t.cel(t.retangulo(25 + recuo, 27.5, 14, 2.6), ACO, sombra=0)
+        for x in range(26, 38, 2):
+            t.ponto(x + recuo, 28, "sombra")
+        t.cel(t.retangulo(39 + recuo, 27, 2.5, 3.5), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=0)
+        membro(t, (18, 25), (21, 30), (26, 31), 2.3, 2.1, FARDA)
+        t.cel(t.elipse(26.5, 31, 2, 1.8), PELE, sombra=1)
+    elif tipo == "granadeiro":
+        if rosto == "grito":
+            # Braço lá em cima, jogando a dinamite com o pavio aceso.
+            membro(t, (18, 24), (16, 17), (13, 11), 2.2, 2.0, FARDA)
+            t.cel(t.elipse(13, 10, 2, 2), PELE, sombra=1)
+            t.cel(t.capsula(10, 7, 15, 9, 1.2), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
+            t.linha(15, 9, 17, 7, "couro_escuro")
+            t.pontos([(17, 6), (18, 7)], "amarelo_fogo")
+            t.ponto(18, 6, "branco")
+        else:
+            t.cel(t.capsula(25, 27, 29, 32, 1.2), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
+            t.linha(29, 32, 31, 31, "couro_escuro")
+            t.ponto(32, 30, "amarelo_fogo")
+            membro(t, (18, 25), (21, 30), (25, 30), 2.3, 2.1, FARDA)
+            t.cel(t.elipse(25.5, 30, 2, 1.8), PELE, sombra=1)
+    elif tipo == "facao":
+        if rosto == "grito":
+            # Golpe: braço esticado e o facão na horizontal, com o rastro do corte.
+            membro(t, (18, 25), (23, 26), (28, 27), 2.3, 2.1, FARDA)
+            t.cel(t.capsula(28, 26.5, 41, 25, 1.4, 0.8), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
+            t.cel(t.elipse(28.5, 27, 2, 1.8), PELE, sombra=1)
+            for k in range(9):
+                a = -1.1 + k * 0.25
+                t.ponto(int(30 + math.cos(a) * 12), int(27 + math.sin(a) * 12), "branco")
+        else:
+            # Facão erguido, correndo para cima do Lampião.
+            membro(t, (18, 25), (24, 27), (30, 22), 2.2, 2.0, FARDA)
+            t.cel(t.capsula(31, 20, 37, 7, 1.4, 0.8), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
+            t.cel(t.capsula(30, 23, 31, 20, 1.1), ["couro_profundo", "couro_escuro", "couro", "couro_medio"], sombra=0)
+            t.cel(t.elipse(30.5, 22, 2, 1.9), PELE, sombra=1)
     else:
-        recuo = -1 if rosto == "grito" else 0
         t.cel(t.poligono([(10 + recuo, 28), (19 + recuo, 28.5), (19 + recuo, 31.5), (12 + recuo, 32)]), MADEIRA, sombra=1)
         t.cel(t.retangulo(19 + recuo, 28.5, 23, 1.6), ACO, sombra=0)
         t.cel(t.retangulo(19 + recuo, 30, 12, 1.6), MADEIRA, sombra=0)
@@ -193,10 +251,30 @@ def volante(rosto="serio", pose="parado", passo=0):
         membro(t, (18, 25), (20, 30), (25, 30), 2.3, 2.1, FARDA)
         t.cel(t.elipse(25.5, 30, 2, 1.8), PELE, sombra=1)
     t.contorno("sombra")
-    if rosto == "grito":
-        # Clarão pequeno já no quadro de tiro.
+    if rosto == "grito" and tipo == "fuzil":
         t.pontos([(43, 28), (42, 27), (42, 29)], "amarelo_fogo")
+    if rosto == "grito" and tipo == "metralhador":
+        t.pontos([(43, 28), (42, 27), (42, 29), (43, 29)], "amarelo_fogo")
     return t
+
+
+def variante(tipo):
+    """Os 8 quadros da Volante para um tipo de soldado."""
+    return {
+        "parado": lambda: volante("serio", tipo=tipo),
+        "atira": lambda: volante("grito", tipo=tipo),
+        "panico": lambda: volante("panico", "panico", tipo=tipo),
+        "anda1": lambda: volante("bravo" if tipo == "facao" else "serio", "anda", 0, tipo=tipo),
+        "anda2": lambda: volante("bravo" if tipo == "facao" else "serio", "anda", 1, tipo=tipo),
+        "anda3": lambda: volante("bravo" if tipo == "facao" else "serio", "anda", 2, tipo=tipo),
+        "anda4": lambda: volante("bravo" if tipo == "facao" else "serio", "anda", 3, tipo=tipo),
+        "morte": lambda: volante("morto", "panico", tipo=tipo),
+    }
+
+
+GRANADEIRO = variante("granadeiro")
+METRALHADOR = variante("metralhador")
+FACAO = variante("facao")
 
 
 VOLANTE = {
@@ -521,4 +599,7 @@ if __name__ == "__main__":
     gravar("volante.txt", VOLANTE)
     gravar("xeremita.txt", XEREMITA)
     gravar("refem.txt", REFEM)
+    gravar("granadeiro.txt", GRANADEIRO)
+    gravar("metralhador.txt", METRALHADOR)
+    gravar("facao.txt", FACAO)
     print("volante.txt, xeremita.txt e refem.txt atualizados")

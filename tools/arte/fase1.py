@@ -505,22 +505,23 @@ FASE = {
     "discos": [[1360]],
     # Inimigos que já estão no lugar quando o Lampião chega.
     "inimigos": [
-        [600, CHAO, "xeremita"], [960, CHAO, "volante"], [990, CHAO, "volante", {"escudo": True}],
-        [1250, 152, "xeremita"], [1310, 138, "xeremita"], [1660, 158, "volante"], [2160, 170, "volante"],
+        [600, CHAO, "xeremita"], [960, CHAO, "granadeiro"], [990, CHAO, "volante", {"escudo": True}],
+        [1250, 152, "xeremita"], [1310, 138, "xeremita"], [1660, 158, "granadeiro"], [2160, 170, "metralhador"],
         [2340, 150, "xeremita"],
     ],
     # Ondas: ao passar do gatilho, a câmera trava entre trava[0] e trava[1] até todos caírem.
     # Cada inimigo: [tipo, de onde vem ("dir", "esq" ou "ceu"), atraso em ms, opções].
     "ondas": [
         {"gatilho": 300, "trava": [140, 524], "inimigos": [["xeremita", "dir", 0], ["xeremita", "dir", 900]]},
-        {"gatilho": 860, "trava": [700, 1084], "inimigos": [["volante", "dir", 0], ["volante", "dir", 700],
-                                                            ["volante", "esq", 1600], ["volante", "dir", 2400, {"escudo": True}]]},
+        {"gatilho": 860, "trava": [700, 1084], "inimigos": [["volante", "dir", 0], ["facao", "dir", 700],
+                                                            ["volante", "esq", 1600], ["metralhador", "dir", 2400]]},
         {"gatilho": 1720, "trava": [1560, 1944], "inimigos": [["xeremita", "ceu", 0], ["xeremita", "ceu", 500],
-                                                              ["volante", "dir", 1200], ["xeremita", "ceu", 1800],
-                                                              ["volante", "esq", 2400]]},
-        {"gatilho": 2260, "trava": [2100, 2484], "inimigos": [["volante", "dir", 0], ["xeremita", "ceu", 400],
+                                                              ["granadeiro", "dir", 1200], ["xeremita", "ceu", 1800],
+                                                              ["facao", "esq", 2400]]},
+        {"gatilho": 2260, "trava": [2100, 2484], "inimigos": [["metralhador", "dir", 0], ["xeremita", "ceu", 400],
                                                               ["volante", "dir", 1000, {"escudo": True}],
-                                                              ["xeremita", "ceu", 1600], ["xeremita", "dir", 2200]]},
+                                                              ["facao", "esq", 1400], ["granadeiro", "dir", 1800],
+                                                              ["xeremita", "ceu", 2200]]},
     ],
     "fogos": [[2650, CHAO - 2], [2735, CHAO - 2], [2795, 172 - 2], [2880, CHAO - 2], [3040, 150]],
     "fim": 2920,

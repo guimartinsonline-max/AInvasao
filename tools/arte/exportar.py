@@ -60,6 +60,9 @@ def tostar(tela):
 
 from motor import CORES  # noqa: E402
 for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
+                    "granadeiro": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
+                    "metralhador": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
+                    "facao": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "xeremita": ["parado", "atira", "grito", "anda1", "anda2", "anda3", "anda4", "morte"]}.items():
     d = pixel.ler(f"{nome}.txt")
     folha([d[n] for n in ordem] + [tostar(d["morte"])], SAIDA / f"{nome}.png")

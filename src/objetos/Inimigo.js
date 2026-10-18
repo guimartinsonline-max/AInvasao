@@ -17,6 +17,21 @@ const TIPOS = {
     vida: 3, velocidade: 26, alcance: 240, distancia: 130, recarga: [1500, 2400],
     bala: 'raio', gritos: ['GLUB!', 'BZZT!', 'IIIH!', 'XERÉM!'], panico: 0,
   },
+  // Joga banana de dinamite em arco, que explode no chão.
+  granadeiro: {
+    vida: 2, velocidade: 28, alcance: 210, distancia: 110, recarga: [1700, 2600], acao: 'dinamite',
+    gritos: ['VALEI-ME!', 'AI, PAVIO!', 'MÃEZINHA!'], panico: 36,
+  },
+  // Gordo e resistente: rajada de 4 balas.
+  metralhador: {
+    vida: 5, velocidade: 18, alcance: 240, distancia: 150, recarga: [2100, 2900], bala: 'volante', rajada: 4,
+    gritos: ['OXE!', 'ARRE!', 'AI, MEU BUCHO!'], panico: 0,
+  },
+  // Corre para cima do Lampião com o facão erguido e golpeia de perto.
+  facao: {
+    vida: 2, velocidade: 82, alcance: 300, distancia: 0, recarga: [700, 1000], acao: 'golpe', alcanceGolpe: 24,
+    gritos: ['ARRE ÉGUA!', 'AAAI!', 'MEU FACÃO!'], panico: 0,
+  },
 };
 
 // Inimigo comum: anda até o Lampião, para a uma distância e atira.
@@ -292,7 +307,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       this.body.setVelocityX(0);
       this.setFrame(q.parado);
     }
-    if (!foraDaTela && dist < cfg.alcance && !j.morto && t > this.proximoTiro && this.body.blocked.down) {
+    const alcanceAtaque = cfg.acao === 'golpe' ? cfg.alcanceGolpe : cfg.alcance;
+    const naAltura = cfg.acao !== 'golpe' || Math.abs(j.pe - this.y) < 30;
+    if (!foraDaTela && dist < alcanceAtaque && naAltura && !j.morto && t > this.proximoTiro
+      && this.body.blocked.down) {
       this.atirar(t);
     }
   }
@@ -324,13 +342,33 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
 
   atirar(t) {
     const q = this.q;
+    const cfg = this.cfg;
+    const cena = this.scene;
+    const j = cena.jogador;
     this.estado = 'atirando';
-    this.fimEstado = t + 350;
-    this.proximoTiro = t + Phaser.Math.Between(...this.cfg.recarga);
+    this.fimEstado = t + (cfg.rajada ? 120 * cfg.rajada : 350);
+    this.proximoTiro = t + Phaser.Math.Between(...cfg.recarga);
     this.setFrame(q.atira);
     const x = this.x + this.direcao * q.cano[0];
     const y = this.y - q.cano[1];
-    const j = this.scene.jogador;
-    this.scene.balasInimigas.disparar(x, y, this.direcao, this.cfg.bala, j.x, j.pe - 20);
+    if (cfg.acao === 'dinamite') {
+      cena.balasInimigas.lancarDinamite(x, y, this.direcao, Math.abs(j.x - this.x));
+      return;
+    }
+    if (cfg.acao === 'golpe') {
+      // Facãozada: acerta se o Lampião estiver colado na frente.
+      cena.efeitos.tremer(0.003, 60);
+      if (!j.morto && !j.invulneravel && (j.x - this.x) * this.direcao > -6 && Math.abs(j.x - this.x) < cfg.alcanceGolpe + 6
+        && Math.abs(j.pe - this.y) < 24) j.morrer(this.direcao * 200);
+      return;
+    }
+    const tiro = (k) => {
+      if (!this.vivo) return;
+      const yy = y + (k % 2 ? 1 : 0);
+      cena.balasInimigas.disparar(x, yy, this.direcao, cfg.bala, j.x, j.pe - 20);
+      if (cfg.rajada) cena.efeitos.disparo(x, yy, this.direcao > 0 ? 0 : Math.PI, 'normal');
+    };
+    tiro(0);
+    for (let k = 1; k < (cfg.rajada || 1); k++) cena.time.delayedCall(k * 110, () => tiro(k));
   }
 }
