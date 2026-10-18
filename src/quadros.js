@@ -5,9 +5,9 @@ const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'co
   'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada', 'facada1', 'mira_baixo', 'recarga',
   'morte1', 'morte2', 'morte3'];
 
-export const LAMPIAO = { largura: 44, altura: 46, peX: 14, peY: 45 };
+export const LAMPIAO = { largura: 60, altura: 54, peX: 14, peY: 53 };
 // Lampião gordo (comeu demais): mesmas folhas esticadas 5 px no meio do corpo.
-export const LAMPIAO_GORDO = { largura: 49, altura: 46, peX: 16, peY: 45 };
+export const LAMPIAO_GORDO = { largura: 65, altura: 54, peX: 16, peY: 53 };
 // Comidas que dão pontos (tools/arte/comidas.py), da mais comum à mais rara.
 export const COMIDAS = { caja: 100, rapadura: 300, queijo: 500, galinha: 800, cuscuz: 1000, buchada: 2000 };
 QUADROS_LAMPIAO.forEach((nome, i) => { LAMPIAO[nome] = i; });
@@ -21,29 +21,29 @@ LAMPIAO.maoGranada = [-9, 42];
 // Caricatos (tools/arte/caricatos.py): o quadro 7 é a morte e o 8 é o tostado (queimado).
 const ANDAR = [3, 4, 5, 6];
 export const INIMIGOS = {
-  volante: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+  volante: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 17] },
-  xeremita: { largura: 44, altura: 46, peX: 17, peY: 45, corpoL: 14, corpoA: 38,
+  xeremita: { largura: 52, altura: 46, peX: 17, peY: 45, corpoL: 14, corpoA: 38,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [23, 16] },
   // Variações da Volante: granadeiro (dinamite), metralhador (rajada) e sargento do facão.
-  granadeiro: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+  granadeiro: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [0, 38] },
-  metralhador: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
+  metralhador: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 16] },
-  facao: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+  facao: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [24, 20] },
   // Soldado do lança-rojão (o tubo no ombro, rente ao olho).
-  rojao: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+  rojao: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [38, 31] },
 };
 // Soldados da Volante sentados cochilando (distraídos): quadros 9 e 10.
 // Oficial da Volante: espada erguida dando ordem, pistola, chora fugindo.
-INIMIGOS.oficial = { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
+INIMIGOS.oficial = { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
   parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [33, 19] };
 for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial']) INIMIGOS[tipo].sentado = [9, 10];
 
 // Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).
-export const REFEM = { largura: 44, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,
+export const REFEM = { largura: 52, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,
   entrega: 5, continencia: 6, corrida: [7, 8, 9, 10], pendurado: [11, 12], maosY: 43.5, maosX: 2 };
 export const DISCO = { largura: 123, altura: 56 };
 export const FEIXE = { largura: 14, altura: 160 };

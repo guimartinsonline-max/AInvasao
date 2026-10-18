@@ -308,6 +308,8 @@ export class Blindado extends Veiculo {
       cena.balasInimigas.lancarObus(x, y, this.direcao, Math.abs(j.x - x));
       cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'canhao');
       for (let k = 0; k < 3; k++) cena.efeitos.fumaca(x + this.direcao * k * 6, y - k * 2);
+      cena.efeitos.poeira(this.x, this.y, 6);
+      this.setX(this.x - this.direcao * 3); // o carro todo dá o tranco do canhão
       cena.efeitos.tremer(0.008, 140);
     }
   }

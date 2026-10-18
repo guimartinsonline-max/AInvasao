@@ -36,7 +36,7 @@ export class CampoScene extends CenaJogo {
 
   montarCenario() {
     this.add.tileSprite(0, CHAO_Y, LARGURA_MUNDO, 216 - CHAO_Y, 'chao').setOrigin(0).setDepth(5);
-    this.solido(0, CHAO_Y + 2, LARGURA_MUNDO, 216 - CHAO_Y);
+    this.solido(0, CHAO_Y + 2, LARGURA_MUNDO, 200);
     // Capim seco na beira do chão.
     for (let x = 8; x < LARGURA_MUNDO; x += Phaser.Math.Between(30, 70)) {
       this.add.image(x, CHAO_Y + 3, 'touceiras', Phaser.Math.Between(0, 3)).setOrigin(0.5, 1).setDepth(6);

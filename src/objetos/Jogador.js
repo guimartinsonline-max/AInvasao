@@ -96,6 +96,12 @@ export class Jogador {
       return;
     }
     if (this.invulneravel) this.visual.setVisible(Math.floor(this.cena.time.now / 70) % 2 === 0);
+    else this.visual.setVisible(true);
+    // Segurança: se cair por baixo do chão (tranco de quadro, buraco), volta para cima do chão.
+    if (this.pe > 240 && !this.montaria) {
+      corpo.reset(this.x, this.cena.chaoAbaixo(this.x, -60) - 30);
+      corpo.setVelocity(0, 0);
+    }
     if (this.montaria) {
       // Montado no jumento blindado: ele cuida do movimento, da mira e dos tiros.
       this.montaria.controlar(dt, c);

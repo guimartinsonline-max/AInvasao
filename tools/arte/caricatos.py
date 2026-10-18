@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from motor import Tela, IDX, VAZIO  # noqa: E402
 import pixel  # noqa: E402
 
-W, H = 44, 46
+W, H = 52, 46  # folga à direita para o cano e o clarão do tiro
 CHAO = 45
 
 PELE = ["pele_sombra", "pele_media", "pele", "pele_luz"]
@@ -144,7 +144,7 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     # Lança-rojão no ombro: o tubo passa por trás da cabeça, rente ao olho.
     if tipo == "rojao" and pose not in ("panico",):
         ty = 14.5 + pulo
-        tubo = t.capsula(3, ty + 1, 35, ty, 2.3)
+        tubo = t.capsula(5, ty + 1, 35, ty, 2.3)
         t.cel(tubo, ["sombra", "caatinga_esc", "caatinga_media", "caatinga"], sombra=1)
         for bx_ in (9, 30):
             t.chapado(t.retangulo(bx_, ty - 2, 1.5, 4.5) & tubo, "sombra")

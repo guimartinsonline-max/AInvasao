@@ -25,7 +25,7 @@ import armas as ar  # noqa: E402
 import lampiao_px as lp  # noqa: E402
 import pixel  # noqa: E402
 
-PE = (14, 45)  # pé do Lampião no quadro
+PE = (14, 53)  # pé do Lampião no quadro
 MANGA = "uyytte"  # tons da manga (claro -> escuro)
 OMBRO_FRENTE = (17, 22)
 OMBRO_TRAS = (11, 22)

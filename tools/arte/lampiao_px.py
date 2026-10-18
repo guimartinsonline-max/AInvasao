@@ -10,8 +10,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import pixel  # noqa: E402
 
-W, H = 44, 46
-MARGEM = 4  # espaço em cima para o fuzil apontado para o céu
+# Quadro folgado: as armas compridas (e o cano apontado para o céu) não saem cortadas.
+W, H = 60, 54
+MARGEM = 12  # espaço em cima para a arma apontada para o céu
 
 # ---------------------------------------------------------------- cabeça
 # Bloco de 20 colunas colocado em x=6. Chapéu de couro em meia-lua.

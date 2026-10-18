@@ -742,7 +742,7 @@ FASE = {
     "largura": LARGURA_FASE,
     "inicio": [40, CHAO - 20],
     "solidos": [
-        [0, CHAO, LARGURA_FASE, 30],
+        [0, CHAO, LARGURA_FASE, 200],  # grosso: nada atravessa o chão num tranco de quadro
         [440, 178, 100, 16],          # lajedo baixo
         [884, 176, 50, 18],           # trincheira de sacos de areia
         [1080, 172, 130, 22],         # lajedo grande: degraus

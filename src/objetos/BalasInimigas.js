@@ -45,6 +45,7 @@ export class BalasInimigas {
 
   // Rojão do soldado: sai inclinado para cima, cai em arco e explode no chão.
   lancarRojao(x, y, direcao, distancia) {
+    som('rojao');
     const d = this.dinamites.get(x, y, 'foguete');
     if (!d) return;
     d.setTexture('foguete', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
@@ -59,7 +60,7 @@ export class BalasInimigas {
 
   // Obus do canhão do blindado: arco mais alto, gira a cinta, rastro de fumaça e explosão maior.
   lancarObus(x, y, direcao, distancia) {
-    som('bacamarte');
+    som('canhao');
     const d = this.dinamites.get(x, y, 'obus');
     if (!d) return;
     d.setTexture('obus', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
@@ -75,6 +76,7 @@ export class BalasInimigas {
 
   // Carvão em brasa da chaminé do trem: arco que cai perto de alvoX e estoura pequeno.
   lancarCarvao(x, y, alvoX) {
+    som('chamine');
     const d = this.dinamites.get(x, y, 'carvao');
     if (!d) return;
     d.setTexture('carvao', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
@@ -125,7 +127,7 @@ export class BalasInimigas {
       if (direcao < 0) ang = Math.PI - ang;
     }
     bala.quadros = cfg.quadros || 1;
-    som('tiro_inimigo');
+    som(tipo === 'pesada' ? 'tiro_pesado' : tipo === 'raio' ? 'raio_et' : 'tiro_inimigo');
     bala.setFlipX(false).setRotation(ang);
     bala.body.setVelocity(Math.cos(ang) * cfg.velocidade, Math.sin(ang) * cfg.velocidade);
   }

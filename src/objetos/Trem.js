@@ -96,6 +96,12 @@ export class TremBlindado {
     cena.mostrar?.('CUIDADO!', 'TREM BLINDADO "A JARARACA"', 2200);
   }
 
+  // Recuo de uma peça ao disparar: deslocamento curto aplicado em posicionar().
+  tranco(peca, dx, dy = 0) {
+    if (!peca || !peca.vivo) return;
+    peca.recuo = { dx, dy, ate: this.cena.time.now + 70 };
+  }
+
   falar(texto, x, y, ms = 800) {
     this.texto.setText(texto).setPosition(x, y).setVisible(true).setAlpha(1);
     this.cena.tweens.killTweensOf(this.texto);
@@ -110,7 +116,8 @@ export class TremBlindado {
     const topo = this.chao - TREM.loco.altura;
     for (const [nome, p] of Object.entries(this.partes)) {
       const c = TREM.partes[nome];
-      p.body.reset(x + c.x + c.largura / 2, topo + c.y + c.altura);
+      const r = p.recuo && this.cena.time.now < p.recuo.ate ? p.recuo : null;
+      p.body.reset(x + c.x + c.largura / 2 + (r ? r.dx : 0), topo + c.y + c.altura + (r ? r.dy : 0));
     }
   }
 
@@ -194,6 +201,8 @@ export class TremBlindado {
             const y = this.chao - (baixa ? 12 : 37);
             cena.balasInimigas.disparar(ax, y, -1, 'pesada');
             cena.efeitos.disparo(ax, y, Math.PI, 'grande');
+            cena.efeitos.capsula(ax + 12, y - 2, 1);
+            this.tranco(p.mg, 2);
           });
         }
         cena.time.delayedCall(560, () => p.mg.vivo && p.mg.setFrame(0));
@@ -212,7 +221,9 @@ export class TremBlindado {
           cena.balasInimigas.lancarCarvao(bx, by, j.x + desvio);
         }
         cena.efeitos.fumacaSobe(bx, by);
-        cena.efeitos.faisca(bx, by, 8);
+        cena.efeitos.fumacaSobe(bx, by - 8);
+        cena.efeitos.faisca(bx, by, 12);
+        this.tranco(p.chamine, 0, -3);
       });
     }
     // Torre: obus de canhão em arco.
@@ -224,6 +235,8 @@ export class TremBlindado {
       const by = p.torre.y - 13;
       cena.balasInimigas.lancarObus(bx, by, -1, Math.abs(j.x - bx));
       cena.efeitos.disparo(bx, by, Math.PI, 'canhao');
+      for (let k = 0; k < 3; k++) cena.efeitos.fumaca(bx - k * 6, by - k * 2);
+      this.tranco(p.torre, 4);
       cena.efeitos.tremer(0.006, 120);
     }
     // Soldados pulam do vagão (no máximo 3 de cada vez).
@@ -292,6 +305,11 @@ export class TremBlindado {
       cena.cameras.main.flash(200, 255, 230, 180);
       this.estado = 'morto';
       this.vivo = false;
+      // A carcaça fica, mas não segura mais o Lampião: dá para seguir em frente.
+      this.loco.body.enable = false;
+      this.vagao.body.enable = false;
+      this.loco.setDepth(4);
+      this.vagao.setDepth(4);
       // Vapor e fogo saindo da carcaça um bom tempo.
       cena.time.addEvent({
         delay: 160, repeat: 50, callback: () => {

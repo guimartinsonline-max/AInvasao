@@ -8,7 +8,7 @@ import { PREMIOS } from '../armas.js';
 import { PEDACO, PEDACOS } from '../fase1_pedacos.js';
 import { Urubus, Galinha, Varal, CasaVila, Ponte } from '../objetos/Ambiente.js';
 import { Jumento } from '../objetos/Jumento.js';
-import { tocarMusica, falar } from '../som.js';
+import { tocarMusica } from '../som.js';
 
 // Fase 1 é só contra a Volante: nada de arma alienígena.
 const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
@@ -129,7 +129,6 @@ export class Fase1Scene extends CenaJogo {
       .setScrollFactor(0).setDepth(40).setVisible(false);
     this.mostrar('MISSÃO 1', 'CAATINGA, 1936', 2200);
     tocarMusica('caatinga');
-    this.time.delayedCall(300, () => falar('Missão um. Começar!'));
   }
 
   mostrar(texto, sub = '', ms = 1800) {
@@ -148,7 +147,9 @@ export class Fase1Scene extends CenaJogo {
     onda.faltam = onda.inimigos.length;
     this.onda = onda;
     this.seta.setVisible(false);
-    const [x0, x1] = onda.trava;
+    // Trava da câmera do tamanho da tela (as ondas antigas foram feitas para 384 px de largura).
+    const [x0, x1b] = onda.trava;
+    const x1 = Math.max(x1b, x0 + LARGURA);
     cam.setBounds(x0, -DY, x1 - x0, ALTURA);
     for (const [tipo, lado, atraso, opcoes] of onda.inimigos) {
       this.time.delayedCall(atraso, () => {
@@ -229,7 +230,6 @@ export class Fase1Scene extends CenaJogo {
     this.proximoSegundo = this.time.now + 1000;
     this.mostrar('CONTINUAR?', `${CONTAGEM}`, 0);
     tocarMusica('derrota');
-    falar('Continuar?');
     return true;
   }
 
@@ -260,7 +260,6 @@ export class Fase1Scene extends CenaJogo {
     const bonus = this.refensSalvos * 1000;
     this.mostrar('MISSÃO 1 CUMPRIDA!', '', 0);
     tocarMusica('vitoria');
-    falar('Missão cumprida!');
     // Faixa escura atrás do placar para ler bem sobre o cenário.
     const faixa = this.add.rectangle(LARGURA / 2, ALTURA / 2 + 10, 340, 250, 0x0e0d14, 0.7).setScrollFactor(0).setDepth(39)
       .setStrokeStyle(1, 0xd8c8a0, 0.6).setAlpha(0);

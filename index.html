@@ -30,13 +30,14 @@
       el.textContent += '\n' + msg;
     }
     window.addEventListener('error', function (e) {
-      mostrarErro('ERRO: ' + e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : ''));
+      var pilha = e.error && e.error.stack ? '\n' + String(e.error.stack).split('\n').slice(0, 4).join('\n') : '';
+      mostrarErro('ERRO: ' + e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '') + pilha);
     });
     window.addEventListener('unhandledrejection', function (e) {
       mostrarErro('ERRO: ' + (e.reason && e.reason.message || e.reason));
     });
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@4.2.1/dist/phaser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@4.2.1/dist/phaser.min.js" crossorigin="anonymous"></script>
   <script>
     if (!window.Phaser) mostrarErro('Phaser não carregou da CDN (jsdelivr).');
   </script>

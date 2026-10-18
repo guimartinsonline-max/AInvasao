@@ -63,6 +63,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Morte por arma:** fogo vira carvão e cinza (quadro "tostado"), chumbo arremessa longe, Papo-amarelo derruba de costas, desintegrador derrete, explosão manda alto girando.
 - **Refém:** romeiro do mesmo porte do Lampião (chapéu de palha com fitas, barba branca, terço, bornal). Amarrado se debate; solto pula, procura no bornal, entrega o item, bate continência e foge. Alguns ficam **pendurados** pelas mãos num galho seco (ou embaixo da ponte): o tiro corta a corda e ele cai. Depois de salvo, foge correndo pela esquerda e pula o que estiver no caminho.
 - **Tiro dos soldados sempre reto** (nada de diagonal); dinamite e rojão continuam em arco.
+- **Armas inimigas animadas:** todo tiro tem clarão na boca (verde no xeremita), cápsula saltando e tranco do recuo; rojão com jato de fumaça para trás; granadeiro solta faísca do pavio; facão com arco de corte. Veículos: metralhadoras e canhão do trem e do blindado dão o tranco, soltam cápsula e fumaça.
 - **Ninguém surge do nada:** soldados entram pela borda da tela, pulam de esconderijos (`salta:x`), saem de portas de casas, capela e barracas (`porta:x`) ou descem de caminhão. No campo de treino, quem renasce entra andando pela borda.
 - **Veículos da Volante** (`tools/arte/veiculos.py`, `src/objetos/Veiculos.js`): **caminhão** (chega, freia, abre a lona e despeja soldados, depois vai embora; dá para explodir) e **carro blindado** (detalhado: tripulante na escotilha, antena com flâmula, estepe, pá, galão, farol, rebites e lama; vai e vem, metralhadora em torreta de bola que **avisa antes** (faísca, "!" e o carro para meio segundo) e solta rajada curta de bala grossa na altura da cabeça (agachado escapa, dá para pular por cima), canhão com obus de latão em arco, clarão grande e explosão maior; com metade da vida a torre quebra e perde o canhão; explosão em cadeia). Andando, atropelam o Lampião e esmagam caixotes. Acompanham o terreno.
 - **Inteligência dos soldados:** obstáculo baixo (até 26 px) eles pulam, alto (até 74 px) escalam agarrados na borda; na beirada, descem pulando se o Lampião estiver embaixo. Nunca ficam presos (pulo tem tempo limite).
@@ -126,6 +127,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
   - `assets/`: sprites, sons, mapas
 - **Resolução:** fixa em **548×308** (era 384×216; subiu para os personagens ficarem 30% menores na tela, com pixels menores, como no Metal Slug), ampliada sem borrar. O mundo mantém o chão em y=192; a câmera começa em y=-DY (`DY` em `src/config.js`) e o que é preso à tela desce DY. Botões de toque escalados para manter o tamanho no vidro.
 - **Camadas grandes** da fase vão em pedaços de 2048 px (`f1_*_N.png`, contagem em `src/fase1_pedacos.js`, gerado pelo exportador), por causa do limite de textura do iPhone.
+- **Segurança contra queda:** chão sólido com 200 px de espessura; Lampião, jumento e inimigos que caírem abaixo do mapa voltam para o chão.
 - **Desempenho:** meta de 60 fps estáveis no iPhone. Reaproveitar balas, inimigos e partículas (object pooling), sem criar e destruir objetos durante o jogo.
 - **Cache:** todo arquivo de `assets/` é carregado com `?v=VERSAO` (`src/config.js`). Ao mudar qualquer asset, aumentar a versão (`tools/arte/exportar.py` já faz isso).
 - **Fases:** feitas por Claude em código ou dados. Tiled pode ser adotado depois, se eu quiser desenhar fases.
@@ -143,7 +145,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - **Nível de detalhe do cenário:** o das referências do Metal Slug que o Guilherme mandou (MS2/MS3): volume em tudo, textura, rachaduras, líquen, chão em corte com camadas e pedras, várias camadas de parallax e uma de frente.
 - **Estilo exatamente igual ao do Metal Slug** (proporções, contorno escuro, volume com vários tons, rostos expressivos, poses exageradas). O que muda é a **paleta** e o tema (sertão), não o estilo.
 - Pixel art original. Não copiar sprites, personagens ou cenários do Metal Slug (são da SNK): mesmo estilo, desenhos nossos.
-- Personagens e inimigos são desenhados pixel a pixel em `tools/arte/pixel/*.txt` (um caractere por cor, legenda em `tools/arte/pixel.py`).
+- Personagens e inimigos são desenhados pixel a pixel em `tools/arte/pixel/*.txt` (um caractere por cor, legenda em `tools/arte/pixel.py`). Quadros: Lampião 60x54 (pé em 14,53), inimigos e refém 52x46, com folga para as armas não cortarem.
 - Spritesheets PNG geradas por script (`tools/arte/exportar.py`).
 - Efeitos de tiro desenhados quadro a quadro em `tools/arte/efeitos_tiro.py`: clarão do cano, balas, impacto, explosão em 8 quadros, fumaça, chama.
 - Paleta de cores fixa: `assets/paleta.json` (64 cores: as 32 originais e degraus intermediários). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.
@@ -162,10 +164,11 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 ## Som
 
-Tudo em `src/som.js` (Web Audio, nada de arquivo de áudio):
-- **Efeitos** sintetizados no estilo sfxr: um som para cada arma, tiro inimigo, explosão (pelo tamanho), impacto, peixeira, grito de soldado, madeira, item, comer, pulo, morte, refém, zurro do jumento, apito do trem, alerta, galinha.
-- **Músicas** compostas em notas: tema de baião (tela de início), xaxado em ré dório (fase 1), galope em lá menor harmônico (chefe), fanfarra de vitória e lamento do "continuar?".
-- **Locutor:** voz do próprio aparelho em português, grave ("Madsen!", "Missão um. Começar!", "Missão cumprida!", "Jumento blindado!").
+Tudo em `src/som.js` (Web Audio):
+- **Tiros, explosões e bateria são amostras mp3** em `assets/sons/` (27 arquivos, ~180 KB), geradas por `tools/som/gerar_sons.py` (numpy + ffmpeg): cada tiro em camadas (estalo, estrondo grave, corpo, mecânica da arma e eco do sertão), saturado e comprimido no espírito do Metal Slug. Um som por arma, fuzil da Volante, bala pesada (blindado/trem), canhão, explosão pequena/média/grande, impacto e ricochete, peixeira. Tom varia um pouco a cada disparo. Se o Guilherme mandar um pacote CC0 de tiros gravados, é só trocar os mp3.
+- O resto (menus, comida, refém, zurro, apito, galinha) é sintetizado na hora; também cobre os tiros enquanto as amostras carregam.
+- **Trilha de ação** tocada em tempo real: bateria de rock com zabumba, guitarra distorcida em acordes de quinta, baixo em colcheias, metais nas viradas e melodia na sanfona (na segunda volta, guitarra solo com eco). Tema baião-rock (início), xaxado-rock em ré dório com duas seções (fase 1), galope com bumbo duplo em lá menor harmônico (chefe), fanfarra de metais (vitória), lamento (continuar?).
+- **Sem locutor/dublagem** (removido a pedido).
 
 ## Publicação
 

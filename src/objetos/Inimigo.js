@@ -1,6 +1,6 @@
 import { P, hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
-import { INIMIGOS } from '../quadros.js';
+import { REFEM, INIMIGOS } from '../quadros.js';
 import { som } from '../som.js';
 
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
@@ -344,6 +344,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
 
   preUpdate(t, dt) {
     super.preUpdate(t, dt);
+    // Caiu abaixo do mapa (atravessou o chão num tranco de quadro): volta para cima do chão.
+    if (this.vivo && this.y > 300 && this.body && !this.voa) {
+      this.body.reset(this.x, this.scene.chaoAbaixo(this.x, -60) - 2);
+    }
     if (this.escudo && this.escudo.visible) {
       // O escudo vai na frente do corpo, na altura da barriga.
       this.escudo.setPosition(Math.round(this.x + this.direcao * 9), Math.round(this.y)).setFlipX(this.direcao < 0);
@@ -352,7 +356,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       // Romeiro agarrado na frente, se debatendo.
       const d = this.direcao;
       this.refemImg.setPosition(Math.round(this.x + d * 10), Math.round(this.y)).setFlipX(d < 0)
-        .setOrigin((d > 0 ? 17 : 27) / 44, 45 / 46).setFrame(Math.floor(t / 160) % 3);
+        .setOrigin((d > 0 ? REFEM.peX : REFEM.largura - REFEM.peX) / REFEM.largura, REFEM.peY / REFEM.altura).setFrame(Math.floor(t / 160) % 3);
     }
     if (!this.vivo) return;
     const cena = this.scene;
@@ -605,6 +609,12 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     return this.scene.physics.overlapRect(x - 1, this.y + 1, 2, 4, false, true).length > 0;
   }
 
+  // Tranco do tiro: o corpo é empurrado para trás uns pixels.
+  recuar(px) {
+    if (!this.vivo) return;
+    this.setX(this.x - this.direcao * px);
+  }
+
   atirar(t) {
     const q = this.q;
     const cfg = this.cfg;
@@ -618,16 +628,28 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const y = this.y - q.cano[1];
     if (cfg.acao === 'dinamite') {
       cena.balasInimigas.lancarDinamite(x, y, this.direcao, Math.abs(j.x - this.x));
+      // Pavio aceso soltando faísca e o braço dando o tranco do arremesso.
+      cena.efeitos.faiscaEm.explode(4, x, y - 4);
+      cena.efeitos.poeira(this.x, this.y, 2);
+      this.recuar(2);
       return;
     }
     if (cfg.acao === 'rojao') {
       cena.balasInimigas.lancarRojao(x, y, this.direcao, Math.abs(j.x - this.x));
-      cena.efeitos.fumaca(this.x - this.direcao * 14, y);
+      // Clarão na boca, jato de fumaça para trás (backblast) e o tranco no ombro.
+      cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'grande');
+      for (let k = 0; k < 3; k++) cena.efeitos.fumaca(this.x - this.direcao * (14 + k * 7), y + k);
+      cena.efeitos.poeira(this.x - this.direcao * 10, this.y, 4);
+      this.recuar(4);
       return;
     }
     if (cfg.acao === 'golpe') {
       // Facãozada: acerta se o Lampião estiver colado na frente.
       cena.efeitos.tremer(0.003, 60);
+      // Arco do facão cortando o ar.
+      cena.efeitos.animar('corte_arco', this.x + this.direcao * 18, this.y - 20,
+        { espelhar: this.direcao < 0, profundidade: 20 });
+      this.setX(this.x + this.direcao * 3);
       if (!j.morto && !j.invulneravel && (j.x - this.x) * this.direcao > -6 && Math.abs(j.x - this.x) < cfg.alcanceGolpe + 6
         && Math.abs(j.pe - this.y) < 24) j.morrer(this.direcao * 200);
       return;
@@ -636,7 +658,11 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       if (!this.vivo) return;
       const yy = y + (k % 2 ? 1 : 0);
       cena.balasInimigas.disparar(x, yy, this.direcao, cfg.bala, j.x, j.pe - 20);
-      if (cfg.rajada) cena.efeitos.disparo(x, yy, this.direcao > 0 ? 0 : Math.PI, 'normal');
+      // Toda arma inimiga anima: clarão na boca, cápsula saltando e o tranco do recuo.
+      const verde = cfg.bala === 'raio' || this.tipo === 'xeremita';
+      cena.efeitos.disparo(x, yy, this.direcao > 0 ? 0 : Math.PI, verde ? 'verde' : 'normal');
+      if (!verde) cena.efeitos.capsula(this.x + this.direcao * (q.cano[0] - 14), y + 2, -this.direcao);
+      this.recuar(cfg.rajada ? 1 : 2);
     };
     tiro(0);
     for (let k = 1; k < (cfg.rajada || 1); k++) cena.time.delayedCall(k * 110, () => tiro(k));

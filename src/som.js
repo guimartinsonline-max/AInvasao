@@ -1,7 +1,10 @@
-// Som feito em código (Web Audio), no estilo sfxr/chiptune: efeitos sintetizados
-// na hora, músicas compostas em notas e a voz do locutor (síntese de fala do
-// próprio aparelho, de graça). Volumes vêm dos ajustes (0 a 10).
+// Som do jogo (Web Audio). Tiros, explosões e a bateria são amostras em mp3
+// (assets/sons/, geradas por tools/som/gerar_sons.py: camadas de estalo,
+// estrondo, mecânica e eco). O resto é sintetizado na hora. A trilha é tocada
+// em tempo real: bateria de amostras, guitarra distorcida, baixo, metais e
+// sanfona. Volumes vêm dos ajustes (0 a 10).
 import { ajustes, aoMudarAjustes } from './ajustes.js';
+import { VERSAO } from './config.js';
 
 let ctx = null;
 let mestreEfeitos = null;
@@ -26,8 +29,49 @@ function iniciar() {
   const d = ruido.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   aplicarVolumes();
+  carregarAmostras();
   return ctx;
 }
+
+// ---------------------------------------------------------------- amostras
+const AMOSTRAS = ['pistola', 'madsen', 'bacamarte', 'papo_amarelo', 'rojao', 'desintegrador', 'candeeiro',
+  'estilingue', 'buscape', 'metralha_jumento', 'tiro_inimigo', 'tiro_pesado', 'canhao', 'explosao_p',
+  'explosao_m', 'explosao_g', 'impacto', 'ricochete', 'faca', 'recarga',
+  'bumbo', 'caixa', 'chimbal', 'chimbal_aberto', 'prato', 'surdo', 'zabumba'];
+const buf = {};
+
+function carregarAmostras() {
+  for (const nome of AMOSTRAS) {
+    fetch(`assets/sons/${nome}.mp3?v=${VERSAO}`)
+      .then((r) => r.arrayBuffer())
+      .then((dados) => new Promise((ok, erro) => ctx.decodeAudioData(dados, ok, erro)))
+      .then((b) => { buf[nome] = b; })
+      .catch(() => {}); // sem a amostra, fica o som sintetizado
+  }
+}
+
+// Toca uma amostra; varia um pouco o tom a cada disparo para não soar repetido.
+function amostra(nome, t, { vol = 1, tom = 1, varia = 0.05, destino = null } = {}) {
+  const b = buf[nome];
+  if (!b) return false;
+  const f = ctx.createBufferSource();
+  f.buffer = b;
+  f.playbackRate.value = tom * (1 + (Math.random() * 2 - 1) * varia);
+  const g = ctx.createGain();
+  g.gain.value = vol;
+  f.connect(g).connect(destino || mestreEfeitos);
+  f.start(t);
+  return true;
+}
+
+// Que amostra cada efeito usa (nome, volume, tom).
+const EFEITO = {
+  pistola: ['pistola', 0.9], madsen: ['madsen', 0.8], bacamarte: ['bacamarte', 1], papo_amarelo: ['papo_amarelo', 1],
+  rojao: ['rojao', 0.9], desintegrador: ['desintegrador', 0.7], candeeiro: ['candeeiro', 0.6],
+  estilingue: ['estilingue', 0.8], buscape: ['buscape', 0.7], metralha_jumento: ['metralha_jumento', 0.85],
+  tiro_inimigo: ['tiro_inimigo', 0.45], tiro_pesado: ['tiro_pesado', 0.6], canhao: ['canhao', 0.9],
+  impacto: ['impacto', 0.35], faca: ['faca', 0.9], chamine: ['explosao_p', 0.35, 1.4],
+};
 
 function aplicarVolumes() {
   if (!ctx) return;
@@ -90,7 +134,9 @@ function chiado(inicio, dur, { vol = 1, filtro = 'lowpass', de = 4000, ate = 400
 const ultimo = {};
 const INTERVALO = { tiro_inimigo: 60, impacto: 40, grito: 90, madeira: 50, explosao: 50, quique: 60 };
 
-const SONS = {
+// Versões sintetizadas: tocam enquanto as amostras ainda carregam e cobrem os
+// sons que não têm amostra (menus, comida, galinha...).
+const SINTE = {
   // Armas do Lampião.
   pistola: (t) => { chiado(t, 0.07, { vol: 0.7, de: 6000, ate: 800 }); nota(mestreEfeitos, 900, t, 0.08, { vol: 0.35, desliza: 0.2 }); },
   madsen: (t) => { chiado(t, 0.05, { vol: 0.6, de: 5000, ate: 900 }); nota(mestreEfeitos, 520, t, 0.05, { vol: 0.3, desliza: 0.3 }); },
@@ -103,6 +149,8 @@ const SONS = {
   buscape: (t) => { nota(mestreEfeitos, 1500, t, 0.18, { onda: 'sawtooth', vol: 0.25, desliza: 1.7 }); chiado(t, 0.18, { vol: 0.3, filtro: 'highpass', de: 4000, ate: 6000 }); },
   metralha_jumento: (t) => { chiado(t, 0.06, { vol: 0.65, de: 4500, ate: 700 }); nota(mestreEfeitos, 380, t, 0.05, { vol: 0.3, desliza: 0.3 }); },
   // Inimigos e mundo.
+  raio_et: (t) => { nota(mestreEfeitos, 900, t, 0.18, { onda: 'sine', vol: 0.4, desliza: 0.3, vibrato: 40 }); chiado(t, 0.08, { vol: 0.2, filtro: 'bandpass', de: 3000, ate: 1500, q: 2 }); },
+  chamine: (t) => { chiado(t, 0.35, { vol: 0.5, de: 1200, ate: 200 }); },
   tiro_inimigo: (t) => { chiado(t, 0.06, { vol: 0.35, de: 3500, ate: 700 }); nota(mestreEfeitos, 480, t, 0.07, { vol: 0.15, desliza: 0.25 }); },
   explosao: (t, tam = 1) => {
     chiado(t, 0.45 * tam + 0.15, { vol: Math.min(1.2, 0.7 * tam + 0.3), de: 2500, ate: 80 });
@@ -127,11 +175,23 @@ const SONS = {
 };
 
 export function som(nome, ...args) {
-  if (!pronto() || !SONS[nome]) return;
+  if (!pronto()) return;
   const agora = performance.now();
   if (agora - (ultimo[nome] || 0) < (INTERVALO[nome] || 25)) return;
   ultimo[nome] = agora;
-  SONS[nome](ctx.currentTime, ...args);
+  const t = ctx.currentTime;
+  if (nome === 'explosao') {
+    const tam = args[0] ?? 1;
+    const chave = tam < 0.7 ? 'explosao_p' : tam < 1.25 ? 'explosao_m' : 'explosao_g';
+    if (amostra(chave, t, { vol: Math.min(1.1, 0.6 + tam * 0.35) })) return;
+  } else if (nome === 'impacto') {
+    // De vez em quando a bala ricocheteia.
+    if (amostra(Math.random() < 0.15 ? 'ricochete' : 'impacto', t, { vol: 0.35, varia: 0.15 })) return;
+  } else if (EFEITO[nome]) {
+    const [a, vol, tom = 1] = EFEITO[nome];
+    if (amostra(a, t, { vol, tom })) return;
+  }
+  if (SINTE[nome]) SINTE[nome](t, ...args);
 }
 
 // Bipes dos menus.
@@ -146,27 +206,11 @@ export function bip(tipo = 'mover') {
   else if (tipo === 'erro') nota(mestreEfeitos, 150, t, 0.15, { onda: 'sawtooth', vol: 0.4 });
 }
 
-// ---------------------------------------------------------------- locutor
-// "MADSEN!", como o locutor do Metal Slug, com a voz do aparelho em português,
-// grave e firme.
-export function falar(texto) {
-  if (!window.speechSynthesis || ajustes.efeitos === 0) return;
-  try {
-    const u = new SpeechSynthesisUtterance(texto);
-    u.lang = 'pt-BR';
-    u.pitch = 0.55;
-    u.rate = 1.05;
-    u.volume = Math.min(1, ajustes.efeitos / 10 + 0.1);
-    const voz = window.speechSynthesis.getVoices().find((v) => v.lang && v.lang.toLowerCase().startsWith('pt'));
-    if (voz) u.voice = voz;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  } catch (e) {
-    // Sem voz no aparelho: segue sem locutor.
-  }
-}
 
 // ---------------------------------------------------------------- músicas
+// Trilha de ação no espírito do Metal Slug, com sotaque nordestino: bateria de
+// rock com zabumba de baião, guitarra distorcida, baixo em colcheias, metais
+// nas viradas e a melodia na sanfona (na segunda volta, na guitarra solo).
 const N = (nome) => {
   const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
   const m = nome.match(/^([A-G])([b#]?)(\d)$/);
@@ -174,45 +218,302 @@ const N = (nome) => {
   return 440 * 2 ** ((semis - 9) / 12);
 };
 
-// Cada música: andamento, melodia [nota, semicolcheias], baixo (um acorde por
-// compasso), jeito do baixo e se repete. Escalas nordestinas (mixolídio/dório)
-// e, no chefe, menor harmônico.
+// Levadas em 16 semicolcheias. x = toque, o = chimbal aberto, m = guitarra abafada.
+const LEVADAS = {
+  baiao: {
+    bumbo: 'x.....x.x.....x.', caixa: '....x.......x...', chimbal: 'x.x.x.x.x.x.x.xo', zabumba: 'x.....x.x.......',
+    guitarra: 'x.m.m.x.x.m.m.x.', baixo: [0, 0, 12, 0, 0, 7, 12, 7],
+  },
+  galope: {
+    bumbo: 'x.xxx.xxx.xxx.xx', caixa: '....x.......x...', chimbal: 'x.x.x.x.x.x.x.x.', zabumba: '................',
+    guitarra: 'x.mmx.mmx.mmx.mm', baixo: [0, 0, 0, 0, 0, 0, 0, 0],
+  },
+  marcha: {
+    bumbo: 'x.......x.x.....', caixa: '....x..x....x.xx', chimbal: 'x.x.x.x.x.x.x.x.', zabumba: '................',
+    guitarra: 'x.......x.......', baixo: [0, 0, 7, 0, 0, 0, 7, 12],
+  },
+  lento: {
+    bumbo: 'x...............', caixa: '................', chimbal: '................', zabumba: '........x.......',
+    guitarra: 'x...............', baixo: [0, null, null, null, null, null, null, null],
+  },
+};
+
+// Cada música: andamento, levada e seções (acorde por compasso + melodia em
+// [nota, semicolcheias], 16 por compasso). As seções se alternam em loop.
 const MUSICAS = {
-  // Tela de início: baião em sol mixolídio.
+  // Tela de início: baião-rock em sol mixolídio, heroico.
   tema: {
-    bpm: 112, loop: true, baixo: ['G2', 'G2', 'F2', 'F2', 'G2', 'C3', 'F2', 'G2'], ritmo: 'baiao',
-    melodia: [['G4', 2], ['B4', 2], ['D5', 3], ['C5', 1], ['B4', 2], ['A4', 2], ['G4', 4],
-      ['F4', 2], ['G4', 2], ['A4', 2], ['B4', 2], ['C5', 3], ['B4', 1], ['A4', 4],
-      ['G4', 2], ['B4', 2], ['D5', 3], ['E5', 1], ['F5', 2], ['E5', 2], ['D5', 4],
-      ['C5', 2], ['A4', 2], ['F4', 2], ['A4', 2], ['G4', 6], [null, 2]],
+    bpm: 124, loop: true, levada: 'baiao',
+    secoes: [{
+      acordes: ['G2', 'G2', 'F2', 'F2', 'G2', 'C3', 'F2', 'G2'],
+      melodia: [['G4', 2], ['B4', 2], ['D5', 3], ['C5', 1], ['B4', 2], ['A4', 2], ['G4', 4],
+        ['F4', 2], ['G4', 2], ['A4', 2], ['B4', 2], ['C5', 3], ['B4', 1], ['A4', 4],
+        ['G4', 2], ['B4', 2], ['D5', 3], ['E5', 1], ['F5', 2], ['E5', 2], ['D5', 4],
+        ['C5', 2], ['A4', 2], ['F4', 2], ['A4', 2], ['G4', 6], [null, 2],
+        ['D5', 2], ['D5', 1], ['E5', 1], ['F5', 2], ['G5', 2], ['A5', 4], ['G5', 4],
+        ['F5', 2], ['E5', 2], ['D5', 2], ['C5', 2], ['D5', 8],
+        ['B4', 2], ['C5', 2], ['D5', 2], ['E5', 2], ['F5', 4], ['E5', 2], ['C5', 2],
+        ['D5', 4], ['B4', 4], ['G4', 8]],
+    }],
   },
-  // Fase 1: xaxado ligeiro em ré dório (sanfona danada).
+  // Fase 1: xaxado-rock ligeiro em ré dório.
   caatinga: {
-    bpm: 138, loop: true, baixo: ['D2', 'D2', 'C3', 'C3', 'D2', 'G2', 'C3', 'D2'], ritmo: 'baiao',
-    melodia: [['D5', 1], ['E5', 1], ['F5', 2], ['E5', 1], ['D5', 1], ['C5', 2], ['D5', 2], ['A4', 2], [null, 2], ['A4', 1], ['B4', 1],
-      ['C5', 2], ['B4', 1], ['A4', 1], ['G4', 2], ['A4', 2], ['E4', 4], [null, 4],
-      ['D5', 1], ['E5', 1], ['F5', 2], ['G5', 2], ['A5', 2], ['G5', 1], ['F5', 1], ['E5', 2], ['D5', 2], ['C5', 2], [null, 2],
-      ['B4', 2], ['C5', 2], ['A4', 2], ['G4', 2], ['A4', 6], [null, 2]],
+    bpm: 150, loop: true, levada: 'baiao',
+    secoes: [{
+      acordes: ['D2', 'D2', 'C3', 'C3', 'D2', 'G2', 'C3', 'D2'],
+      melodia: [['D5', 1], ['E5', 1], ['F5', 2], ['E5', 1], ['D5', 1], ['C5', 2], ['D5', 2], ['A4', 2], [null, 2], ['A4', 1], ['B4', 1],
+        ['C5', 2], ['B4', 1], ['A4', 1], ['G4', 2], ['A4', 2], ['E4', 4], [null, 4],
+        ['D5', 1], ['E5', 1], ['F5', 2], ['G5', 2], ['A5', 2], ['G5', 1], ['F5', 1], ['E5', 2], ['D5', 2], ['C5', 2],
+        ['B4', 2], ['C5', 2], ['A4', 2], ['G4', 2], ['A4', 6], [null, 2],
+        ['D5', 1], ['E5', 1], ['F5', 2], ['E5', 1], ['D5', 1], ['C5', 2], ['D5', 2], ['A4', 2], [null, 2], ['A4', 1], ['B4', 1],
+        ['C5', 2], ['B4', 1], ['A4', 1], ['G4', 2], ['A4', 2], ['E4', 4], [null, 4],
+        ['F5', 2], ['E5', 2], ['D5', 2], ['C5', 2], ['B4', 2], ['C5', 2], ['D5', 4],
+        ['A4', 4], ['D5', 4], ['D5', 8]],
+    }, {
+      acordes: ['F2', 'F2', 'C3', 'C3', 'G2', 'G2', 'A2', 'A2'],
+      melodia: [['A5', 2], ['G5', 2], ['F5', 2], ['E5', 2], ['F5', 4], ['D5', 4],
+        ['C5', 4], ['D5', 2], ['E5', 2], ['F5', 6], [null, 2],
+        ['G5', 2], ['F5', 2], ['E5', 2], ['D5', 2], ['E5', 4], ['C5', 4],
+        ['G4', 4], ['A4', 2], ['C5', 2], ['D5', 6], [null, 2],
+        ['D5', 1], ['E5', 1], ['F5', 1], ['G5', 1], ['A5', 4], ['G5', 2], ['F5', 2], ['E5', 2], ['D5', 2],
+        ['E5', 2], ['F5', 2], ['G5', 4], ['A5', 4], [null, 4],
+        ['A5', 2], ['C6', 2], ['A5', 2], ['G5', 2], ['F5', 2], ['E5', 2], ['D5', 2], ['C5', 2],
+        ['A4', 4], ['E5', 4], ['A5', 4], [null, 4]],
+    }],
   },
-  // Chefe: lá menor harmônico, baixo galopando em colcheias.
+  // Chefe: lá menor harmônico, galope de bumbo duplo.
   chefe: {
-    bpm: 156, loop: true, baixo: ['A2', 'A2', 'F2', 'F2', 'D2', 'D2', 'E2', 'E2'], ritmo: 'galope',
-    melodia: [['A4', 2], ['C5', 2], ['E5', 2], ['A5', 2], ['G#5', 2], ['E5', 2], ['B4', 4],
-      ['C5', 2], ['A4', 2], ['F4', 2], ['A4', 2], ['G#4', 6], [null, 2],
-      ['A4', 2], ['C5', 2], ['E5', 2], ['F5', 2], ['E5', 2], ['D5', 2], ['C5', 2], ['B4', 2],
-      ['A4', 2], ['B4', 2], ['G#4', 2], ['E4', 2], ['A4', 6], [null, 2]],
+    bpm: 172, loop: true, levada: 'galope',
+    secoes: [{
+      acordes: ['A2', 'A2', 'F2', 'F2', 'D2', 'D2', 'E2', 'E2'],
+      melodia: [['A4', 2], ['C5', 2], ['E5', 2], ['A5', 2], ['G#5', 2], ['E5', 2], ['B4', 4],
+        ['C5', 2], ['A4', 2], ['F4', 2], ['A4', 2], ['G#4', 6], [null, 2],
+        ['A4', 2], ['C5', 2], ['E5', 2], ['F5', 2], ['E5', 2], ['D5', 2], ['C5', 2], ['B4', 2],
+        ['A4', 2], ['B4', 2], ['G#4', 2], ['E4', 2], ['A4', 6], [null, 2],
+        ['F5', 2], ['E5', 2], ['D5', 2], ['C5', 2], ['D5', 4], ['A4', 4],
+        ['D5', 2], ['F5', 2], ['A5', 4], ['G#5', 4], ['F5', 4],
+        ['E5', 2], ['G#5', 2], ['B5', 2], ['E6', 2], ['D6', 4], ['B5', 4],
+        ['G#5', 2], ['E5', 2], ['B4', 2], ['G#4', 2], ['E4', 8]],
+    }, {
+      acordes: ['D2', 'D2', 'A2', 'A2', 'F2', 'G2', 'E2', 'E2'],
+      melodia: [['D5', 2], ['F5', 2], ['A5', 4], ['G#5', 2], ['A5', 2], ['F5', 4],
+        ['E5', 2], ['D5', 2], ['C5', 2], ['B4', 2], ['C5', 4], ['D5', 4],
+        ['E5', 2], ['C5', 2], ['A4', 4], ['C5', 2], ['E5', 2], ['A5', 4],
+        ['G#5', 4], ['F5', 2], ['E5', 2], ['F5', 4], ['E5', 4],
+        ['F5', 2], ['A5', 2], ['C6', 4], ['B5', 2], ['A5', 2], ['G#5', 4],
+        ['G5', 2], ['F5', 2], ['E5', 2], ['D5', 2], ['G5', 4], ['B4', 4],
+        ['E5', 1], ['F5', 1], ['E5', 1], ['D#5', 1], ['E5', 4], ['G#5', 4], ['B5', 4],
+        ['E6', 4], ['D6', 2], ['C6', 2], ['B5', 4], ['G#5', 4]],
+    }],
   },
-  // Missão cumprida: fanfarra curta.
+  // Missão cumprida: fanfarra de metais com caixa marcial.
   vitoria: {
-    bpm: 132, loop: false, baixo: ['C3', 'G2', 'C3'], ritmo: 'baiao',
-    melodia: [['C5', 2], ['E5', 2], ['G5', 2], ['C6', 4], ['B5', 1], ['C6', 1], ['D6', 4], ['B5', 2], ['G5', 2], ['C6', 8], [null, 8]],
+    bpm: 132, loop: false, levada: 'marcha',
+    secoes: [{
+      acordes: ['C3', 'G2', 'F2', 'C3'],
+      melodia: [['C5', 2], ['E5', 2], ['G5', 2], ['C6', 4], ['B5', 1], ['C6', 1], ['D6', 4],
+        ['B5', 2], ['G5', 2], ['A5', 4], ['F5', 4], ['A5', 2], ['C6', 2],
+        ['C6', 16]],
+    }],
   },
   // Sem vidas: lamento descendo.
   derrota: {
-    bpm: 90, loop: false, baixo: ['A2', 'E2'], ritmo: 'lento',
-    melodia: [['E5', 4], ['D5', 4], ['C5', 4], ['B4', 4], ['A4', 12], [null, 4]],
+    bpm: 84, loop: false, levada: 'lento',
+    secoes: [{
+      acordes: ['A2', 'E2'],
+      melodia: [['E5', 4], ['D5', 4], ['C5', 4], ['B4', 4], ['A4', 12], [null, 4]],
+    }],
   },
 };
+
+// Melodia de cada seção quebrada por compasso: [compasso, início em semis, nota, duração].
+for (const m of Object.values(MUSICAS)) {
+  for (const s of m.secoes) {
+    s.porCompasso = s.acordes.map(() => []);
+    let pos = 0;
+    for (const [n, d] of s.melodia) {
+      const c = Math.floor(pos / 16);
+      if (n && c < s.acordes.length) s.porCompasso[c].push([pos - c * 16, N(n), d]);
+      pos += d;
+    }
+  }
+}
+
+// Curva de distorção (válvula saturada).
+function curvaDistorcao(k) {
+  const n = 1024;
+  const c = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    c[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+  }
+  return c;
+}
+
+// Instrumentos de uma música (cadeias de efeito criadas uma vez por faixa).
+function montarBanda(saida) {
+  const b = { saida };
+  // Guitarra base: acordes de quinta somados numa distorção pesada e caixa de som.
+  b.guitarra = ctx.createGain();
+  b.guitarra.gain.value = 0.5;
+  const dist = ctx.createWaveShaper();
+  dist.curve = curvaDistorcao(60);
+  dist.oversample = '2x';
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90;
+  const caixaSom = ctx.createBiquadFilter(); caixaSom.type = 'lowpass'; caixaSom.frequency.value = 3200; caixaSom.Q.value = 0.9;
+  const medio = ctx.createBiquadFilter(); medio.type = 'peaking'; medio.frequency.value = 800; medio.gain.value = -5;
+  const volG = ctx.createGain(); volG.gain.value = 0.16;
+  b.guitarra.connect(dist).connect(hp).connect(medio).connect(caixaSom).connect(volG).connect(saida);
+  // Guitarra solo: distorção mais macia, com eco.
+  b.solo = ctx.createGain();
+  const dist2 = ctx.createWaveShaper(); dist2.curve = curvaDistorcao(25);
+  const lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 3800;
+  const volS = ctx.createGain(); volS.gain.value = 0.14;
+  const eco = ctx.createDelay(1); eco.delayTime.value = 0.18;
+  const voltaEco = ctx.createGain(); voltaEco.gain.value = 0.28;
+  b.solo.connect(dist2).connect(lp2).connect(volS).connect(saida);
+  volS.connect(eco).connect(voltaEco).connect(eco);
+  voltaEco.connect(saida);
+  // Baixo: serra com sub e filtro fechado, levemente sujo.
+  b.baixo = ctx.createGain();
+  const lpB = ctx.createBiquadFilter(); lpB.type = 'lowpass'; lpB.frequency.value = 700; lpB.Q.value = 2;
+  const distB = ctx.createWaveShaper(); distB.curve = curvaDistorcao(4);
+  const volB = ctx.createGain(); volB.gain.value = 0.42;
+  b.baixo.connect(distB).connect(lpB).connect(volB).connect(saida);
+  // Sanfona e metais vão direto, com um pouco do eco.
+  b.lead = ctx.createGain(); b.lead.gain.value = 0.2;
+  b.lead.connect(saida);
+  b.lead.connect(eco);
+  b.bateria = ctx.createGain(); b.bateria.gain.value = 1.1;
+  b.bateria.connect(saida);
+  return b;
+}
+
+function osc(destino, tipo, freq, t, dur, vol, ataque = 0.005, solta = 0.05, detune = 0) {
+  const o = ctx.createOscillator();
+  o.type = tipo;
+  o.frequency.value = freq;
+  o.detune.value = detune;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + ataque);
+  g.gain.setValueAtTime(vol, t + Math.max(ataque, dur - solta));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(destino);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+  return o;
+}
+
+// Acorde de quinta (tônica, quinta, oitava) na guitarra distorcida.
+function powerChord(b, f, t, dur, abafado) {
+  const v = abafado ? 0.5 : 0.8;
+  const d = abafado ? Math.min(dur, 0.09) : dur;
+  for (const [st, det] of [[0, -6], [7, 5], [12, 0]]) osc(b.guitarra, 'sawtooth', f * 2 * 2 ** (st / 12), t, d, v / 3, 0.003, 0.03, det);
+}
+
+function sanfona(b, f, t, dur) {
+  // Duas palhetas desafinadas de leve e um vibrato de fole.
+  for (const det of [-7, 7]) {
+    const o = osc(b.lead, 'square', f, t, dur, 0.22, 0.015, 0.04, det);
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 5.5;
+    const prof = ctx.createGain(); prof.gain.value = 6;
+    lfo.connect(prof).connect(o.detune);
+    lfo.start(t); lfo.stop(t + dur + 0.02);
+  }
+}
+
+function guitarraSolo(b, f, t, dur) {
+  const o = osc(b.solo, 'sawtooth', f, t, dur, 0.5, 0.004, 0.06);
+  // Puxada de corda no começo da nota e vibrato no fim das longas.
+  o.frequency.setValueAtTime(f * 0.97, t);
+  o.frequency.linearRampToValueAtTime(f, t + 0.04);
+  if (dur > 0.3) {
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 6;
+    const prof = ctx.createGain(); prof.gain.setValueAtTime(0, t); prof.gain.linearRampToValueAtTime(25, t + dur);
+    lfo.connect(prof).connect(o.detune);
+    lfo.start(t); lfo.stop(t + dur + 0.02);
+  }
+}
+
+// Ataque de metais: serra com filtro que abre e fecha (trompete e trombone juntos).
+function metais(b, f, t, dur) {
+  for (const [st, v] of [[0, 0.3], [7, 0.22], [12, 0.25]]) {
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * 2 ** (st / 12);
+    const fil = ctx.createBiquadFilter(); fil.type = 'lowpass'; fil.Q.value = 3;
+    fil.frequency.setValueAtTime(400, t);
+    fil.frequency.linearRampToValueAtTime(3500, t + 0.04);
+    fil.frequency.exponentialRampToValueAtTime(1200, t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(v, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(fil).connect(g).connect(b.lead);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+}
+
+function bateria(b, nome, t, vol = 1) {
+  if (!amostra(nome, t, { vol, varia: 0.01, destino: b.bateria }) && nome !== 'chimbal_aberto' && nome !== 'prato') {
+    // Amostras ainda carregando: um toque sintetizado no lugar.
+    if (nome === 'bumbo' || nome === 'zabumba' || nome === 'surdo') nota(b.bateria, 90, t, 0.12, { onda: 'sine', vol: vol, desliza: 0.5 });
+    else if (nome === 'caixa') nota(b.bateria, 220, t, 0.08, { onda: 'triangle', vol: vol * 0.6 });
+  }
+}
+
+// Agenda um compasso inteiro da música.
+function tocarCompasso(b, m, idx, t0) {
+  const SEMI = 60 / m.bpm / 4;
+  const nSec = m.secoes.length;
+  const tamSec = m.secoes[0].acordes.length;
+  const volta = Math.floor(idx / (tamSec * nSec));
+  const sec = m.secoes[Math.floor(idx / tamSec) % nSec];
+  const c = idx % tamSec;
+  const raiz = N(sec.acordes[c]);
+  const lev = LEVADAS[m.levada];
+  const ultimo = c === tamSec - 1;
+  // Bateria (no último compasso da seção, virada de caixa e surdo).
+  for (let s = 0; s < 16; s++) {
+    const t = t0 + s * SEMI;
+    if (lev.bumbo[s] === 'x') bateria(b, 'bumbo', t, 0.9);
+    if (lev.zabumba[s] === 'x') bateria(b, 'zabumba', t, 0.5);
+    if (ultimo && s >= 8 && m.loop) {
+      bateria(b, s % 4 === 2 ? 'surdo' : 'caixa', t, 0.5 + (s - 8) * 0.06);
+      continue;
+    }
+    if (lev.caixa[s] === 'x') bateria(b, 'caixa', t, 0.8);
+    if (lev.chimbal[s] === 'x') bateria(b, 'chimbal', t, s % 4 === 0 ? 0.45 : 0.3);
+    if (lev.chimbal[s] === 'o') bateria(b, 'chimbal_aberto', t, 0.35);
+  }
+  if (c === 0) bateria(b, 'prato', t0, 0.55);
+  // Guitarra base.
+  for (let s = 0; s < 16; s++) {
+    const g = lev.guitarra[s];
+    if (g === '.') continue;
+    let len = 1;
+    while (s + len < 16 && lev.guitarra[s + len] === '.') len++;
+    powerChord(b, raiz, t0 + s * SEMI, (g === 'x' ? len : 1) * SEMI * 0.95, g === 'm');
+  }
+  // Baixo em colcheias.
+  lev.baixo.forEach((st, i) => {
+    if (st === null) return;
+    const dur = m.levada === 'lento' ? SEMI * 15 : SEMI * 1.7;
+    osc(b.baixo, 'sawtooth', raiz * 2 ** (st / 12), t0 + i * SEMI * 2, dur, 0.6, 0.004, 0.04);
+    osc(b.baixo, 'square', raiz * 2 ** (st / 12) / 2, t0 + i * SEMI * 2, dur, 0.35, 0.004, 0.04);
+  });
+  if (m.levada === 'galope') {
+    for (let s = 1; s < 16; s += 2) osc(b.baixo, 'sawtooth', raiz, t0 + s * SEMI, SEMI * 0.8, 0.45, 0.003, 0.02);
+  }
+  // Melodia: sanfona na primeira volta, guitarra solo na segunda; a fanfarra é dos metais.
+  const instrumento = m.levada === 'marcha' ? metais : m.levada === 'galope' ? (volta % 2 ? sanfona : guitarraSolo)
+    : (volta % 2 ? guitarraSolo : sanfona);
+  for (const [pos, f, d] of sec.porCompasso[c]) instrumento(b, f, t0 + pos * SEMI, d * SEMI * 0.92);
+  // Metais pontuando a virada da seção.
+  if (m.loop && (c === 3 || ultimo)) {
+    metais(b, raiz * 2, t0 + 12 * SEMI, SEMI * 1.5);
+    metais(b, raiz * 2, t0 + 14 * SEMI, SEMI * 2);
+  }
+}
 
 let tocando = null;
 let faixa = null; // ganho só desta música: desligar corta tudo o que já foi agendado
@@ -224,50 +525,24 @@ export function tocarMusica(nome) {
   pararMusica();
   atual = nome;
   const m = MUSICAS[nome];
-  const SEMI = 60 / m.bpm / 4;
+  const compasso = 60 / m.bpm * 4;
+  const total = m.secoes.length * m.secoes[0].acordes.length;
   faixa = ctx.createGain();
   faixa.connect(mestreMusica);
-  const saida = faixa;
-  const compasso = SEMI * 16;
-  const duracao = compasso * m.baixo.length;
-  let inicioLoop = ctx.currentTime + 0.1;
-  let vezes = 0;
+  const banda = montarBanda(faixa);
+  let proximo = ctx.currentTime + 0.1;
+  let idx = 0;
   const agendar = () => {
     if (!tocando || ctx.state !== 'running') return;
     // Som estava travado (antes do primeiro toque): começa do agora, sem despejar notas atrasadas.
-    if (inicioLoop < ctx.currentTime) inicioLoop = ctx.currentTime + 0.05;
-    while (inicioLoop < ctx.currentTime + 1.5 && (m.loop || vezes === 0)) {
-      vezes++;
-      let t = inicioLoop;
-      for (const [n, d] of m.melodia) {
-        if (n) nota(saida, N(n), t, d * SEMI * 0.9, { vol: 0.35 });
-        t += d * SEMI;
-      }
-      m.baixo.forEach((b, k) => {
-        const c0 = inicioLoop + k * compasso;
-        if (m.ritmo === 'galope') {
-          // Baixo em colcheias: tônica, tônica, oitava, tônica...
-          [0, 0, 12, 0, 7, 0, 12, 7].forEach((st, i) => {
-            nota(saida, N(b) * 2 ** (st / 12), c0 + i * SEMI * 2, SEMI * 1.6, { onda: 'triangle', vol: 0.8 });
-          });
-          for (let s = 0; s < 16; s += 4) nota(saida, 3000, c0 + s * SEMI, 0.03, { onda: 'square', vol: 0.05 });
-        } else if (m.ritmo === 'lento') {
-          nota(saida, N(b), c0, compasso * 0.9, { onda: 'triangle', vol: 0.7 });
-        } else {
-          // Zabumba do baião: "tum ... tum-tum".
-          for (const [pos, acento] of [[0, 1], [6, 0.7], [8, 0.9]]) {
-            nota(saida, N(b), c0 + pos * SEMI, SEMI * 2.2, { onda: 'triangle', vol: 0.9 * acento });
-          }
-          // Triângulo nas semicolcheias, abafado e aberto.
-          for (let s = 0; s < 16; s += 2) {
-            nota(saida, 4200, c0 + s * SEMI, s % 4 === 2 ? 0.06 : 0.02, { onda: 'square', vol: 0.05 });
-          }
-        }
-      });
-      inicioLoop += duracao;
+    if (proximo < ctx.currentTime) proximo = ctx.currentTime + 0.05;
+    while (proximo < ctx.currentTime + 1.2 && (m.loop || idx < total)) {
+      tocarCompasso(banda, m, idx, proximo);
+      idx++;
+      proximo += compasso;
     }
   };
-  tocando = setInterval(agendar, 400);
+  tocando = setInterval(agendar, 300);
   agendar();
 }
 
@@ -275,7 +550,12 @@ export function pararMusica() {
   if (tocando) clearInterval(tocando);
   tocando = null;
   atual = null;
-  if (faixa) faixa.disconnect();
+  if (faixa) {
+    const f = faixa;
+    // Desliga com uma rampa curta, sem estalo.
+    f.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
+    setTimeout(() => f.disconnect(), 200);
+  }
   faixa = null;
 }
 

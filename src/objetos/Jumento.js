@@ -1,7 +1,7 @@
 import { hex, P } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { LAMPIAO } from '../quadros.js';
-import { som, falar } from '../som.js';
+import { som } from '../som.js';
 
 // Jumento blindado: o "tanque" do Lampião, como o Metal Slug do Metal Slug.
 // Parado esperando com a placa SUBA!; o Lampião monta pulando em cima (ou
@@ -82,7 +82,6 @@ export class Jumento {
     b.reset(this.s.x, fundo - CORPO.a / 2);
     this.direcao = j.direcao;
     cena.events.emit('arma', 'JUMENTO BLINDADO!');
-    falar('Jumento blindado!');
     som('zurro');
     cena.efeitos.poeira(this.s.x, this.s.y, 10);
   }
@@ -113,6 +112,11 @@ export class Jumento {
     const j = this.j;
     const cena = this.cena;
     const b = j.corpo.body;
+    // Segurança: atravessou o chão num tranco de quadro? volta para cima.
+    if (j.pe > 240) {
+      b.reset(j.corpo.x, cena.chaoAbaixo(j.x, -60) - 30);
+      b.setVelocity(0, 0);
+    }
     const noChao = b.blocked.down;
     // Descer: baixo + pulo.
     if (c.estado.baixo && c.apertou('pular') && noChao) {
@@ -157,7 +161,7 @@ export class Jumento {
       const x = j.x + this.direcao * 30;
       const y = j.pe - 30;
       cena.balas.disparar(x, y, this.direcao > 0 ? -0.08 : Math.PI + 0.08, 'rojao', 1.3);
-      som('bacamarte');
+      som('canhao');
       cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'grande');
       cena.efeitos.fumaca(x - this.direcao * 6, y);
       cena.efeitos.tremer(0.004, 80);
@@ -192,7 +196,7 @@ export class Jumento {
     if (v.texture.key !== 'lampiao') v.setTexture('lampiao');
     v.setFrame(LAMPIAO.parado).setFlipX(this.direcao < 0);
     v.setOrigin((this.direcao > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX) / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
-    v.setCrop(0, 0, LAMPIAO.largura, JUMENTO.sela);
+    v.setCrop(0, 0, LAMPIAO.largura, LAMPIAO.peY - 11); // só da cintura para cima
     const sobe = s.frame.name === 1 || s.frame.name === 3 ? 1 : 0;
     v.setPosition(Math.round(s.x - this.direcao * 5), Math.round(s.y - 23 - sobe)).setVisible(!j.invulneravel || Math.floor(this.cena.time.now / 70) % 2 === 0);
     this.posicionarMg();
