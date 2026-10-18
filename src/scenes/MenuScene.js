@@ -2,7 +2,7 @@ import { LARGURA, ALTURA, DY } from '../config.js';
 import { hex, P } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { pedirTelaCheia } from '../escala.js';
-import { LAMPIAO, INIMIGOS, VEICULOS } from '../quadros.js';
+import { LAMPIAO, INIMIGOS } from '../quadros.js';
 import { ajustes, salvarAjustes, restaurarPadrao, ACOES_TECLADO, NOMES_ACOES, nomeTecla } from '../ajustes.js';
 import { bip, tocarTema, pararTema } from '../som.js';
 
@@ -59,22 +59,20 @@ export class MenuScene extends Phaser.Scene {
     this.add.tileSprite(0, chao - 2, LARGURA, 24, 'chao').setOrigin(0);
     this.add.rectangle(0, chao + 22, LARGURA, ALTURA, P.terra_escura).setOrigin(0);
 
-    // Disco com o raio puxando um bode.
-    this.disco = this.add.sprite(170, 62, 'disco_voador', 0);
-    this.feixe = this.add.image(170, 84, 'feixe', 0).setOrigin(0.5, 0).setAlpha(0.45);
-    this.feixe.setCrop(0, 0, 14, chao - 84 - 14);
+    // Elenco todo na mesma escala (2x, pixel nítido), como a arte grande da
+    // abertura do Metal Slug: o disco no alto puxa o bode com um raio largo,
+    // o blindado da Volante avança pela direita e o Lampião, na frente, mete bala.
     this.chao = chao;
-    this.bode = this.add.image(170, chao - 44, 'bode', 2).setOrigin(0.5, 1);
-    // Blindado avançando com soldados atrás.
-    const qb = VEICULOS.blindado;
-    this.blindado = this.add.sprite(300, chao + 1, 'blindado', 0).setOrigin(0.5, 1).setFlipX(true);
-    for (const [x, tipo] of [[372, 'volante'], [348, 'granadeiro']]) {
-      const q = INIMIGOS[tipo];
-      this.add.image(x, chao, tipo, q.parado).setFlipX(true).setOrigin((q.largura - q.peX) / q.largura, q.peY / q.altura);
-    }
-    this.qb = qb;
-    // Lampião grande no primeiro plano (escala inteira, pixel nítido).
-    this.lampiao = this.add.sprite(78, chao + 2, 'lampiao', LAMPIAO.atirando).setScale(2)
+    this.disco = this.add.sprite(150, 52, 'disco_voador', 0).setScale(2);
+    this.feixe = this.add.image(150, 52 + 44, 'feixe', 0).setOrigin(0.5, 0).setAlpha(0.5).setScale(3, 1);
+    this.feixe.setCrop(0, 0, 14, chao - 96);
+    this.bode = this.add.image(150, chao - 50, 'bode', 2).setOrigin(0.5, 1).setScale(2);
+    this.blindado = this.add.sprite(372, chao + 2, 'blindado', 0).setOrigin(0.5, 1).setFlipX(true).setScale(2);
+    const q = INIMIGOS.volante;
+    this.soldado = this.add.sprite(232, chao + 2, 'volante', q.andar[0]).setFlipX(true).setScale(2)
+      .setOrigin((q.largura - q.peX) / q.largura, q.peY / q.altura);
+    this.qSoldado = q;
+    this.lampiao = this.add.sprite(64, chao + 2, 'lampiao', LAMPIAO.atirando).setScale(2)
       .setOrigin(LAMPIAO.peX / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
     if (!this.anims.exists('explosao')) {
       for (const [k, n, fps] of [['explosao', 8, 20], ['clarao', 3, 50], ['fumaca', 4, 14]]) {
@@ -82,14 +80,14 @@ export class MenuScene extends Phaser.Scene {
       }
     }
     this.clarao = this.add.sprite(0, 0, 'clarao', 0).setScale(2).setVisible(false).setOrigin(0.05, 0.5);
-    this.explosoes = [0, 1].map(() => this.add.sprite(0, 0, 'explosao', 0).setVisible(false));
+    this.explosoes = [0, 1].map(() => this.add.sprite(0, 0, 'explosao', 0).setVisible(false).setScale(2));
     this.time.addEvent({ delay: 900, loop: true, callback: () => this.disparar() });
     this.time.addEvent({ delay: 1700, loop: true, callback: () => this.explodirAoLonge() });
   }
 
   disparar() {
     // Clarão no cano da pistola do Lampião.
-    this.clarao.setPosition(this.lampiao.x + 30, this.lampiao.y - 46).setVisible(true).play('clarao');
+    this.clarao.setPosition(this.lampiao.x + 58, this.lampiao.y - 44).setVisible(true).play('clarao');
     this.clarao.once('animationcomplete', () => this.clarao.setVisible(false));
     this.lampiao.setFrame(LAMPIAO.atirando);
     this.time.delayedCall(140, () => this.lampiao.setFrame(LAMPIAO.parado));
@@ -97,7 +95,7 @@ export class MenuScene extends Phaser.Scene {
 
   explodirAoLonge() {
     const e = this.explosoes.find((s) => !s.visible) || this.explosoes[0];
-    e.setPosition(Phaser.Math.Between(230, 380), this.chao - 8 - Phaser.Math.Between(0, 30)).setVisible(true).play('explosao');
+    e.setPosition(Phaser.Math.Between(200, 330), this.chao - 30 - Phaser.Math.Between(0, 40)).setVisible(true).play('explosao');
     e.once('animationcomplete', () => e.setVisible(false));
   }
 
@@ -284,10 +282,12 @@ export class MenuScene extends Phaser.Scene {
   update(t, dt) {
     this.nuvens.tilePositionX += dt * 0.004;
     this.nuvens2.tilePositionX += dt * 0.007;
-    this.disco.y = 62 + Math.sin(t / 500) * 2;
+    this.disco.y = 52 + Math.sin(t / 500) * 2;
+    this.soldado.setFrame(this.qSoldado.andar[Math.floor(t / 150) % this.qSoldado.andar.length]);
     this.disco.setFrame(Math.floor(t / 150) % 2);
     this.feixe.setFrame(Math.floor(t / 100) % 2);
-    this.bode.y = this.chao - 44 + Math.sin(t / 300) * 3;
+    this.bode.y = this.chao - 50 + Math.sin(t / 300) * 4;
+    this.bode.rotation = Math.sin(t / 400) * 0.3;
     this.blindado.setFrame(Math.floor(t / 120) % 2);
     const c = this.controles;
     c.atualizar();
