@@ -195,10 +195,12 @@ def pedra(w, h, semente=0, rampa=PEDRA, musgo=True):
 
 def arvore(altura=70, semente=0, folhas=True):
     """Árvore da caatinga: tronco torto com casca, galhos finos e copa em tufos."""
-    W = int(altura * 1.1)
-    t = Tela(W, altura)
+    # Tela folgada (a copa passava da borda e saía cortada); recorta no fim.
+    M = 14
+    W = int(altura * 1.9)
+    t = Tela(W, altura + M)
     rng = np.random.default_rng(semente)
-    galhos = np.zeros((altura, W), dtype=bool)
+    galhos = np.zeros((altura + M, W), dtype=bool)
     pontas = []
 
     def ramo(x, y, ang, comp, esp, prof):
@@ -215,19 +217,19 @@ def arvore(altura=70, semente=0, folhas=True):
             ramo(x1, y1, ang + da, comp * rng.uniform(0.62, 0.8), esp * 0.68, prof - 1)
 
     base = W / 2
-    tronco_topo = altura * 0.55
+    tronco_topo = altura * 0.55 + M
     # Tronco torto em dois segmentos.
-    meio = (base + rng.uniform(-4, 4), altura - altura * 0.25)
-    galhos |= t.capsula(base, altura - 1, meio[0], meio[1], altura * 0.06, altura * 0.05)
+    meio = (base + rng.uniform(-4, 4), altura - altura * 0.25 + M)
+    galhos |= t.capsula(base, altura - 1 + M, meio[0], meio[1], altura * 0.06, altura * 0.05)
     topo = (meio[0] + rng.uniform(-5, 5), tronco_topo)
     galhos |= t.capsula(meio[0], meio[1], topo[0], topo[1], altura * 0.05, altura * 0.04)
-    galhos |= t.elipse(base, altura - 1.5, altura * 0.1, 2)  # raízes
+    galhos |= t.elipse(base, altura - 1.5 + M, altura * 0.1, 2)  # raízes
     for k in range(3):
         ramo(topo[0], topo[1], -math.pi / 2 + (k - 1) * 0.65, altura * 0.22, altura * 0.035, 3)
     t.volume(galhos, CASCA if folhas else GALHO_SECO, achatado=2, suave=0.6, ambiente=0.15, textura=0.25,
              semente=semente)
     # Casca: estrias verticais escuras no tronco.
-    estrias = galhos & (((t.xx.astype(int) * 3 + (ruido(altura, W, 0.6, semente) > 0.5)) % 4) == 0) & (t.yy > tronco_topo)
+    estrias = galhos & (((t.xx.astype(int) * 3 + (ruido(altura + M, W, 0.6, semente) > 0.5)) % 4) == 0) & (t.yy > tronco_topo)
     t.px[estrias] = IDX[(CASCA if folhas else GALHO_SECO)[1]]
     if folhas:
         # Copa em tufos: muitas bolinhas com volume, das de trás (escuras) às da frente.
@@ -237,16 +239,16 @@ def arvore(altura=70, semente=0, folhas=True):
                 tufos.append((px + rng.uniform(-3, 3), py + rng.uniform(-2, 3), rng.uniform(3, 6)))
         tufos.sort(key=lambda c: c[1])
         for k, (x, y, r) in enumerate(tufos):
-            m = t.elipse(x, y, r * 1.25, r) & ~(t.yy > altura * 0.75)
+            m = t.elipse(x, y, r * 1.25, r) & ~(t.yy > altura * 0.75 + M)
             t.volume(m, FOLHA, achatado=r * 0.7, suave=0.8, ambiente=0.1 + 0.25 * (k / len(tufos)),
                      textura=0.35, semente=semente + k)
         # Folhinhas soltas na borda da copa.
         cheio = t.px != VAZIO
         borda = ndimage.binary_dilation(cheio) & ~cheio
-        solto = borda & (np.random.default_rng(semente + 3).random(borda.shape) < 0.25) & (t.yy < altura * 0.65)
+        solto = borda & (np.random.default_rng(semente + 3).random(borda.shape) < 0.25) & (t.yy < altura * 0.65 + M)
         t.px[solto] = IDX["caatinga_media"]
     t.contorno("sombra")
-    return t
+    return cortar(t)
 
 
 def mandacaru(altura=48, semente=0, bracos=2):

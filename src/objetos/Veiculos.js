@@ -205,7 +205,7 @@ export class Caminhao extends Veiculo {
 export class Blindado extends Veiculo {
   constructor(cena, x, pe, opcoes) {
     super(cena, 'blindado', x, pe, { vida: 90, pontos: 2000, explosoes: 7, ...opcoes });
-    this.body.setSize(118, 44).setOffset(7, 32);
+    this.body.setSize(118, 44).setOffset(7, 46);
     this.estado = 'chegando';
     this.vidaMax = this.vida;
     this.torre = true;
@@ -261,7 +261,7 @@ export class Blindado extends Veiculo {
       this.alvoX = this.opcoes.para + Phaser.Utils.Array.GetRandom([-50, 0, 40]);
     }
     const quadroParado = this.torre ? this.q.andar[0] : this.q.quebrado;
-    if (this.alvoX !== undefined && Math.abs(this.alvoX - this.x) > 4) {
+    if (!this.avisando && this.alvoX !== undefined && Math.abs(this.alvoX - this.x) > 4) {
       const sentido = Math.sign(this.alvoX - this.x);
       this.body.setVelocityX(sentido * 40);
       this.passo += dt;
@@ -272,23 +272,34 @@ export class Blindado extends Veiculo {
       if (Number(this.frame.name) !== this.q.tiro) this.setFrame(quadroParado);
     }
     if (j.morto) return;
-    // Metralhadora do casco: rajada reta na altura do peito.
-    if (t > this.proximoTiro) {
-      const rajada = this.torre ? 4 : 6;
-      this.proximoTiro = t + (this.torre ? 2200 : 1300);
-      for (let k = 0; k < rajada; k++) {
-        cena.time.delayedCall(k * 110, () => {
-          if (!this.vivo) return;
-          const [x, y] = this.ponto(this.q.largura / 2 + 2, 29);
-          cena.balasInimigas.disparar(x, y, this.direcao, 'pesada');
-          cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'grande');
-          cena.efeitos.capsula(x - this.direcao * 14, y + 2, -this.direcao);
-        });
-      }
+    // Metralhadora: avisa antes (faísca no cano e o carro para), depois uma rajada curta
+    // reta na altura da cabeça. Agachado escapa; dá para pular por cima com tempo.
+    if (t > this.proximoTiro && !this.avisando) {
+      this.avisando = true;
+      const [ax, ay] = this.ponto(this.q.largura / 2 + 2, 37);
+      cena.efeitos.faisca(ax, ay, 5);
+      this.texto.setText('!').setPosition(ax, ay - 12).setVisible(true).setAlpha(1);
+      cena.tweens.killTweensOf(this.texto);
+      cena.tweens.add({ targets: this.texto, alpha: 0, delay: 350, duration: 150 });
+      cena.time.delayedCall(500, () => {
+        this.avisando = false;
+        const rajada = this.torre ? 3 : 4;
+        this.proximoTiro = this.scene.time.now + (this.torre ? 2800 : 2000);
+        for (let k = 0; k < rajada; k++) {
+          cena.time.delayedCall(k * 130, () => {
+            if (!this.vivo) return;
+            const [x, y] = this.ponto(this.q.largura / 2 + 2, 37);
+            cena.balasInimigas.disparar(x, y, this.direcao, 'pesada');
+            cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'grande');
+            cena.efeitos.capsula(x - this.direcao * 14, y + 2, -this.direcao);
+          });
+        }
+      });
     }
     // Canhão: obus em arco no Lampião.
     if (this.torre && t > this.proximoCanhao) {
-      this.proximoCanhao = t + 3200;
+      this.proximoCanhao = t + 4200;
+      this.proximoTiro = Math.max(this.proximoTiro, t + 1200); // não atira a metralhadora junto
       this.setFrame(this.q.tiro);
       cena.time.delayedCall(160, () => this.vivo && this.torre && this.setFrame(this.q.andar[0]));
       const [x, y] = this.ponto(this.q.largura / 2 - 8, 58);

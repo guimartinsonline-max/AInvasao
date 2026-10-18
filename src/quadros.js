@@ -43,7 +43,7 @@ export const FEIXE = { largura: 14, altura: 160 };
 // Veículos da Volante (tools/arte/veiculos.py), virados para a direita; pé no centro de baixo.
 export const VEICULOS = {
   caminhao: { largura: 124, altura: 62, andar: [0, 1], aberto: 2, destruido: 3 },
-  blindado: { largura: 132, altura: 76, andar: [0, 1], tiro: 2, quebrado: 3, destruido: 4 },
+  blindado: { largura: 132, altura: 90, andar: [0, 1], tiro: 2, quebrado: 3, destruido: 4 },
 };
 export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };
 

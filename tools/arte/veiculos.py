@@ -157,11 +157,12 @@ def rebites(t, pontos):
 
 
 def blindado(quadro=0):
-    W, H = 132, 76
+    # 14 px de folga em cima para o tripulante sair da escotilha sem ficar espremido.
+    W, H = 132, 90
     t = Tela(W, H)
     chao = H - 1
     andando = quadro in (0, 1)
-    y0 = -1 if quadro == 1 else 0
+    y0 = (-1 if quadro == 1 else 0) + 14
     torre_quebrada = quadro in (3, 4)
     rng = np.random.default_rng(4)
     # --- Atrás de tudo: estepe pendurado na traseira, antena e escapamento.
@@ -169,10 +170,10 @@ def blindado(quadro=0):
     t.volume(estepe, PNEU, achatado=2, suave=0.6, ambiente=0.15)
     t.volume(t.elipse(9, 44 + y0, 3, 5), FERRO, achatado=1, suave=0.3)
     if not torre_quebrada:
-        t.linha(50, 14 + y0, 40, 0, "cinza_escuro")  # antena chicote
-        bandeira = t.poligono([(41, 1), (49, 3), (42, 6)])
+        t.linha(50, 14 + y0, 38, 2, "cinza_escuro")  # antena chicote
+        bandeira = t.poligono([(39, 3), (48, 5), (40, 8)])
         t.chapado(bandeira, "caatinga")
-        t.chapado(t.poligono([(41, 3), (46, 3.5), (41, 5)]) & bandeira, "amarelo_fogo")
+        t.chapado(t.poligono([(39, 5), (45, 5.5), (39, 7)]) & bandeira, "amarelo_fogo")
     # --- Canhão (atrás da torre, sai pela frente). No tiro recua 4 px.
     rec = 4 if quadro == 2 else 0
     if not torre_quebrada:
@@ -197,17 +198,30 @@ def blindado(quadro=0):
         mant = t.retangulo(80, 12 + y0, 9, 14)
         t.volume(mant, OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35, textura=0.1, semente=3)
         rebites(t, [(82, 14 + y0), (87, 14 + y0), (82, 23 + y0), (87, 23 + y0)])
-    # Tripulante da Volante espiando pela escotilha (quepe, narigão, bigode).
+    # Tripulante da Volante saindo da escotilha até o peito (quepe, olhão, narigão, bigodão).
     if not torre_quebrada:
-        cab = t.elipse(64, 5 + y0, 4.6, 4.2)
-        t.volume(cab, ["pele_sombra", "pele_media", "pele", "pele_luz"], achatado=2, suave=0.5, ambiente=0.3)
-        quepe = t.retangulo(59, 0, 11, 3 + y0) | t.retangulo(64, 2 + y0, 8, 1.5)
-        t.volume(quepe, OLIVA, achatado=1, suave=0.3, ambiente=0.3)
-        t.ponto(62, 1, "amarelo_fogo")
-        t.chapado(t.elipse(68.5, 6 + y0, 2.2, 1.8), "pele_media")  # narigão
-        t.ponto(69, 5 + y0, "pele_luz")
-        t.linha(65, 8 + y0, 70, 8 + y0, "preto")  # bigode
-        t.ponto(66, 4 + y0, "preto")  # olho
+        PELE_ = ["pele_sombra", "pele_media", "pele", "pele_luz"]
+        ombros = t.elipse(64, 7 + y0, 8, 4) & (t.yy < 9 + y0)
+        t.volume(ombros, OLIVA, achatado=2, suave=0.5, ambiente=0.3)
+        t.linha(60, 5 + y0, 66, 9 + y0, "couro_escuro")  # correia
+        cab = t.elipse(64, -1 + y0, 5.5, 6)
+        t.volume(cab, PELE_, achatado=2.5, suave=0.6, ambiente=0.3)
+        t.volume(t.elipse(59, 0 + y0, 1.6, 2.2), PELE_, achatado=1, suave=0.3, deslocar=-0.2)  # orelha
+        quepe = t.retangulo(58, -9 + y0, 12, 5) | t.elipse(64, -9 + y0, 6, 2.5)
+        t.volume(quepe, OLIVA, achatado=1.5, suave=0.4, ambiente=0.3)
+        t.volume(t.poligono([(65, -4 + y0), (74, -3 + y0), (74, -2 + y0), (65, -2.5 + y0)]), OLIVA_ESC,
+                 achatado=1, suave=0.2)  # aba
+        t.chapado(t.retangulo(62, -8 + y0, 2, 2), "amarelo_fogo")  # distintivo
+        t.chapado(t.elipse(67, -1 + y0, 2, 2.2), "branco")  # olho
+        t.ponto(68, -1 + y0, "preto")
+        t.ponto(68, 0 + y0, "preto")
+        t.linha(65, -3.5 + y0, 69, -2.5 + y0, "couro_profundo")  # sobrancelha
+        nariz = t.elipse(70.5, 2 + y0, 3, 2.6)
+        t.volume(nariz, PELE_, achatado=1.5, suave=0.4, ambiente=0.35)
+        t.ponto(70, 1 + y0, "pele_brilho")
+        bigode = t.elipse(68, 5 + y0, 5, 1.6)
+        t.volume(bigode, ["preto", "sombra", "couro_profundo"], achatado=1, suave=0.3)
+        t.chapado(t.retangulo(66, 6 + y0, 3, 1), "vermelho_medio")  # boca gritando
     t.volume(t.elipse(64, 9 + y0, 9, 2.5), OLIVA_ESC, achatado=1.5, suave=0.4)  # aro da escotilha
     t.volume(t.retangulo(52, 4 + y0, 6, 6) & (t.yy < 10 + y0), OLIVA, achatado=1, suave=0.3)  # tampa aberta
     t.chapado(t.retangulo(76, 18 + y0, 4, 2), "preto")  # fenda de visão
@@ -234,10 +248,10 @@ def blindado(quadro=0):
     for x in (40, 70, 100):
         t.linha(x, 33 + y0, x, 51 + y0, "caatinga_esc")
     rebites(t, [(x, 44 + y0) for x in range(12, 122, 6)] + [(x, 54 + y0) for x in range(10, 124, 6)])
-    # Bloco de visão do motorista na chapa da frente (vidro grosso).
-    t.volume(t.retangulo(106, 34 + y0, 10, 5), FERRO, achatado=1, suave=0.3)
-    t.chapado(t.retangulo(108, 35 + y0, 6, 2), "azul_medio")
-    t.ponto(109, 35 + y0, "ceu_luz")
+    # Bloco de visão do motorista na lateral (vidro grosso).
+    t.volume(t.retangulo(96, 44 + y0, 10, 5), FERRO, achatado=1, suave=0.3)
+    t.chapado(t.retangulo(98, 45 + y0, 6, 2), "azul_medio")
+    t.ponto(99, 45 + y0, "ceu_luz")
     # Farol com grade na frente e gancho de reboque.
     t.volume(t.elipse(120, 44 + y0, 3.5, 3.5), FERRO, achatado=1, suave=0.3)
     t.chapado(t.elipse(121, 44 + y0, 2, 2), "amarelo_claro")
@@ -258,9 +272,11 @@ def blindado(quadro=0):
     for x in (74, 86):
         t.chapado(t.retangulo(x, 46 + y0, 7, 2), "preto")
         t.ponto(x, 45 + y0, "caatinga_esc")
-    t.volume(t.elipse(117, 47 + y0, 4, 4), OLIVA_ESC, achatado=1.5, suave=0.4)
-    t.volume(t.capsula(116, 47 + y0, 131, 47 + y0, 1.6), FERRO, achatado=1, suave=0.3)
-    t.chapado(t.retangulo(126, 45.5 + y0, 1, 3), "cinza_escuro")  # quebra-chamas
+    # Metralhadora numa torreta de bola no alto da chapa da frente: o tiro sai na altura da
+    # cabeça do Lampião em pé (agachado escapa; dá para pular por cima com tempo).
+    t.volume(t.elipse(113, 38 + y0, 5, 4.5), OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35)
+    t.volume(t.capsula(114, 38 + y0, 131, 38 + y0, 1.7), FERRO, achatado=1, suave=0.3)
+    t.chapado(t.retangulo(125, 36.5 + y0, 2, 3), "cinza_escuro")  # quebra-chamas
     # Estrela da Volante e número pintado.
     sx, sy = 97, 38 + y0
     est = t.poligono([(sx + np.cos(a) * (4 if k % 2 == 0 else 1.6), sy + np.sin(a) * (4 if k % 2 == 0 else 1.6))
@@ -283,7 +299,7 @@ def blindado(quadro=0):
                 t.px[y + y0, x] = IDX["terra" if y > 57 else "terra_media"]
     # Para-lamas, aba de lama e rodas grandes.
     for cx in (28, 102):
-        pl = t.elipse(cx, 62 + y0, 16, 10) & (t.yy < 61 + y0) & ~t.elipse(cx, 62, 13, 9)
+        pl = t.elipse(cx, 62 + y0, 16, 10) & (t.yy < 61 + y0) & ~t.elipse(cx, 62 + y0, 13, 9)
         t.volume(pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
         t.chapado(t.retangulo(cx - 17, 58 + y0, 2, 9), "sombra")  # aba de borracha
     q = quadro if andando else 0

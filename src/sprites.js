@@ -70,6 +70,21 @@ export function gerarSprites(cena) {
 
   texturaDesenhada(cena, 'disco', 16, 16, (ctx) => disco(ctx, 8, 8, 7, '#ffffff'));
   texturaDesenhada(cena, 'bola', 6, 6, (ctx) => disco(ctx, 3, 3, 2, '#ffffff'));
+  // Poça de sangue no chão (elipse achatada pixelada, borda escura e brilho).
+  texturaDesenhada(cena, 'poca', 30, 6, (ctx, cor) => {
+    for (let y = 0; y < 6; y++) {
+      const meia = Math.floor(Math.sqrt(1 - ((y - 2.5) / 3) ** 2) * 15);
+      ctx.fillStyle = cor(y === 0 || y === 5 ? 'vermelho_esc' : 'vermelho_medio');
+      ctx.fillRect(15 - meia, y, meia * 2, 1);
+      ctx.fillStyle = cor('vermelho_esc');
+      ctx.fillRect(15 - meia, y, 1, 1);
+      ctx.fillRect(15 + meia - 1, y, 1, 1);
+    }
+    ctx.fillStyle = cor('vermelho');
+    ctx.fillRect(9, 1, 6, 1);
+    ctx.fillStyle = cor('laranja_fogo');
+    ctx.fillRect(10, 1, 2, 1);
+  });
 }
 
 // Itens de arma no estilo Metal Slug: letra grande e grossa, com volume

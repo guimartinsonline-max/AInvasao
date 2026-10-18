@@ -25,6 +25,8 @@ export class Jogador {
     this.corpo = cena.physics.add.image(x, y, 'px').setVisible(false);
     this.corpo.body.setSize(14, ALTURA_EM_PE).setMaxVelocityY(420);
     this.visual = cena.add.sprite(x, y, 'lampiao', LAMPIAO.parado).setDepth(10);
+    // Poça de sangue debaixo do corpo quando ele morre.
+    this.poca = cena.add.image(0, 0, 'poca').setOrigin(0.5, 0.5).setDepth(7).setVisible(false);
 
 
     this.direcao = 1;
@@ -57,22 +59,26 @@ export class Jogador {
       const v = this.visual;
       if (corpo.blocked.down) {
         corpo.setVelocityX(corpo.velocity.x * 0.85);
-        if (!this.caiuEm) {
+        if (!this.caiuEm && this.desdeMorte > 150 && corpo.velocity.y >= 0) {
           this.caiuEm = this.desdeMorte;
           this.cena.efeitos.poeira(this.x, this.pe, 8);
           this.cena.efeitos.tremer(0.004, 80);
         }
       }
-      let quadro = 'morte1';
-      if (this.caiuEm && this.desdeMorte > 120) {
-        const k = Math.floor((this.desdeMorte - this.caiuEm) / 160);
-        quadro = k === 2 || k === 4 ? 'morte3' : 'morte2';
+      // No ar: voando para trás. No chão: deitado morto, parado, com a poça crescendo.
+      const quadro = this.caiuEm ? 'morte2' : 'morte1';
+      if (this.caiuEm && !this.poca.visible) {
+        this.poca.setPosition(Math.round(this.x), Math.round(this.pe) - 1).setVisible(true).setScale(0.2, 0.5);
+        this.cena.tweens.add({ targets: this.poca, scaleX: 1, scaleY: 1, duration: 700, ease: 'Quad.easeOut' });
+        this.cena.efeitos.sangue(this.x, this.pe - 6, 10);
       }
       v.setFrame(LAMPIAO[quadro]);
       // Cai de costas: a cabeça vai para o lado de onde ele voou.
       const d = this.direcaoMorte;
       v.setFlipX(d < 0);
-      v.setOrigin((d > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX) / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
+      // Deitado, o corpo fica centrado onde ele caiu (a poça vai embaixo do meio do corpo).
+      const ox = this.caiuEm ? LAMPIAO.largura / 2 : (d > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX);
+      v.setOrigin(ox / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
       if (this.desdeMorte > MORTE - 450) v.setVisible(Math.floor(this.desdeMorte / 60) % 2 === 0);
       v.setPosition(Math.round(this.x), Math.round(this.pe));
       return;
@@ -173,6 +179,8 @@ export class Jogador {
     this.vidas--;
     const lado = Math.sign(vxBala) || -this.direcao;
     this.corpo.body.setVelocity(lado * 90, -240);
+    // Sangue espirrando do tiro.
+    cena.efeitos.sangue(this.x, this.pe - 24, 28);
     this.desdeMorte = 0;
     this.caiuEm = 0;
     // Voa para trás: vira de frente para quem atirou (a cabeça cai do lado de lá).
@@ -191,6 +199,12 @@ export class Jogador {
 
   renascer() {
     const corpo = this.corpo.body;
+    // A poça seca e some devagar depois que ele renasce.
+    this.cena.tweens.killTweensOf(this.poca);
+    if (this.poca.visible) {
+      this.cena.tweens.add({ targets: this.poca, alpha: 0, delay: 800, duration: 600,
+        onComplete: () => this.poca.setVisible(false).setAlpha(1) });
+    }
     if (this.vidas <= 0) {
       // Numa fase, a cena pergunta "continuar?"; no campo de treino recomeça as vidas.
       if (this.cena.semVidas && this.cena.semVidas()) return;

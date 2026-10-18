@@ -14,9 +14,9 @@ const VOLTA = 10000; // ms para reaparecer (campo de treino)
 // O que sai de um caixote quebrado: item, refém amarrado, bode Fubá ou nada.
 function surpresa() {
   const r = Math.random();
-  if (r < 0.28) return 'item'; // arma: metade do que era
-  if (r < 0.40) return 'refem';
-  if (r < 0.52) return 'bode';
+  if (r < 0.17) return 'item'; // arma: bem menos que no começo
+  if (r < 0.29) return 'refem';
+  if (r < 0.41) return 'bode';
   return null;
 }
 

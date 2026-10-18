@@ -112,9 +112,11 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
     if (REFEM[estado] !== undefined) this.setFrame(REFEM[estado]);
     if (estado === 'entrega') {
       // O item sai da mão levantada.
-      // Metade das vezes é arma; na outra, granadas.
-      const premio = Math.random() < 0.5 ? Phaser.Utils.Array.GetRandom(this.scene.premios) : 'granadas';
-      this.scene.soltarItem(this.x + 18, this.y - 26, premio);
+      // Arma em 30% das vezes, granadas em 25%; no resto ele só agradece com pontos.
+      const r = Math.random();
+      if (r < 0.3) this.scene.soltarItem(this.x + 18, this.y - 26, Phaser.Utils.Array.GetRandom(this.scene.premios));
+      else if (r < 0.55) this.scene.soltarItem(this.x + 18, this.y - 26, 'granadas');
+      else this.scene.pontuar(1000, this.x + 14, this.y - 40);
     }
   }
 
