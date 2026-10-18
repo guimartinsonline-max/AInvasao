@@ -427,3 +427,88 @@ def corte(k):
         t.linha(px - 4, py, px + 4, py, "amarelo_claro")
         t.linha(px, py - 4, px, py + 4, "amarelo_claro")
     return t
+
+
+def explosao_ms(k, tamanho=56):
+    """Explosão no nível do Metal Slug, 12 quadros: clarão com raios, bola de fogo
+    em gomos crescendo com miolo branco, línguas de fogo e estilhaços, brasa,
+    e um cogumelo de fumaça que sobe, se abre e se desfaz devagar."""
+    t = Tela(tamanho, tamanho)
+    c = tamanho / 2
+    s = tamanho / 56
+    rng = np.random.default_rng(40 + k)
+    cy = c + 6 * s  # a explosão nasce embaixo e sobe
+    if k == 0:
+        t.chapado(t.elipse(c, cy, 9 * s, 9 * s), "laranja_fogo")
+        t.chapado(t.elipse(c, cy, 7.5 * s, 7.5 * s), "amarelo_claro")
+        t.chapado(t.elipse(c, cy, 5.5 * s, 5.5 * s), "branco")
+        for a in np.linspace(0, 2 * np.pi, 8, endpoint=False) + 0.3:
+            t.linha(c + np.cos(a) * 8 * s, cy + np.sin(a) * 8 * s, c + np.cos(a) * 15 * s,
+                    cy + np.sin(a) * 15 * s, "amarelo_fogo")
+        return t
+    if k == 1:
+        t.chapado(t.elipse(c, cy, 15 * s, 13 * s), "vermelho_medio")
+        t.chapado(t.elipse(c, cy, 13.5 * s, 11.5 * s), "laranja_fogo")
+        t.chapado(t.elipse(c, cy, 11 * s, 9.5 * s), "amarelo_fogo")
+        t.chapado(t.elipse(c, cy, 7.5 * s, 6.5 * s), "branco")
+        return t
+    if k <= 7:
+        raio = [0, 0, 14, 16.5, 18, 19, 19.5, 20][k] * s
+        sobe = [0, 0, 1, 2, 4, 6, 8, 10][k] * s
+        if k <= 4:
+            total = gomos(t, c, cy - sobe, raio, FOGO_VOL, semente=k)
+            if k >= 2:  # línguas de fogo saindo da borda
+                for a in rng.uniform(0, 2 * np.pi, 5):
+                    x0, y0 = c + np.cos(a) * raio * 0.95, cy - sobe + np.sin(a) * raio * 0.95
+                    m = t.capsula(x0, y0, x0 + np.cos(a) * 5 * s, y0 + np.sin(a) * 5 * s - 2 * s, 2.2 * s, 1.0 * s)
+                    t.volume(m & ~total, FOGO_VOL, achatado=1.5, suave=0.5, ambiente=0.4)
+            if k <= 3:
+                t.chapado(t.elipse(c, cy - sobe, raio * 0.42, raio * 0.4), "amarelo_claro")
+                t.chapado(t.elipse(c - 1, cy - sobe - 1, raio * 0.22, raio * 0.22), "branco")
+            else:
+                t.chapado(t.elipse(c, cy - sobe + 1, raio * 0.3, raio * 0.26), "amarelo_fogo")
+        else:
+            # Fumaça escura cresce por cima; o fogo encolhe e fica embaixo dela.
+            f = k - 5
+            total = gomos(t, c, cy - sobe - raio * 0.3, raio * (0.75 + 0.1 * f), FUMACA_VOL, semente=k + 9, achatado=2.5)
+            fogo = gomos(t, c, cy - sobe + raio * 0.4, raio * [0.7, 0.55, 0.4][f], BRASA_VOL if f else FOGO_VOL, semente=k)
+            t.chapado(t.elipse(c, cy - sobe + raio * 0.5, raio * [0.25, 0.18, 0.1][f], raio * 0.12) & fogo, "amarelo_fogo")
+            total |= fogo
+        # Estilhaços voando (pontos escuros com brilho).
+        if k <= 4:
+            for a in rng.uniform(0, 2 * np.pi, 7):
+                d = raio + (3 + k * 2) * s
+                x, y = c + np.cos(a) * d, cy - sobe + np.sin(a) * d
+                t.ponto(int(x), int(y), "sombra")
+                t.ponto(int(x) + 1, int(y), "laranja_fogo")
+        return t
+    # 8 a 11: cogumelo de fumaça subindo com brasa embaixo, se desfazendo.
+    j = k - 8
+    raio = (15 + j * 1.5) * s
+    sobe = (13 + j * 3) * s
+    rampa = FUMACA_VOL if j < 2 else FUMACA_CLARA_VOL
+    copa = gomos(t, c, cy - sobe - raio * 0.3, raio, rampa, semente=k)
+    haste = t.capsula(c, cy, c, cy - sobe, raio * 0.35, raio * 0.25)
+    t.volume(haste & ~copa, rampa, achatado=2, suave=0.6, ambiente=0.15)
+    total = copa | haste
+    if j < 2:
+        brasa = t.elipse(c, cy - 1, raio * 0.5, raio * 0.22) & total
+        t.chapado(brasa, "laranja_escuro")
+        t.chapado(t.elipse(c, cy, raio * 0.25, raio * 0.1) & total, "laranja_fogo")
+    ralo(t, total, [0.05, 0.2, 0.45, 0.7][j], semente=k)
+    return t
+
+
+def poeira_passo(k):
+    """Poeirinha do passo e da queda: nuvem de terra baixa que se abre e some (5 quadros)."""
+    t = Tela(20, 10)
+    r = [1.6, 2.4, 3.0, 3.4, 3.6][k]
+    total = np.zeros(t.px.shape, dtype=bool)
+    for dx, f in ((-1, 1.0), (1, 0.85), (0, 1.1)):
+        m = t.elipse(10 + dx * r * (1 + k * 0.4), 8 - k * 0.6, r * f, r * f * 0.75)
+        t.volume(m, ["terra", "terra_media", "areia_media", "areia", "areia_luz"], achatado=1.5,
+                 suave=0.5, ambiente=0.35)
+        total |= m
+    if k >= 2:
+        ralo(t, total, [0, 0, 0.25, 0.5, 0.75][k], semente=k)
+    return t

@@ -111,7 +111,7 @@ def caminhao(quadro=0):
             t.volume(t.capsula(3, 14 + y0, 13, 13 + y0, 2.4), LONA, achatado=1, suave=0.3, ambiente=0.4)
     # Cabine: teto arredondado, janela, porta.
     cab = (t.retangulo(68, 18 + y0, 24, 27) | t.elipse(80, 19 + y0, 12, 5)) & (t.yy > 13 + y0)
-    t.volume(cab, OLIVA, achatado=3, suave=1, ambiente=0.25, textura=0.06, semente=2)
+    t.volume(cab, OLIVA, achatado=3, suave=1, ambiente=0.25, textura=0.0, semente=2)
     jan = t.retangulo(73, 21 + y0, 15, 9)
     t.volume(jan, VIDRO, achatado=1.5, suave=0.5, ambiente=0.1)
     t.linha(75, 22 + y0, 78, 22 + y0, "ceu_luz")
@@ -125,7 +125,7 @@ def caminhao(quadro=0):
     t.chapado(est, "branco")
     # Capô comprido com grade e farol.
     capo = t.poligono([(92, 27 + y0), (112, 29 + y0), (114, 44 + y0), (92, 44 + y0)])
-    t.volume(capo, OLIVA, achatado=3, suave=1, ambiente=0.3, textura=0.06, semente=4)
+    t.volume(capo, OLIVA, achatado=3, suave=1, ambiente=0.3, textura=0.0, semente=4)
     for y in (33, 37):
         t.linha(96, y + y0, 108, y + y0, "caatinga_esc")
     grade = t.retangulo(112, 28 + y0, 5, 15)
@@ -191,12 +191,12 @@ def blindado(quadro=0):
             t.ponto(x, y + y0, "cinza_luz" if k % 2 else "sombra")
     # --- Torre arredondada, mantelete do canhão, escotilha e fenda de visão.
     torre = t.poligono([(42, 32 + y0), (46, 15 + y0), (56, 9 + y0), (78, 9 + y0), (86, 16 + y0), (88, 32 + y0)])
-    t.volume(torre, OLIVA, achatado=4, suave=1.2, ambiente=0.25, textura=0.1, semente=9)
+    t.volume(torre, OLIVA, achatado=4, suave=1.2, ambiente=0.25, textura=0.0, semente=9)
     t.linha(47, 15 + y0, 56, 10 + y0, "mandacaru_luz")
     t.linha(56, 10 + y0, 77, 10 + y0, "mandacaru_luz")
     if not torre_quebrada:
         mant = t.retangulo(80, 12 + y0, 9, 14)
-        t.volume(mant, OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35, textura=0.1, semente=3)
+        t.volume(mant, OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35, textura=0.0, semente=3)
         rebites(t, [(82, 14 + y0), (87, 14 + y0), (82, 23 + y0), (87, 23 + y0)])
     # Tripulante da Volante saindo da escotilha até o peito (quepe, olhão, narigão, bigodão).
     if not torre_quebrada:
@@ -239,7 +239,7 @@ def blindado(quadro=0):
             t.ponto(x1, y1 + y0, "cinza_claro")
     # --- Casco de chapas inclinadas.
     casco = t.poligono([(4, 60 + y0), (8, 40 + y0), (26, 31 + y0), (104, 31 + y0), (124, 42 + y0), (126, 60 + y0)])
-    t.volume(casco, OLIVA, achatado=5, suave=1.4, ambiente=0.22, textura=0.1, semente=11)
+    t.volume(casco, OLIVA, achatado=5, suave=1.4, ambiente=0.22, textura=0.0, semente=11)
     t.linha(26, 32 + y0, 104, 32 + y0, "mandacaru_luz")  # quina de cima iluminada
     t.linha(104, 32 + y0, 123, 42 + y0, "mandacaru")
     # Emendas das chapas, com rebites.

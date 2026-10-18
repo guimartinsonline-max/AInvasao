@@ -125,11 +125,12 @@ for k, (_x, w_, h_, sem, buraco) in enumerate(fase1.FASE["casas"]):
 folha([fx.ponte_segmento(fase1.FASE["ponte"][3], semente=2), fx.ponte_segmento(fase1.FASE["ponte"][3], quebrada=True, semente=2)],
       SAIDA / "ponte_seg.png")
 import trem as tr  # noqa: E402
-folha([tr.locomotiva(q) for q in range(3)], SAIDA / "trem_loco.png")
-folha([tr.vagao(q) for q in range(2)], SAIDA / "trem_vagao.png")
+import blindagem as bl  # noqa: E402
+folha([bl.blindar(tr.locomotiva(q), semente=2, painel=26) for q in range(3)], SAIDA / "trem_loco.png")
+folha([bl.blindar(tr.vagao(q), semente=5, painel=26) for q in range(2)], SAIDA / "trem_vagao.png")
 folha([tr.mg(q) for q in range(3)], SAIDA / "trem_mg.png")
-folha([tr.chamine(q) for q in range(3)], SAIDA / "trem_chamine.png")
-folha([tr.torre(q) for q in range(3)], SAIDA / "trem_torre.png")
+folha([bl.blindar(tr.chamine(q), semente=6, lama=False) for q in range(3)], SAIDA / "trem_chamine.png")
+folha([bl.blindar(tr.torre(q), semente=7, lama=False) for q in range(3)], SAIDA / "trem_torre.png")
 folha([tr.porta(q) for q in range(2)], SAIDA / "trem_porta.png")
 folha([tr.carvao(q) for q in range(2)], SAIDA / "carvao.png")
 import jumento as jm  # noqa: E402
@@ -157,8 +158,9 @@ for nome, quadros in {
     "anel": [ef.anel(k) for k in range(2)],
     "impacto": [ef.impacto(k) for k in range(4)],
     "impacto_verde": [ef.impacto_verde(k) for k in range(4)],
-    "explosao": [ef.explosao(k) for k in range(8)],
-    "explosao_p": [ef.explosao(k, tamanho=24) for k in range(8)],
+    "explosao": [ef.explosao_ms(k) for k in range(12)],
+    "explosao_p": [ef.explosao_ms(k, tamanho=34) for k in range(12)],
+    "poeira_passo": [ef.poeira_passo(k) for k in range(5)],
     "fumaca": [ef.fumaca(k) for k in range(4)],
     "chama": [ef.chama(k) for k in range(5)],
     "rajada": [ef.rajada(k) for k in range(5)],
@@ -174,8 +176,8 @@ import objetos as obj  # noqa: E402
 folha([obj.barril(0), obj.barril(1)], SAIDA / "barril.png")
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")
 import veiculos as vc  # noqa: E402
-folha([vc.caminhao(q) for q in range(4)], SAIDA / "caminhao.png")
-folha([vc.blindado(q) for q in range(5)], SAIDA / "blindado.png")
+folha([bl.blindar(vc.caminhao(q), semente=3) for q in range(4)], SAIDA / "caminhao.png")
+folha([bl.blindar(vc.blindado(q), semente=1) for q in range(5)], SAIDA / "blindado.png")
 
 for nome, tela in {
     "ceu": cn.ceu(),

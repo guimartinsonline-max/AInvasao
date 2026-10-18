@@ -57,7 +57,7 @@ def locomotiva(quadro=0):
     q = quadro if quadro < 2 else 0
     # Cabine blindada atrás (à direita) com seteiras.
     cab = t.retangulo(150, 22, 58, 72)
-    t.volume(cab, OLIVA, achatado=4, suave=1.0, ambiente=0.25, textura=0.08, semente=3)
+    t.volume(cab, OLIVA, achatado=4, suave=1.0, ambiente=0.25, textura=0.0, semente=3)
     t.volume(t.retangulo(146, 18, 64, 6), FERRO, achatado=1.5, suave=0.4)  # beiral do teto
     for x in (160, 178, 196):
         t.chapado(t.retangulo(x, 36, 9, 3), "preto")
@@ -66,7 +66,7 @@ def locomotiva(quadro=0):
     t.linha(150, 58, 208, 58, "caatinga_esc")
     # Caldeira comprida coberta de chapas, com anéis de latão.
     caldeira = t.retangulo(24, 38, 128, 48) | t.elipse(24, 62, 10, 24)
-    t.volume(caldeira, OLIVA, achatado=8, suave=2.0, ambiente=0.25, textura=0.1, semente=5, luz=(-0.3, -0.9))
+    t.volume(caldeira, OLIVA, achatado=8, suave=2.0, ambiente=0.25, textura=0.0, semente=5, luz=(-0.3, -0.9))
     for x in (54, 86, 118):
         t.volume(t.retangulo(x, 38, 4, 48), LATAO, achatado=1, suave=0.3)
     for x in range(30, 150, 8):
@@ -157,7 +157,7 @@ def torre(quadro=0):
     """Torre do canhão no teto da cabine. 1: canhão recuado (tiro); 2: arrebentada."""
     t = Tela(44, 26)
     corpo = t.poligono([(8, 26), (10, 10), (18, 6), (34, 6), (40, 12), (42, 26)])
-    t.volume(corpo, OLIVA, achatado=3, suave=0.8, ambiente=0.3, textura=0.1, semente=4)
+    t.volume(corpo, OLIVA, achatado=3, suave=0.8, ambiente=0.3, textura=0.0, semente=4)
     rebites(t, [(x, 22) for x in range(12, 40, 5)])
     if quadro == 2:
         t.chapado(t.elipse(25, 14, 7, 5), "preto")
@@ -194,7 +194,7 @@ def vagao(quadro=0):
     """Vagão de soldados atrás da locomotiva: chapas, sacos de areia em cima. 1: destruído."""
     t = Tela(150, 92)
     corpo = t.retangulo(4, 30, 144, 50)
-    t.volume(corpo, OLIVA, achatado=4, suave=1.0, ambiente=0.25, textura=0.08, semente=8)
+    t.volume(corpo, OLIVA, achatado=4, suave=1.0, ambiente=0.25, textura=0.0, semente=8)
     for x in range(10, 146, 8):
         rebites(t, [(x, 34), (x, 76)])
     for x in (30, 70, 110):

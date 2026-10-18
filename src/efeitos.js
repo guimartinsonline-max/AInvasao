@@ -4,7 +4,7 @@ import { EFEITOS } from './quadros.js';
 import { som } from './som.js';
 
 // Velocidade (quadros por segundo) de cada efeito animado.
-const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14, rajada: 20, corte_arco: 26, clarao_canhao: 36 };
+const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 22, explosao_p: 26, poeira_passo: 18, fumaca: 14, chama: 14, rajada: 20, corte_arco: 26, clarao_canhao: 36 };
 
 // Efeitos de impacto (game feel). Tudo é criado uma vez e reaproveitado.
 export class Efeitos {
@@ -168,6 +168,22 @@ export class Efeitos {
     this.cena.tweens.add({ targets: s, y: y - 70, x: x + 18, duration: 1000 });
   }
 
+  // Fumaça que fica pairando (explosões): sobe devagar, cresce e some aos poucos.
+  fumacaFica(x, y, escala = 1.6) {
+    const s = this.animar('fumaca', x, y, { profundidade: 17, anim: 'fumaca_lenta', escala });
+    s.anims.stop();
+    s.setFrame(1).setAlpha(0.85);
+    this.cena.tweens.add({
+      targets: s, y: y - 40, x: x + Phaser.Math.Between(4, 16), scale: escala * 1.6, alpha: 0, duration: 2400,
+      ease: 'Sine.easeOut', onComplete: () => s.setVisible(false),
+    });
+  }
+
+  // Poeirinha do passo e da queda, desenhada (mais encorpada que as partículas).
+  poeiraPasso(x, y, espelhar = false) {
+    this.animar('poeira_passo', x, y - 4, { profundidade: 14, espelhar });
+  }
+
   // Clarão no cano: estrela de fogo (normal ou grande) ou anel verde.
   disparo(x, y, angulo, tipo = 'normal') {
     if (!tipo) return;
@@ -199,10 +215,10 @@ export class Efeitos {
     const c = this.capsulas.get(x, y) || this.capsulas.getChildren()[this.proximaCapsula++ % this.capsulas.maxSize];
     c.body.reset(x, y);
     c.setActive(true).setVisible(true).setAlpha(1);
-    c.body.setBounce(0.45).setDrag(60, 0).setAngularVelocity(Phaser.Math.Between(-900, 900));
+    c.body.setBounce(0.55).setDrag(50, 0).setAngularVelocity(Phaser.Math.Between(-900, 900));
     c.body.setVelocity(-direcao * Phaser.Math.Between(30, 70), Phaser.Math.Between(-140, -90));
     c.body.setSize(2, 1);
-    c.vence = this.cena.time.now + 1500;
+    c.vence = this.cena.time.now + 2600;
   }
 
   atualizar() {
@@ -210,7 +226,7 @@ export class Efeitos {
     for (const c of this.capsulas.getChildren()) {
       if (!c.active) continue;
       if (agora > c.vence) c.setActive(false).setVisible(false).body.reset(-50, -50);
-      else if (agora > c.vence - 300) c.setAlpha((c.vence - agora) / 300);
+      else if (agora > c.vence - 500) c.setAlpha((c.vence - agora) / 500);
     }
   }
 
@@ -218,7 +234,11 @@ export class Efeitos {
   explosao(x, y, tamanho = 1) {
     som('explosao', tamanho);
     const grande = tamanho >= 0.9;
-    this.animar(grande ? 'explosao' : 'explosao_p', x, y - (grande ? 8 : 4), { profundidade: 18 });
+    this.animar(grande ? 'explosao' : 'explosao_p', x, y - (grande ? 16 : 10), { profundidade: 18 });
+    // Fumaça que fica no ar depois da explosão, subindo devagar e sumindo.
+    for (let i = 0; i < (grande ? 3 : 1); i++) {
+      this.cena.time.delayedCall(420 + i * 140, () => this.fumacaFica(x + Phaser.Math.Between(-10, 10), y - 18 - i * 6, grande ? 1.8 : 1.2));
+    }
     if (tamanho > 1.1) {
       // Explosão maior: mais duas bolas de fogo em volta.
       this.cena.time.delayedCall(60, () => this.animar('explosao_p', x - 14, y - 2, { profundidade: 18 }));

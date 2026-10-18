@@ -142,6 +142,7 @@ export class Jogador {
       corpo.setVelocityY(VEL_PULO * (this.gordo ? 0.86 : 1));
       som('pulo');
       this.cena.efeitos.poeira(this.x, this.pe, 6);
+      this.cena.efeitos.poeiraPasso(this.x, this.pe);
       this.esticar(0.75, 1.3);
     }
     if (!c.estado.pular && corpo.velocity.y < CORTE_PULO) corpo.setVelocityY(CORTE_PULO);
@@ -394,6 +395,8 @@ export class Jogador {
 
   aterrissar() {
     this.cena.efeitos.poeira(this.x, this.pe, 5);
+    this.cena.efeitos.poeiraPasso(this.x - 6, this.pe, true);
+    this.cena.efeitos.poeiraPasso(this.x + 6, this.pe);
     this.esticar(1.25, 0.75);
   }
 
@@ -423,7 +426,7 @@ export class Jogador {
       this.passo += dt;
       quadro = LAMPIAO.corrida[Math.floor(this.passo / 80) % LAMPIAO.corrida.length];
       if (Math.floor(this.passo / 240) !== Math.floor((this.passo - dt) / 240)) {
-        this.cena.efeitos.poeira(this.x - this.direcao * 4, this.pe, 2);
+        this.cena.efeitos.poeiraPasso(this.x - this.direcao * 8, this.pe, this.direcao > 0);
       }
     } else {
       this.passo = 0;
