@@ -71,6 +71,30 @@ folha([ini.bode("parado"), ini.bode("mastiga"), ini.bode("abduzido")], SAIDA / "
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
 
+# Armas (tools/arte/armas.py -> pixel/armas.txt) e efeitos de tiro (tools/arte/efeitos_tiro.py).
+import efeitos_tiro as ef  # noqa: E402
+ORDEM_ARMAS = ["madsen", "bacamarte", "rojao", "desintegrador", "candeeiro", "papo_amarelo", "estilingue", "buscape"]
+d = pixel.ler("armas.txt")
+folha([d[n] for n in ORDEM_ARMAS], SAIDA / "armas.png")
+for nome, quadros in {
+    "clarao": [ef.clarao(k) for k in range(3)],
+    "clarao_g": [ef.clarao(k, grande=True) for k in range(3)],
+    "tracer": [ef.tracer(k) for k in range(2)],
+    "bala_papo": [ef.bala_papo(k) for k in range(2)],
+    "chumbo": [ef.chumbo(0)],
+    "pedra": [ef.pedra(k) for k in range(2)],
+    "foguete": [ef.foguete(k) for k in range(2)],
+    "buscape_tiro": [ef.buscape(k) for k in range(2)],
+    "anel": [ef.anel(k) for k in range(2)],
+    "impacto": [ef.impacto(k) for k in range(4)],
+    "impacto_verde": [ef.impacto_verde(k) for k in range(4)],
+    "explosao": [ef.explosao(k) for k in range(8)],
+    "explosao_p": [ef.explosao(k, tamanho=24) for k in range(8)],
+    "fumaca": [ef.fumaca(k) for k in range(4)],
+    "chama": [ef.chama(k) for k in range(5)],
+}.items():
+    folha(quadros, SAIDA / f"{nome}.png")
+
 for nome, tela in {
     "ceu": cn.ceu(),
     "nuvens": cn.nuvens(),

@@ -184,8 +184,12 @@ export class Jogador {
       if (arma.espalha) a += Phaser.Math.FloatBetween(-arma.espalha, arma.espalha);
       cena.balas.disparar(x, y, a, arma.bala);
     }
-    ef.disparo(x, y, ang);
-    if (arma.bala !== 'rojao' && arma.bala !== 'desintegra') ef.capsula(this.x + d * 10, this.pe - 17, d);
+    ef.disparo(x, y, ang, arma.clarao);
+    if (arma.capsula) ef.capsula(this.x + d * 10, this.pe - 17, d);
+    for (let k = 0; k < (arma.fumaca || 0); k++) {
+      cena.time.delayedCall(40 + k * 50, () => ef.fumaca(x + Math.cos(ang) * (6 + k * 6), y + Math.sin(ang) * (6 + k * 6) - k));
+    }
+    if (arma.tremor) ef.tremer(arma.tremor, 90);
     if (arma.tranco && this.noChao) this.corpo.x -= d * arma.tranco;
     this.recuo = 50;
     if (this.arma !== 'padrao' && --this.municao <= 0) this.trocarArma('padrao');

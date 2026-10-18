@@ -1,5 +1,5 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA, LAMPIAO, INIMIGOS, REFEM, DISCO, FEIXE, BODE } from './quadros.js';
+import { TOUCEIRA, LAMPIAO, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, ARMAS_SPRITE } from './quadros.js';
 import { VERSAO } from './config.js';
 
 // Personagens e cenário vêm de PNGs gerados por tools/arte/exportar.py.
@@ -12,6 +12,10 @@ export function carregarSprites(cena) {
   for (const [nome, q] of Object.entries({ ...INIMIGOS, refem: REFEM, disco_voador: DISCO, feixe: FEIXE, bode: BODE })) {
     cena.load.spritesheet(nome, s(nome === 'disco_voador' ? 'disco' : nome), { frameWidth: q.largura, frameHeight: q.altura });
   }
+  for (const [nome, q] of Object.entries(EFEITOS)) {
+    cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
+  }
+  cena.load.spritesheet('armas', s('armas'), { frameWidth: ARMAS_SPRITE.largura, frameHeight: ARMAS_SPRITE.altura });
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
   for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
@@ -26,29 +30,11 @@ export function gerarSprites(cena) {
   g.generateTexture('px2', 2, 2);
   g.destroy();
 
-  // Bala alongada com núcleo branco, como um rastro.
-  texturaDeTexto(cena, 'bala', ['..oyyyW.', 'oyyWWWWW', '..oyyyW.'], { o: 'laranja_fogo', y: 'amarelo_fogo', W: 'branco' });
   // Raio verde do xeremita.
   texturaDeTexto(cena, 'raio', ['..0!??*.', '90!?*WW*', '..0!??*.'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
-  // Balas das armas pickup.
-  texturaDeTexto(cena, 'chumbo', ['xC', 'CW'], { x: 'cinza_medio', C: 'cinza_claro', W: 'branco' });
-  texturaDeTexto(cena, 'rojao', ['..ddRRTTU.', 'adddRTTTUH', '..ddRRTTU.'], { a: 'couro_escuro', d: 'couro', R: 'vermelho_esc', T: 'vermelho', U: 'laranja_fogo', H: 'amarelo_claro' });
-  texturaDeTexto(cena, 'desintegra', ['..00!!??**W.', '0!!??**WWWWW', '..00!!??**W.'], { 0: 'alien_medio', '!': 'alien', '?': 'alien_luz', '*': 'alien_brilho', W: 'branco' });
   gerarItens(cena);
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });
   texturaDeTexto(cena, 'granada', ['.g.', 'GGG', 'GgG', 'GGG'], { g: 'cinza', G: 'caatinga_esc' });
-  // Clarão do cano, voltado para a direita (a origem fica na boca do cano).
-  texturaDeTexto(cena, 'clarao', [
-    '..o.......',
-    '...oo..o..',
-    '.oyyyyo...',
-    'oyWWWWyyoo',
-    'yWWWWWWyyo',
-    'oyWWWWyyoo',
-    '.oyyyyo...',
-    '...oo..o..',
-    '..o.......',
-  ], { o: 'laranja_fogo', y: 'amarelo_fogo', W: 'branco' });
   texturaDeTexto(cena, 'corte', [
     '....wwww....',
     '..ww....ww..',
@@ -74,6 +60,14 @@ const LETRAS = {
     'XXXXXXXX..', 'XXX..XXX..', 'XXX...XXX.', 'XXX...XXX.', 'XXX....XXX', 'XXX....XXX'],
   D: ['XXXXXXX...', 'XXXXXXXX..', 'XXX...XXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX',
     'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXX...XXX.', 'XXXXXXXX..', 'XXXXXXX...'],
+  C: ['..XXXXXXX.', '.XXXXXXXXX', 'XXX.....XX', 'XXX.......', 'XXX.......', 'XXX.......',
+    'XXX.......', 'XXX.......', 'XXX.......', 'XXX.....XX', '.XXXXXXXXX', '..XXXXXXX.'],
+  P: ['XXXXXXXX..', 'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXXXXXXXX.',
+    'XXXXXXXX..', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......'],
+  E: ['XXXXXXXXXX', 'XXXXXXXXXX', 'XXX.......', 'XXX.......', 'XXX.......', 'XXXXXXXX..',
+    'XXXXXXXX..', 'XXX.......', 'XXX.......', 'XXX.......', 'XXXXXXXXXX', 'XXXXXXXXXX'],
+  F: ['XXXXXXXXXX', 'XXXXXXXXXX', 'XXX.......', 'XXX.......', 'XXX.......', 'XXXXXXXX..',
+    'XXXXXXXX..', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......'],
   G: ['..XXXXXX..', '.XXXXXXXX.', 'XXX....XXX', 'XXX.......', 'XXX.......', 'XXX..XXXXX',
     'XXX..XXXXX', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', '.XXXXXXXX.', '..XXXXXX..'],
 };
@@ -85,6 +79,10 @@ const RAMPAS = {
   laranja_fogo: ['amarelo_claro', 'amarelo_fogo', 'laranja_fogo', 'vermelho_medio'],
   alien: ['branco', 'alien_brilho', 'alien', 'alien_profundo'],
   caatinga: ['amarelo_claro', 'mandacaru_luz', 'mandacaru', 'caatinga_esc'],
+  azul: ['branco', 'ceu_luz', 'ceu', 'azul_medio'],
+  aco: ['branco', 'aco_brilho', 'cinza_luz', 'cinza_escuro'],
+  couro: ['areia_clara', 'couro_luz', 'couro_claro', 'couro_escuro'],
+  lilas: ['branco', 'lilas_claro', 'lilas', 'roxo_escuro'],
 };
 
 export const ITENS = {
@@ -92,6 +90,10 @@ export const ITENS = {
   bacamarte: { letra: 'B', rampa: 'ouro' },
   rojao: { letra: 'R', rampa: 'laranja_fogo' },
   desintegrador: { letra: 'D', rampa: 'alien' },
+  candeeiro: { letra: 'C', rampa: 'azul' },
+  papo_amarelo: { letra: 'P', rampa: 'aco' },
+  estilingue: { letra: 'E', rampa: 'couro' },
+  buscape: { letra: 'F', rampa: 'lilas' },
   granadas: { letra: 'G', rampa: 'caatinga' },
 };
 

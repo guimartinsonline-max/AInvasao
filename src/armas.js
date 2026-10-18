@@ -1,33 +1,59 @@
 // Tabela de armas. A padrão é infinita; as outras vêm em itens com letra (src/sprites.js).
 // cadencia: ms entre tiros segurando; toque: ms mínimo apertando repetido.
-// bala: tipo usado por src/objetos/Balas.js.
+// bala: tipo usado por src/objetos/Balas.js. clarao: 'normal', 'grande' ou nenhum.
+// capsula: solta cápsula de bala. tranco: px que o Lampião recua no chão.
 export const ARMAS = {
-  padrao: { nome: 'FUZIL', letra: '', municao: Infinity, cadencia: 150, toque: 70, bala: 'comum', tiros: 1 },
+  padrao: { nome: 'FUZIL', municao: Infinity, cadencia: 150, toque: 70, bala: 'comum', tiros: 1, clarao: 'normal', capsula: true },
   madsen: {
-    nome: 'METRALHADORA MADSEN', letra: 'M', municao: 200, cadencia: 60, toque: 50, bala: 'comum', tiros: 1,
-    espalha: 0.06, cor: 'vermelho',
+    nome: 'METRALHADORA MADSEN', municao: 200, cadencia: 60, toque: 50, bala: 'comum', tiros: 1,
+    espalha: 0.06, clarao: 'normal', capsula: true,
   },
   bacamarte: {
-    nome: 'BACAMARTE', letra: 'B', municao: 30, cadencia: 420, toque: 300, bala: 'chumbo', tiros: 5,
-    leque: 0.5, cor: 'couro_claro', tranco: 3,
+    nome: 'BACAMARTE', municao: 30, cadencia: 420, toque: 300, bala: 'chumbo', tiros: 5,
+    leque: 0.5, tranco: 3, clarao: 'grande', fumaca: 3, tremor: 0.004,
   },
   rojao: {
-    nome: 'ROJÃO DE SÃO JOÃO', letra: 'R', municao: 15, cadencia: 450, toque: 350, bala: 'rojao', tiros: 1,
-    cor: 'laranja_fogo', tranco: 2,
+    nome: 'ROJÃO DE SÃO JOÃO', municao: 15, cadencia: 450, toque: 350, bala: 'rojao', tiros: 1,
+    tranco: 2, clarao: 'normal', fumaca: 2,
   },
   desintegrador: {
-    nome: 'RAIO DESINTEGRADOR', letra: 'D', municao: 60, cadencia: 120, toque: 100, bala: 'desintegra', tiros: 1,
-    cor: 'alien',
+    nome: 'RAIO DESINTEGRADOR', municao: 60, cadencia: 120, toque: 100, bala: 'desintegra', tiros: 1,
+    clarao: 'verde',
+  },
+  candeeiro: {
+    nome: 'CANDEEIRO', municao: 120, cadencia: 45, toque: 45, bala: 'chama', tiros: 1, espalha: 0.08,
+  },
+  papo_amarelo: {
+    nome: 'PAPO-AMARELO', municao: 20, cadencia: 550, toque: 420, bala: 'papo', tiros: 1,
+    tranco: 3, clarao: 'grande', capsula: true, tremor: 0.005,
+  },
+  estilingue: {
+    nome: 'BALADEIRA', municao: 40, cadencia: 260, toque: 200, bala: 'pedra', tiros: 1,
+  },
+  buscape: {
+    nome: 'FOGOS BUSCAPÉ', municao: 18, cadencia: 600, toque: 450, bala: 'buscape', tiros: 3,
+    leque: 0.7, clarao: 'normal', fumaca: 1,
   },
 };
 
 // Itens que reféns e caixotes podem soltar.
-export const PREMIOS = ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'granadas'];
+export const PREMIOS = ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'candeeiro', 'papo_amarelo', 'estilingue',
+  'buscape', 'granadas'];
 
-// Comportamento de cada tipo de bala.
+// Comportamento de cada tipo de bala. textura: folha de src/quadros.js (EFEITOS).
+// atravessa: passa pelos inimigos (acerta cada um uma vez). morte: jeito de morrer.
+// impacto: efeito no acerto ('comum', 'verde' ou nenhum). pausa: ms de pausa no impacto.
 export const BALAS = {
-  comum: { textura: 'bala', velocidade: 380, dano: 1 },
-  chumbo: { textura: 'chumbo', velocidade: 330, dano: 1, vida: 190 },
-  rojao: { textura: 'rojao', velocidade: 140, acelera: 900, maxima: 420, dano: 0, explode: { raio: 34, dano: 4 } },
-  desintegra: { textura: 'desintegra', velocidade: 460, dano: 2, atravessa: true, morte: 'derrete' },
+  comum: { textura: 'tracer', velocidade: 380, dano: 1, impacto: 'comum' },
+  chumbo: { textura: 'chumbo', velocidade: 330, dano: 1, vida: 230, impacto: 'comum', morte: 'arremessa' },
+  rojao: { textura: 'foguete', velocidade: 140, acelera: 900, maxima: 420, dano: 0, rastro: 'fumaca',
+    explode: { raio: 36, dano: 4, tamanho: 1 } },
+  desintegra: { textura: 'anel', velocidade: 460, dano: 2, atravessa: true, morte: 'derrete', impacto: 'verde' },
+  // Bola de fogo que cresce, perde força e sobe; deixa o inimigo pegando fogo.
+  chama: { textura: 'chama', velocidade: 230, freio: 0.9, sobe: 40, vida: 420, dano: 0.5, atravessa: true,
+    queima: true, morte: 'fogo', corpo: 10 },
+  papo: { textura: 'bala_papo', velocidade: 700, dano: 6, atravessa: true, impacto: 'comum', pausa: 50, morte: 'costas' },
+  pedra: { textura: 'pedra', velocidade: 250, levanta: 130, gravidade: 500, quica: 2, vida: 1600, dano: 1, impacto: 'comum' },
+  buscape: { textura: 'buscape_tiro', velocidade: 170, busca: 4.5, ziguezague: 9, vida: 1700, dano: 0, rastro: 'faisca',
+    explode: { raio: 22, dano: 3, tamanho: 0.5 } },
 };

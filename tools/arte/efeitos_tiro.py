@@ -85,9 +85,12 @@ def chumbo(k):
 
 
 def pedra(k):
-    t = Tela(5, 5)
-    t.cel(t.elipse(2.5, 2.5, 2.4, 2.1), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=1)
-    t.ponto(1 + k % 2, 1, "branco")
+    """Pedra da Baladeira, girando (2 quadros)."""
+    t = Tela(7, 7)
+    m = t.elipse(3.5, 3.5, 3.2, 2.7) if k == 0 else t.elipse(3.5, 3.5, 2.7, 3.2)
+    t.cel(m, ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=1)
+    t.contorno("sombra")
+    t.ponto(2 if k == 0 else 4, 2, "branco")
     return t
 
 

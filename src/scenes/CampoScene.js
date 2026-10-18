@@ -62,8 +62,10 @@ export class CampoScene extends Phaser.Scene {
     this.physics.add.collider(this.alvos, this.solidos, null, (a) => a !== this.disco);
 
     this.balas = new Balas(this, this.solidos, this.alvos, (alvo, bala) => {
-      alvo.levarDano(bala.tipo.dano, bala.x, false, bala.tipo.morte);
-      this.efeitos.faisca(bala.x, bala.y, 4);
+      const tipo = bala.tipo;
+      alvo.levarDano(tipo.dano, bala.x, false, tipo.morte, tipo.queima);
+      if (tipo.impacto) this.efeitos.impacto(bala.x, bala.y, tipo.impacto);
+      if (tipo.pausa) this.efeitos.parar(tipo.pausa);
     }, (caixote, bala) => caixote.levarDano(bala.tipo.dano || 1));
 
     this.granadas = this.physics.add.group({ defaultKey: 'granada', maxSize: 6 });
@@ -163,7 +165,8 @@ export class CampoScene extends Phaser.Scene {
   // Itens de arma espalhados pelo campo de treino; voltam depois de pegos.
   criarItens(chao) {
     this.itens = new Itens(this, this.solidos, this.jogador, (arma, item) => this.pegarItem(arma, item));
-    for (const [x, arma] of [[240, 'madsen'], [520, 'bacamarte'], [780, 'rojao'], [1010, 'desintegrador']]) {
+    for (const [x, arma] of [[130, 'candeeiro'], [240, 'madsen'], [300, 'estilingue'], [520, 'bacamarte'],
+      [610, 'papo_amarelo'], [700, 'buscape'], [780, 'rojao'], [1010, 'desintegrador']]) {
       this.itens.colocar(x, chao - 20, arma, { fixo: true });
     }
   }

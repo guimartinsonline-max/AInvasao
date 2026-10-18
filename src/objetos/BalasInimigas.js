@@ -1,7 +1,7 @@
 // Tiros dos inimigos, em pool. 'volante' é bala rápida; 'raio' é o tiro verde lento do xeremita.
 // mira: ângulo máximo (rad) que o tiro pode apontar para o Lampião; 0 = sai reto.
 const TIPOS = {
-  volante: { textura: 'bala', velocidade: 200, mira: 0.2 },
+  volante: { textura: 'tracer', velocidade: 200, mira: 0.2 },
   raio: { textura: 'raio', velocidade: 110, mira: 0 },
 };
 
@@ -11,7 +11,7 @@ export class BalasInimigas {
     this.grupo = cena.physics.add.group({ defaultKey: 'raio', maxSize: 24, allowGravity: false });
     cena.physics.add.overlap(this.grupo, solidos, (bala) => {
       if (!bala.active) return;
-      cena.efeitos.faisca(bala.x, bala.y, 3);
+      cena.efeitos.impacto(bala.x, bala.y, bala.texture.key === 'raio' ? 'verde' : 'comum');
       this.recolher(bala);
     });
     cena.physics.add.overlap(this.grupo, jogador.corpo, (a, b) => {
@@ -27,7 +27,7 @@ export class BalasInimigas {
     const cfg = TIPOS[tipo];
     const bala = this.grupo.get(x, y, cfg.textura);
     if (!bala) return;
-    bala.setTexture(cfg.textura).setActive(true).setVisible(true).setFlipX(direcao < 0).setDepth(15);
+    bala.setTexture(cfg.textura, 0).setActive(true).setVisible(true).setFlipX(direcao < 0).setDepth(15);
     bala.body.reset(x, y);
     bala.body.setSize(bala.width, bala.height);
     let ang = direcao > 0 ? 0 : Math.PI;

@@ -3,6 +3,10 @@ import { estiloTexto } from '../texto.js';
 import { INIMIGOS } from '../quadros.js';
 
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
+const QUEIMA = 2200; // ms pegando fogo
+const DANO_QUEIMA = 0.5; // dano a cada QUEIMA_TICK ms
+const QUEIMA_TICK = 450;
+
 const TIPOS = {
   volante: {
     vida: 2, velocidade: 34, alcance: 230, distancia: 110, recarga: [1100, 1900],
@@ -39,7 +43,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.proximoTiro = 0;
     this.fimEstado = 0;
     this.passo = 0;
-    this.setRotation(0).setVisible(true).clearTint();
+    this.queimaAte = 0;
+    this.proximaQueima = 0;
+    this.proximaChama = 0;
+    this.setRotation(0).setVisible(true).clearTint().setAlpha(1);
     this.ajustarCorpo();
   }
 
@@ -59,9 +66,23 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.body.setOffset(ox - q.corpoL / 2, q.peY - q.corpoA);
   }
 
-  levarDano(dano, origemX, forte = false, morte = null) {
+  // Candeeiro: sai correndo apavorado, pegando fogo, e perde vida aos poucos.
+  queimar() {
+    const agora = this.scene.time.now;
+    if (this.queimaAte < agora) {
+      this.proximaQueima = agora + QUEIMA_TICK;
+      this.grito.setText(this.tipo === 'xeremita' ? 'IIIIH!' : 'TÔ QUEIMANDO!').setPosition(this.x, this.y - 54)
+        .setVisible(true).setAlpha(1);
+      this.scene.tweens.killTweensOf(this.grito);
+      this.scene.tweens.add({ targets: this.grito, alpha: 0, delay: 700, duration: 300 });
+    }
+    this.queimaAte = agora + QUEIMA;
+  }
+
+  levarDano(dano, origemX, forte = false, morte = null, queima = false) {
     if (!this.vivo) return;
     const ef = this.scene.efeitos;
+    if (queima) this.queimar();
     this.vida -= dano;
     this.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
     this.scene.time.delayedCall(forte ? 90 : 50, () => this.vivo && this.clearTint());
@@ -76,6 +97,40 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const ef = cena.efeitos;
     this.vivo = false;
     this.clearTint();
+    this.queimaAte = 0;
+    if (morte === 'fogo') {
+      // Vira carvão, fica parado um instante e desmancha em cinza.
+      this.setFrame(this.q.tostado);
+      this.body.setVelocity(0, 0);
+      this.body.checkCollision.none = true;
+      this.body.allowGravity = false;
+      ef.parar(50);
+      cena.time.delayedCall(550, () => {
+        ef.fumaca(this.x, this.y - 30);
+        ef.fumaca(this.x - 4, this.y - 18);
+        ef.cinzas(this.x, this.y - 20);
+        this.setVisible(false);
+        this.body.enable = false;
+        this.body.allowGravity = true;
+      });
+      cena.time.delayedCall(2600, () => this.renascer());
+      return;
+    }
+    if (morte === 'costas') {
+      // Papo-amarelo: o tiro derruba de costas, deslizando no chão.
+      this.setFrame(this.q.morte);
+      this.body.setVelocity(lado * 90, -140).setDragX(260);
+      cena.tweens.add({ targets: this, rotation: -lado * Math.PI / 2 * (this.flipX ? -1 : 1), duration: 260 });
+      ef.parar(80);
+      ef.tremer(0.006, 140);
+      this.gritar();
+      cena.time.delayedCall(900, () => {
+        cena.tweens.add({ targets: this, alpha: 0, duration: 200, yoyo: true, repeat: 2,
+          onComplete: () => { this.setVisible(false); this.body.enable = false; } });
+      });
+      cena.time.delayedCall(2600, () => this.renascer());
+      return;
+    }
     if (morte === 'derrete') {
       // Raio desintegrador: fica verde, treme e vira gosma no lugar.
       this.setFrame(this.q.morte).setTint(P.alien).setTintMode(Phaser.TintModes.FILL);
@@ -93,16 +148,15 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       cena.time.delayedCall(2600, () => this.renascer());
       return;
     }
+    // Chumbo do bacamarte arremessa longe; explosão manda alto girando.
+    const longe = morte === 'arremessa';
     this.setFrame(this.q.morte);
     this.body.checkCollision.none = true;
-    this.body.setVelocity(lado * (forte ? 150 : 80), forte ? -320 : -220);
-    this.body.setAngularVelocity(lado * (forte ? 900 : 500));
+    this.body.setVelocity(lado * (longe ? 240 : forte ? 150 : 80), longe ? -200 : forte ? -320 : -220);
+    this.body.setAngularVelocity(lado * (forte || longe ? 900 : 500));
     ef.parar(forte ? 90 : 60);
     ef.tremer(0.006, 140);
-
-    this.grito.setText(Phaser.Utils.Array.GetRandom(this.cfg.gritos)).setPosition(this.x, this.y - 50)
-      .setVisible(true).setAlpha(1);
-    cena.tweens.add({ targets: this.grito, y: this.y - 66, alpha: 0, duration: 800, onComplete: () => this.grito.setVisible(false) });
+    this.gritar();
 
     cena.time.delayedCall(420, () => {
       if (this.tipo === 'xeremita') ef.gosma(this.x, this.y - 16, 36);
@@ -114,11 +168,18 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     cena.time.delayedCall(2600, () => this.renascer());
   }
 
+  gritar() {
+    this.grito.setText(Phaser.Utils.Array.GetRandom(this.cfg.gritos)).setPosition(this.x, this.y - 54)
+      .setVisible(true).setAlpha(1);
+    this.scene.tweens.killTweensOf(this.grito);
+    this.scene.tweens.add({ targets: this.grito, y: this.y - 70, alpha: 0, duration: 800, onComplete: () => this.grito.setVisible(false) });
+  }
+
   renascer() {
     this.reiniciar();
     this.body.enable = true;
     this.body.checkCollision.none = false;
-    this.body.setAngularVelocity(0);
+    this.body.setAngularVelocity(0).setDragX(0);
     this.body.reset(this.inicioX, this.inicioY - 140);
     this.caindo = true;
   }
@@ -135,6 +196,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     if (cena.efeitos.congelado) return;
+    if (this.queimaAte > t) {
+      this.correrQueimando(t, dt);
+      return;
+    }
     const j = cena.jogador;
     const dx = j.x - this.x;
     const dist = Math.abs(dx);
@@ -177,6 +242,25 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     }
     if (dist < cfg.alcance && !j.morto && t > this.proximoTiro && this.body.blocked.down) {
       this.atirar(t);
+    }
+  }
+
+  // Pegando fogo: corre para lá e para cá agitando os braços, soltando chamas.
+  correrQueimando(t, dt) {
+    const cena = this.scene;
+    if (t > this.proximaChama) {
+      cena.efeitos.chama(this.x + Phaser.Math.Between(-5, 5), this.y - Phaser.Math.Between(18, 36));
+      this.proximaChama = t + 110;
+    }
+    if (Math.floor(t / 700) % 2 === 0 !== this.direcao > 0) this.virar(-this.direcao);
+    this.body.setVelocityX(this.temChaoAFrente() ? this.direcao * this.cfg.velocidade * 2.4 : 0);
+    this.setFrame(Math.floor(t / 120) % 2 ? this.q.panico : this.q.andar[0]);
+    if (t > this.proximaQueima) {
+      this.proximaQueima = t + QUEIMA_TICK;
+      this.vida -= DANO_QUEIMA;
+      this.setTint(P.laranja_fogo).setTintMode(Phaser.TintModes.FILL);
+      cena.time.delayedCall(50, () => this.vivo && this.clearTint());
+      if (this.vida <= 0) this.morrer(this.direcao, false, 'fogo');
     }
   }
 

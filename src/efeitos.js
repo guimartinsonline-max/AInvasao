@@ -1,4 +1,8 @@
 import { P } from './paleta.js';
+import { EFEITOS } from './quadros.js';
+
+// Velocidade (quadros por segundo) de cada efeito animado.
+const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14 };
 
 // Efeitos de impacto (game feel). Tudo é criado uma vez e reaproveitado.
 export class Efeitos {
@@ -41,13 +45,28 @@ export class Efeitos {
       gravityY: 650, alpha: { start: 1, end: 0, ease: 'Expo.easeIn' },
       rotate: { onEmit: () => Phaser.Math.Between(0, 359), onUpdate: (p, k, t, v) => v + (p.velocityX > 0 ? 14 : -14) },
     });
+    this.cinzasEm = add('px2', {
+      lifespan: { min: 500, max: 1000 }, speed: { min: 15, max: 70 }, angle: { min: 200, max: 340 },
+      gravityY: 220, tint: [P.preto, P.sombra, P.cinza_escuro, P.laranja_escuro],
+      x: { min: -6, max: 6 }, y: { min: -16, max: 16 },
+    });
     this.lascasEm = add('px2', {
       lifespan: 600, speed: { min: 40, max: 140 }, angle: { min: 190, max: 350 },
       gravityY: 600, tint: [P.couro_claro, P.couro, P.couro_luz],
     });
 
-    this.clarao = cena.add.image(0, 0, 'clarao').setOrigin(0.1, 0.5).setVisible(false).setDepth(20);
-    this.flashes = this.pool(4, () => cena.add.image(0, 0, 'disco').setVisible(false).setDepth(19));
+    // Efeitos desenhados quadro a quadro (clarão, impacto, explosão, fumaça), num pool só.
+    for (const [chave, fps] of Object.entries(FPS)) {
+      if (!cena.anims.exists(chave)) {
+        cena.anims.create({ key: chave, frames: cena.anims.generateFrameNumbers(chave, { start: 0, end: EFEITOS[chave].quadros - 1 }), frameRate: fps });
+      }
+    }
+    this.animados = this.pool(40, () => {
+      const s = cena.add.sprite(-100, -100, 'impacto').setVisible(false).setDepth(19);
+      s.on('animationcomplete', () => s.setVisible(false));
+      return s;
+    });
+    this.proximoAnimado = 0;
 
     this.capsulas = cena.physics.add.group({ defaultKey: 'capsula', maxSize: 24 });
     cena.physics.add.collider(this.capsulas, solidos, (c) => {
@@ -93,13 +112,47 @@ export class Efeitos {
     this.lascasEm.explode(10, x, y);
   }
 
+  // Cinza de quem morreu queimado.
+  cinzas(x, y) {
+    this.cinzasEm.explode(26, x, y);
+  }
+
   gosma(x, y, n = 24) {
     this.gosmaEm.explode(n, x, y);
   }
 
-  disparo(x, y, angulo) {
-    this.clarao.setPosition(x, y).setRotation(angulo).setVisible(true).setScale(Phaser.Math.FloatBetween(0.8, 1.2));
-    this.cena.time.delayedCall(40, () => this.clarao.setVisible(false));
+  // Toca um efeito animado. Pool cheio: reaproveita o mais antigo.
+  animar(chave, x, y, { rotacao = 0, origemX = 0.5, profundidade = 19, espelhar = false } = {}) {
+    let s = this.animados.find((a) => !a.visible);
+    if (!s) s = this.animados[this.proximoAnimado++ % this.animados.length];
+    s.setTexture(chave, 0).setPosition(Math.round(x), Math.round(y)).setOrigin(origemX, 0.5)
+      .setRotation(rotacao).setFlipX(espelhar).setDepth(profundidade).setVisible(true).setAlpha(1);
+    s.play(chave);
+    return s;
+  }
+
+  // Clarão no cano: estrela de fogo (normal ou grande) ou anel verde.
+  disparo(x, y, angulo, tipo = 'normal') {
+    if (!tipo) return;
+    if (tipo === 'verde') {
+      this.animar('impacto_verde', x, y, { profundidade: 20 });
+      return;
+    }
+    this.animar(tipo === 'grande' ? 'clarao_g' : 'clarao', x, y, { rotacao: angulo, origemX: 0.05, profundidade: 20 });
+  }
+
+  impacto(x, y, tipo = 'comum') {
+    if (tipo === 'verde') this.animar('impacto_verde', x, y);
+    else if (tipo) this.animar('impacto', x, y);
+    this.faiscaEm.explode(2, x, y);
+  }
+
+  fumaca(x, y) {
+    this.animar('fumaca', x, y, { profundidade: 13 });
+  }
+
+  chama(x, y) {
+    this.animar('chama', x, y, { profundidade: 16 });
   }
 
   capsula(x, y, direcao) {
@@ -122,17 +175,17 @@ export class Efeitos {
     }
   }
 
+  // Explosão desenhada em 8 quadros (grande ou pequena), com estilhaços e faíscas.
   explosao(x, y, tamanho = 1) {
-    const flash = this.flashes.find((f) => !f.visible) || this.flashes[0];
-    flash.setPosition(x, y).setVisible(true).setScale(0.3).setAlpha(1).setTint(P.branco);
-    this.cena.tweens.killTweensOf(flash);
-    this.cena.tweens.add({
-      targets: flash, scale: 3 * tamanho, alpha: 0, duration: 180, ease: 'Quad.easeOut',
-      onUpdate: (tw) => flash.setTint(tw.progress < 0.4 ? P.branco : P.amarelo_fogo),
-      onComplete: () => flash.setVisible(false),
-    });
-    this.fogoEm.explode(Math.round(28 * tamanho), x, y);
-    this.fumacaEm.explode(Math.round(14 * tamanho), x, y - 4);
+    const grande = tamanho >= 0.9;
+    this.animar(grande ? 'explosao' : 'explosao_p', x, y - (grande ? 8 : 4), { profundidade: 18 });
+    if (tamanho > 1.1) {
+      // Explosão maior: mais duas bolas de fogo em volta.
+      this.cena.time.delayedCall(60, () => this.animar('explosao_p', x - 14, y - 2, { profundidade: 18 }));
+      this.cena.time.delayedCall(110, () => this.animar('explosao_p', x + 13, y - 10, { profundidade: 18 }));
+    }
+    this.fogoEm.explode(Math.round(10 * tamanho), x, y);
+    this.fumacaEm.explode(Math.round(6 * tamanho), x, y - 10);
     this.detritoEm.explode(Math.round(12 * tamanho), x, y);
     this.faiscaEm.explode(Math.round(10 * tamanho), x, y);
     this.tremer(0.012 * tamanho, 260);

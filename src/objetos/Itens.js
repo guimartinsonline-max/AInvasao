@@ -2,7 +2,7 @@ import { P } from '../paleta.js';
 
 // Itens de arma no chão, como os do Metal Slug: letra grande e grossa que
 // quica ao cair e pisca. Reaproveitados de um pool fixo.
-const QUANTOS = 10;
+const QUANTOS = 16;
 const PISCA = 900; // ms entre um brilho e outro
 
 export class Itens {
