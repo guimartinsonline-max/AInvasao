@@ -65,7 +65,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Veículos da Volante** (`tools/arte/veiculos.py`, `src/objetos/Veiculos.js`): **caminhão** (chega, freia, abre a lona e despeja soldados, depois vai embora; dá para explodir) e **carro blindado** (detalhado: tripulante na escotilha, antena com flâmula, estepe, pá, galão, farol, rebites e lama; vai e vem, metralhadora de bala grossa animada na altura do peito, canhão com obus de latão em arco, clarão grande e explosão maior; com metade da vida a torre quebra e perde o canhão; explosão em cadeia). Andando, atropelam o Lampião e esmagam caixotes. Acompanham o terreno.
 - **Inteligência dos soldados:** obstáculo baixo (até 26 px) eles pulam, alto (até 74 px) escalam agarrados na borda; na beirada, descem pulando se o Lampião estiver embaixo. Nunca ficam presos (pulo tem tempo limite).
 - **Alienígenas só a partir da fase 2** (a fase 1 é só contra a Volante). Campo de treino mantém xeremita e disco.
-- **Disco abdutor:** 88x40, com o piloto xeremita visível na cúpula de vidro; raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
+- **Disco abdutor:** 123x56 (redesenhado 1,4x quando a tela subiu para 548x308), com o piloto xeremita visível na cúpula de vidro; raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
 
 ## Fases (rascunho aprovado)
 
