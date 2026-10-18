@@ -6,6 +6,7 @@ import { estiloTexto } from '../texto.js';
 import { hex } from '../paleta.js';
 import { PREMIOS } from '../armas.js';
 import { PEDACO, PEDACOS } from '../fase1_pedacos.js';
+import { Urubus, Galinha, Varal, CasaVila, Ponte } from '../objetos/Ambiente.js';
 
 // Fase 1 é só contra a Volante: nada de arma alienígena.
 const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
@@ -65,6 +66,10 @@ export class Fase1Scene extends CenaJogo {
     }
     for (const [x, y, w, h, umLado] of d.solidos) this.solido(x, y, w, h, !!umLado);
     this.caixotes = new Caixotes(this, d.caixotes);
+    // Cenário vivo: casas da vila (perdem o telhado), varal, ponte que quebra.
+    d.casas.forEach(([x, w, h], k) => new CasaVila(this, `casa_vila_${k}`, x, 195, w, h));
+    for (const x of d.varais) new Varal(this, x, 195);
+    this.ponte = new Ponte(this, d.ponte);
   }
 
   povoar() {
@@ -89,6 +94,11 @@ export class Fase1Scene extends CenaJogo {
       disco.body.allowGravity = false;
     }
     for (const [x, y, arma] of d.itens) this.itens.colocar(x, y, arma);
+    this.urubus = new Urubus(this, d.urubus);
+    for (const x of d.galinhas) {
+      const g = new Galinha(this, x, this.chaoAbaixo(x, 60));
+      this.alvos.add(g);
+    }
     // Fogueira dos soldados distraídos (fogo baixo animado em cima da lenha).
     this.fogueiras = (d.fogueiras || []).map(([x, pe], k) => this.add.sprite(x, pe - 4, 'chama', 0)
       .setOrigin(0.5, 1).setDepth(6).setScale(0.55).play({ key: 'chama_viva', startFrame: (k * 2) % 4 }));
@@ -259,7 +269,8 @@ export class Fase1Scene extends CenaJogo {
     this.nuvens[0].tilePositionX = Math.round(cam.scrollX * this.nuvens[1] + this.ventoNuvens);
   }
 
-  atualizarFase(t) {
+  atualizarFase(t, dt) {
+    if (this.urubus) this.urubus.atualizar(t, dt);
     if (this.pausado === true) {
       this.atualizarContinuar(t);
       return;

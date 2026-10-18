@@ -1,6 +1,7 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
 import { TOUCEIRA, LAMPIAO, LAMPIAO_GORDO, COMIDAS, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS } from './quadros.js';
 import { BOCAS } from './maos.js';
+import { AMBIENTE } from './objetos/Ambiente.js';
 import { VERSAO } from './config.js';
 import { PEDACOS } from './fase1_pedacos.js';
 
@@ -31,6 +32,12 @@ export function carregarSprites(cena) {
     cena.load.spritesheet(`lampiao_${arma}_gordo`, s(`lampiao_${arma}_gordo`), { frameWidth: LAMPIAO_GORDO.largura, frameHeight: LAMPIAO_GORDO.altura });
   }
   for (const nome of Object.keys(COMIDAS)) cena.load.image(`comida_${nome}`, s(`comida_${nome}`));
+  // Cenário vivo da fase 1.
+  for (const [nome, q] of Object.entries(AMBIENTE)) {
+    cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
+  }
+  cena.load.spritesheet('casa_vila_0', s('casa_vila_0'), { frameWidth: 130, frameHeight: 84 });
+  cena.load.spritesheet('casa_vila_1', s('casa_vila_1'), { frameWidth: 110, frameHeight: 72 });
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
   for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
     cena.load.image(nome, s(nome));

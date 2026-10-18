@@ -758,7 +758,6 @@ FASE = {
         # --- leito de rio seco: barrancos em degrau e a ponte por cima
         [3940, 176, 40, 18],
         [3972, 146, 52, 48],
-        [4024, 146, 556, 6, True],    # ponte
         [4580, 146, 56, 48],
         [4636, 176, 40, 18],
         # --- acampamento da Volante
@@ -830,6 +829,12 @@ FASE = {
     "forquilhas": [[1010, 90], [2410, 90]],
     "buracos": [1862, 2382],
     "fim": 5720,
+    # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
+    "casas": [[3060, 130, 84, 21, False], [3680, 110, 72, 22, True]],  # x, largura, altura, semente, buraco
+    "varais": [3795],
+    "ponte": [4024, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
+    "urubus": [[1010, 106], [2410, 106], [700, CHAO], [1880, CHAO], [2540, CHAO], [4390, CHAO], [5120, CHAO]],
+    "galinhas": [330, 3150, 3330, 3560, 3740, 5080],
 }
 
 
@@ -872,7 +877,7 @@ def camada_jogo():
                     (2500, carroca_quebrada()), (180, cerca_farpada(70, 1)), (1950, cerca_farpada(100, 2))):
         assentar(t, peca, x, yc)
     # Lajedos e barranco (sólidos).
-    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10, 12, 13, 15, 16)], range(11)):
+    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10, 12, 13, 14, 15)], range(11)):
         lj = lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
         sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
@@ -892,18 +897,15 @@ def camada_jogo():
     # Cerca no fim do primeiro trecho.
     assentar(t, cerca_farpada(90, 3), 2860, yc)
     # ---- Vila de taipa: casas e capela (os soldados saem pelas portas), cruzeiro.
-    assentar(t, casa_taipa(130, 84, semente=21, quebrada=False), 3060, yc + 1)
+    # (As duas casas da vila são sprites à parte: a explosão arranca o telhado.)
     assentar(t, ext.capela(96, 112, semente=3), 3420, yc + 1)
     assentar(t, ext.cruzeiro(), 3590, yc)
-    assentar(t, casa_taipa(110, 72, semente=22), 3680, yc + 1)
     for x, peca in ((3200 - 30, pote_barro(7)), (3400, cabacas()), (3800 + 40, pilao()), (3560, pote_barro(8, 12))):
         assentar(t, peca, x, yc)
     # ---- Leito de rio seco: canoa velha encalhada, ossada, ponte com corrimão.
     assentar(t, ext.canoa(), 4170, yc, afundar=3)
     assentar(t, cranio_boi(), 4390, yc)
-    pt = ext.ponte(4580 - 4024, 48, semente=2)
-    colar(t, pt, 4024, y(146))
-    colar(t, ext.corrimao(4580 - 4024), 4024, y(146) - 12)
+    # (A ponte é feita de pedaços à parte que a granada quebra.)
     # ---- Acampamento da Volante: barracas, torre de vigia, mastro, munição.
     assentar(t, ext.barraca(84, 44, semente=1), 4740, yc + 1)
     assentar(t, ext.caixas_municao(3, 1), 4862, yc)

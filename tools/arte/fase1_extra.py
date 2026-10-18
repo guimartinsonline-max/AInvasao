@@ -259,3 +259,160 @@ def caixas_municao(n=3, semente=0):
     t.volume(t.retangulo(8, 0, 14, 9), LONA_VERDE, achatado=1.5, suave=0.4, ambiente=0.35)
     t.contorno("sombra")
     return t
+
+
+# ================================================================ cenário vivo
+URUBU = ["preto", "sombra", "sombra_media", "cinza_escuro"]
+PENA_BRANCA = ["cinza_medio", "cinza_luz", "cinza_claro", "branco"]
+PENA_RUIVA = ["couro_escuro", "couro", "couro_claro", "barro"]
+
+
+def urubu(quadro=0):
+    """Urubu: 0 pousado encolhido, 1 asas para cima, 2 asas para baixo (voando)."""
+    t = Tela(26, 18)
+    if quadro == 0:
+        corpo = t.elipse(13, 11, 6, 6)
+        t.volume(corpo, URUBU, achatado=2, suave=0.6, ambiente=0.3, textura=0.2, semente=1)
+        t.volume(t.elipse(17, 5, 2.4, 2.2), ["vermelho_esc", "vermelho_medio", "rosa_poeira"], achatado=1, suave=0.3)
+        t.chapado(t.poligono([(19, 5), (22, 6), (19, 6.5)]), "cinza_claro")  # bico
+        t.ponto(18, 4, "preto")
+        t.linha(12, 17, 12, 17, "cinza_luz")
+        t.linha(15, 17, 15, 17, "cinza_luz")
+    else:
+        corpo = t.elipse(13, 10, 6, 3)
+        t.volume(corpo, URUBU, achatado=1.5, suave=0.5, ambiente=0.3)
+        dy = -6 if quadro == 1 else 6
+        for lado in (-1, 1):
+            asa = t.poligono([(13, 9), (13 + lado * 12, 9 + dy), (13 + lado * 11, 11 + dy * 0.6), (13 + lado * 3, 11)])
+            t.volume(asa, URUBU, achatado=1, suave=0.3, ambiente=0.35)
+            t.ponto(13 + lado * 11, 9 + dy, "cinza_luz")
+        t.volume(t.elipse(20, 9, 2.2, 2), ["vermelho_esc", "vermelho_medio", "rosa_poeira"], achatado=1, suave=0.3)
+        t.ponto(23, 9, "cinza_claro")
+    t.contorno("sombra")
+    return t
+
+
+def galinha(quadro=0):
+    """Galinha caipira: 0 parada, 1 bicando o chão, 2 e 3 correndo de asa aberta."""
+    t = Tela(16, 15)
+    bica = quadro == 1
+    corre = quadro in (2, 3)
+    corpo = t.elipse(7, 9, 5.5, 4)
+    t.volume(corpo, PENA_RUIVA, achatado=2, suave=0.6, ambiente=0.3, textura=0.15, semente=quadro)
+    t.volume(t.poligono([(2, 8), (0, 3), (3, 6)]), PENA_RUIVA, achatado=1, suave=0.3, deslocar=-0.2)  # rabo
+    hx, hy = (12, 10) if bica else (11, 4)
+    t.volume(t.elipse(hx, hy, 2.6, 2.6), PENA_RUIVA, achatado=1, suave=0.3, ambiente=0.4)
+    t.chapado(t.retangulo(hx - 1, hy - 4, 3, 2), "vermelho")  # crista
+    t.ponto(hx + 1, hy + 2, "vermelho")  # barbela
+    t.chapado(t.poligono([(hx + 2, hy - 0.5), (hx + 5, hy + 0.5), (hx + 2, hy + 1.5)]), "amarelo_fogo")
+    t.ponto(hx + 1, hy - 1, "preto")
+    if corre:
+        asa = t.poligono([(6, 8), (2 if quadro == 2 else 4, 3 if quadro == 2 else 12), (10, 9)])
+        t.volume(asa, PENA_RUIVA, achatado=1, suave=0.3, ambiente=0.45)
+    pe = (4, 9) if quadro == 2 else (6, 8) if quadro == 3 else (6, 8)
+    for x in pe:
+        t.linha(x, 12, x - (1 if corre else 0), 14, "amarelo_fogo")
+    t.contorno("sombra")
+    return t
+
+
+def galinha_assada():
+    """Galinha assada no prato de barro (comida que vale bastante)."""
+    t = Tela(18, 13)
+    t.volume(t.elipse(9, 10.5, 8.5, 2.4), ["vermelho_esc", "terra_escura", "terra", "barro"], achatado=1.5, suave=0.4)
+    corpo = t.elipse(9, 7, 6, 4)
+    t.volume(corpo, ["couro_profundo", "couro", "laranja_escuro", "ouro_escuro", "amarelo_fogo"], achatado=2, suave=0.6,
+             ambiente=0.3)
+    for x in (3, 15):
+        t.volume(t.capsula(x, 6, x + (2 if x < 9 else -2), 3, 1.4, 1.0), ["couro_escuro", "couro", "ouro_escuro"],
+                 achatado=1, suave=0.3)
+        t.ponto(x + (2 if x < 9 else -2), 2, "branco")  # ossinho
+    t.ponto(7, 5, "amarelo_claro")
+    t.contorno("sombra")
+    return t
+
+
+def varal(quadro=0):
+    """Varal de roupa entre duas varas. Quadro 1: corda arrebentada, roupa voou."""
+    t = Tela(70, 40)
+    for x in (2, 66):
+        t.volume(t.capsula(x, 39, x + (1 if x < 30 else -1), 4, 1.2), f.MADEIRA, achatado=1, suave=0.3)
+    if quadro == 0:
+        for xx in range(4, 66):
+            y = 6 + int(math.sin((xx - 4) / 62 * math.pi) * 5)
+            t.ponto(xx, y, "areia_media")
+        for (x0, w, h, cores) in ((10, 11, 12, ["azul_sombra", "azul_medio", "ceu_escuro", "ceu_medio"]),
+                                  (27, 14, 16, ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"]),
+                                  (47, 10, 10, ["cinza_medio", "cinza_luz", "cinza_claro", "branco"])):
+            y0 = 7 + int(math.sin((x0 + w / 2 - 4) / 62 * math.pi) * 5)
+            t.volume(t.retangulo(x0, y0, w, h), cores, achatado=1.5, suave=0.4, ambiente=0.3)
+            for xx in (x0 + 1, x0 + w - 2):
+                t.ponto(xx, y0, "couro_luz")  # prendedor
+    else:
+        for xx in range(4, 20):
+            t.ponto(xx, 6 + (xx - 4) // 2, "areia_media")
+        for xx in range(50, 66):
+            t.ponto(xx, 6 + (66 - xx) // 2, "areia_media")
+    t.contorno("sombra")
+    return t
+
+
+def roupa(quadro=0):
+    """Peça de roupa voando do varal (camisa, calça, pano)."""
+    t = Tela(12, 12)
+    if quadro == 0:
+        m = t.retangulo(2, 2, 8, 9) | t.retangulo(0, 2, 12, 3)
+        t.volume(m, ["azul_sombra", "azul_medio", "ceu_escuro", "ceu_medio"], achatado=1, suave=0.3)
+    elif quadro == 1:
+        m = t.retangulo(2, 1, 8, 4) | t.retangulo(2, 4, 3, 7) | t.retangulo(7, 4, 3, 7)
+        t.volume(m, ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], achatado=1, suave=0.3)
+    else:
+        t.volume(t.poligono([(1, 2), (11, 1), (10, 10), (2, 9)]), ["cinza_medio", "cinza_luz", "cinza_claro", "branco"],
+                 achatado=1, suave=0.3)
+    t.contorno("sombra")
+    return t
+
+
+def destelhar(t, h):
+    """Tira as telhas da casa (explosão): sobram os caibros e umas telhas na beirada."""
+    beiral = max(9, int(h * 0.3))
+    rng = np.random.default_rng(7)
+    telha = {IDX[c] for c in f.TELHA} | {IDX["vermelho_esc"]}
+    for y in range(0, beiral + 1):
+        for x in range(t.w):
+            if t.px[y, x] in telha and not (y > beiral - 3 and rng.random() < 0.6):
+                t.px[y, x] = VAZIO
+    for x in range(int(t.w * 0.12), int(t.w * 0.9), 7):
+        t.linha(x, 3, x - 3, beiral, "couro_escuro")
+        t.linha(x + 1, 3, x - 2, beiral, "couro")
+    t.linha(int(t.w * 0.15), 3, int(t.w * 0.85), 2, "couro_escuro")  # cumeeira
+    t.contorno("sombra")
+    return t
+
+
+def casa_vila(w, h, semente, quebrada, destelhada=False):
+    c = f.casa_taipa(w, h, semente=semente, quebrada=quebrada)
+    return destelhar(c, h) if destelhada else c
+
+
+def ponte_segmento(w, alt=48, quebrada=False, semente=0):
+    """Pedaço da ponte de tábuas com corrimão (a granada quebra pedaço por pedaço).
+    O tabuleiro fica em y=12 dentro do desenho."""
+    t = Tela(w, alt + 12)
+    if not quebrada:
+        f.colar(t, corrimao(w), 0, 0)
+        f.colar(t, ponte(w, alt, semente=semente), 0, 12)
+        return t
+    # Quebrada: só os pilares e tábuas penduradas.
+    inteira = ponte(w, alt, semente=semente)
+    for y in range(inteira.h):
+        for x in range(inteira.w):
+            if y < 10 and not (x < 6 or x > w - 6):
+                inteira.px[y, x] = VAZIO
+    f.colar(t, inteira, 0, 12)
+    rng = np.random.default_rng(semente)
+    for x in (4, w - 8):
+        for k in range(3):
+            t.volume(t.capsula(x + k * 2, 14, x + k * 2 + rng.uniform(-2, 2), 22 + k * 3, 1.0),
+                     f.MADEIRA, achatado=1, suave=0.3)
+    return t

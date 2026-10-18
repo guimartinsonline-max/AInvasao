@@ -60,6 +60,16 @@ export class Efeitos {
       lifespan: 600, speed: { min: 40, max: 140 }, angle: { min: 190, max: 350 },
       gravityY: 600, tint: [P.couro_claro, P.couro, P.couro_luz],
     });
+    // Telhas do telhado que a explosão arranca: pedaços de barro vermelho girando.
+    this.telhasEm = add('px2', {
+      lifespan: 900, speed: { min: 60, max: 170 }, angle: { min: 200, max: 340 }, gravityY: 600,
+      scale: { min: 1.5, max: 2.5 }, tint: [P.vermelho_esc, P.terra, P.laranja_escuro, P.barro],
+    });
+    // Penas de galinha: sobem e descem devagar, balançando.
+    this.penasEm = add('px2', {
+      lifespan: 1400, speed: { min: 20, max: 80 }, angle: { min: 200, max: 340 }, gravityY: 60,
+      tint: [P.branco, P.couro_claro, P.barro], accelerationX: { min: -30, max: 30 },
+    });
 
     // Efeitos desenhados quadro a quadro (clarão, impacto, explosão, fumaça), num pool só.
     for (const [chave, fps] of Object.entries(FPS)) {

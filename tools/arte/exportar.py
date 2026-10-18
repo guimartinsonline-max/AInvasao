@@ -105,6 +105,17 @@ folha([engordar(q) for q in la.folha_da_arma("pistola")], SAIDA / "lampiao_gordo
 for arma in la.ar.ARMAS:
     if arma != "pistola":
         folha([engordar(q) for q in la.folha_da_arma(arma)], SAIDA / f"lampiao_{arma}_gordo.png")
+import fase1  # noqa: E402
+import fase1_extra as fx  # noqa: E402
+folha([fx.urubu(q) for q in range(3)], SAIDA / "urubu.png")
+folha([fx.galinha(q) for q in range(4)], SAIDA / "galinha.png")
+folha([fx.galinha_assada()], SAIDA / "comida_galinha.png")
+folha([fx.roupa(q) for q in range(3)], SAIDA / "roupa.png")
+folha([fx.varal(q) for q in range(2)], SAIDA / "varal.png")
+for k, (_x, w_, h_, sem, buraco) in enumerate(fase1.FASE["casas"]):
+    folha([fx.casa_vila(w_, h_, sem, buraco), fx.casa_vila(w_, h_, sem, buraco, destelhada=True)], SAIDA / f"casa_vila_{k}.png")
+folha([fx.ponte_segmento(fase1.FASE["ponte"][3], semente=2), fx.ponte_segmento(fase1.FASE["ponte"][3], quebrada=True, semente=2)],
+      SAIDA / "ponte_seg.png")
 import comidas as cm  # noqa: E402
 for nome, (fn, _pts) in cm.COMIDAS.items():
     folha([fn()], SAIDA / f"comida_{nome}.png")

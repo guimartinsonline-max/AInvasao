@@ -24,6 +24,8 @@ export class CenaJogo extends Phaser.Scene {
     this.controles = this.game.controles;
     const { largura, inicio } = this.configurar();
     this.larguraMundo = largura;
+    // A cena é reaproveitada ao recomeçar: tira os ouvintes de explosão da vez anterior.
+    this.events.off('explosao');
     this.physics.world.setBounds(0, -200, largura, ALTURA + 400);
     this.solidos = this.physics.add.staticGroup();
 
@@ -203,6 +205,7 @@ export class CenaJogo extends Phaser.Scene {
   // Explosão com dano em área (granada, rojão, barril).
   explodir(x, y, raio, dano, tamanho = 1) {
     this.efeitos.explosao(x, y, tamanho);
+    this.events.emit('explosao', x, y, raio); // cenário vivo: varal, telhados, ponte
     for (const alvo of [...this.alvos.getChildren(), ...this.caixotes.vivos()]) {
       if (alvo.vivo && Phaser.Math.Distance.Between(x, y, alvo.x, alvo.y - 18) < raio) {
         if (alvo.vidaEscudo > 0) alvo.danoEscudo(3, alvo.x, alvo.y - 13);
