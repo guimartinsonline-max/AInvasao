@@ -27,6 +27,11 @@ export class CenaJogo extends Phaser.Scene {
     this.larguraMundo = largura;
     // A cena é reaproveitada ao recomeçar: tira os ouvintes de explosão da vez anterior.
     this.events.off('explosao');
+    this.tiros = 0;
+    this.acertos = 0;
+    this.mortes = 0;
+    this.trens = [];
+    this.jumentos = [];
     this.physics.world.setBounds(0, -200, largura, ALTURA + 400);
     this.solidos = this.physics.add.staticGroup();
 
@@ -56,6 +61,10 @@ export class CenaJogo extends Phaser.Scene {
         return;
       }
       alvo.levarDano(tipo.dano * (bala.forca || 1), bala.x, false, tipo.morte, tipo.queima);
+      if (!bala.contou) {
+        bala.contou = true;
+        this.acertos = (this.acertos || 0) + 1; // para a precisão do fim da missão
+      }
       if (tipo.impacto) this.efeitos.impacto(bala.x, bala.y, tipo.impacto);
       if (tipo.pausa) this.efeitos.parar(tipo.pausa);
     }, (caixote, bala) => caixote.levarDano(bala.tipo.dano || 1));
@@ -313,8 +322,9 @@ export class CenaJogo extends Phaser.Scene {
   update(t, dt) {
     const c = this.controles;
     c.atualizar();
-    if (c.apertou('voltar')) {
-      this.scene.start('Menu');
+    if (c.apertou('voltar') && this.pausado !== 'fim') {
+      // Pausa: a HUD mostra o menu e a cena para.
+      this.scene.get('Hud').abrirPausa();
       return;
     }
     if (this.pausado) {

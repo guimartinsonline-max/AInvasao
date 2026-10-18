@@ -50,6 +50,8 @@ export class Balas {
     const cfg = BALAS[tipo];
     const bala = this.grupo.get(x, y, cfg.textura);
     if (!bala) return;
+    bala.contou = false;
+    this.cena.tiros = (this.cena.tiros || 0) + 1;
     bala.tipo = cfg;
     bala.forca = forca;
     bala.nasceu = this.cena.time.now;

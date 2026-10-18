@@ -28,6 +28,8 @@ export function carregarSprites(cena) {
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.image('chapeu', s('chapeu'));
   cena.load.spritesheet('jumento', s('jumento'), { frameWidth: 72, frameHeight: 60 });
+  cena.load.spritesheet('retrato', s('retrato'), { frameWidth: 26, frameHeight: 21 });
+  cena.load.spritesheet('retrato_gordo', s('retrato_gordo'), { frameWidth: 30, frameHeight: 21 });
   cena.load.image('metralha_jumento', s('metralha_jumento'));
   // Chefe da fase 1: trem blindado e suas partes.
   cena.load.spritesheet('trem_loco', s('trem_loco'), { frameWidth: TREM.loco.largura, frameHeight: TREM.loco.altura });
@@ -94,6 +96,37 @@ export function gerarSprites(cena) {
 
   texturaDesenhada(cena, 'disco', 16, 16, (ctx) => disco(ctx, 8, 8, 7, '#ffffff'));
   texturaDesenhada(cena, 'bola', 6, 6, (ctx) => disco(ctx, 3, 3, 2, '#ffffff'));
+  // Medalhas do fim da missão (bronze, prata, ouro): fita verde e amarela e a moeda com a estrela.
+  for (const [nome, cores] of Object.entries({
+    medalha_bronze: ['couro_profundo', 'couro', 'couro_claro', 'couro_luz'],
+    medalha_prata: ['cinza_escuro', 'cinza', 'cinza_luz', 'branco'],
+    medalha_ouro: ['laranja_escuro', 'ouro_escuro', 'amarelo_fogo', 'amarelo_claro'],
+  })) {
+    texturaDesenhada(cena, nome, 24, 34, (ctx, cor) => {
+      const px = (x, y, c, w = 1, h = 1) => { ctx.fillStyle = cor(c); ctx.fillRect(x, y, w, h); };
+      // Fita em V.
+      for (let y = 0; y < 14; y++) {
+        px(4 + Math.floor(y / 3), y, 'sombra', 7, 1);
+        px(5 + Math.floor(y / 3), y, y % 4 < 2 ? 'caatinga' : 'amarelo_fogo', 5, 1);
+        px(13 - Math.floor(y / 3), y, 'sombra', 7, 1);
+        px(14 - Math.floor(y / 3), y, y % 4 < 2 ? 'amarelo_fogo' : 'caatinga', 5, 1);
+      }
+      // Moeda com borda, brilho e estrela.
+      for (let y = -10; y <= 10; y++) {
+        const m = Math.floor(Math.sqrt(100 - y * y));
+        px(12 - m - 1, 22 + y, 'sombra', m * 2 + 2, 1);
+        px(12 - m, 22 + y, y < -3 ? cores[3] : y < 4 ? cores[2] : cores[1], m * 2, 1);
+      }
+      for (let y = -7; y <= 7; y++) {
+        const m = Math.floor(Math.sqrt(49 - y * y));
+        px(12 - m, 22 + y, cores[0], 1, 1);
+        px(12 + m - 1, 22 + y, cores[0], 1, 1);
+      }
+      const estrela = ['...X...', '...X...', 'XXXXXXX', '.XXXXX.', '..XXX..', '.XX.XX.', 'X.....X'];
+      estrela.forEach((l, y) => [...l].forEach((ch, x) => ch === 'X' && px(9 + x, 19 + y, cores[0])));
+      px(7, 15, 'branco', 2, 1);
+    });
+  }
   // Poça de sangue no chão (elipse achatada pixelada, borda escura e brilho).
   texturaDesenhada(cena, 'poca', 30, 6, (ctx, cor) => {
     for (let y = 0; y < 6; y++) {

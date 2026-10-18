@@ -2,6 +2,8 @@ import { LARGURA, ALTURA } from '../config.js';
 import { P, hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { ARMAS } from '../armas.js';
+import { ajustes, salvarAjustes, nomeTecla } from '../ajustes.js';
+import { bip } from '../som.js';
 
 // Os botões foram feitos para a tela de 384x216; K mantém o mesmo tamanho no vidro
 // do celular na resolução atual, contando a partir do canto de baixo à direita.
@@ -51,7 +53,9 @@ export class HudScene extends Phaser.Scene {
     };
     campo.events.on('arma', anunciar);
     this.events.once('shutdown', () => campo.events.off('arma', anunciar));
+    campo.events.on('arma', () => { this.alegreAte = this.time.now + 700; });
     this.criarToque();
+    this.criarPausa();
     this.mostrarFonte(this.controles.fonte);
     const desligar = this.controles.aoMudarFonte((f) => this.mostrarFonte(f));
     this.events.once('shutdown', () => {
@@ -76,7 +80,12 @@ export class HudScene extends Phaser.Scene {
     this.rotuloGranada = this.add.text(x + 80, y + 5, 'GRANADA', rotulo);
     this.blindagem = this.add.text(x, y + 48, '', estiloTexto(hex('amarelo_claro'))).setVisible(false);
     this.numGranada = this.add.text(x + 80, y + 15, '', estiloTexto(hex('branco'), 16));
-    this.vidas = this.add.text(x, y + 38, '', estiloTexto(hex('branco')));
+    // Retrato do Lampião com as vidas (a cara muda: atirando, levando susto, morto, gordo).
+    g.fillStyle(P.sombra, 0.82).fillRect(x + 144, y, 56, 34);
+    g.lineStyle(1, P.areia_luz, 0.9).strokeRect(x + 144.5, y + 0.5, 55, 33);
+    this.retrato = this.add.image(x + 147, y + 7, 'retrato', 0).setOrigin(0);
+    this.vidas = this.add.text(x + 176, y + 13, '', estiloTexto(hex('branco')));
+    this.alegreAte = 0;
     this.super = this.add.text(x + 4, y + 26, 'SUPER', estiloTexto(hex('amarelo_fogo'))).setVisible(false);
     // Pontos e relógio (o relógio só aparece nas missões).
     this.pontos = this.add.text(LARGURA - 4, 4, '0', estiloTexto(hex('amarelo_claro'))).setOrigin(1, 0);
@@ -104,7 +113,12 @@ export class HudScene extends Phaser.Scene {
 
   mostrarFonte(fonte) {
     this.toque.setVisible(fonte === 'toque');
-    this.dica.setText(DICAS[fonte] || '').setAlpha(1);
+    // No teclado, a dica mostra as teclas escolhidas nas opções.
+    const tk = ajustes.teclas;
+    const dica = fonte === 'teclado'
+      ? `SETAS MOVER  ${nomeTecla(tk.atirar)} TIRO  ${nomeTecla(tk.pular)} PULO  ${nomeTecla(tk.granada)} GRANADA  ESC PAUSA`
+      : fonte === 'controle' ? 'A PULO  X TIRO  B GRANADA  BACK PAUSA' : DICAS[fonte];
+    this.dica.setText(dica || '').setAlpha(1);
     this.tweens.killTweensOf(this.dica);
     this.tweens.add({ targets: this.dica, alpha: 0, delay: 4000, duration: 600 });
   }
@@ -115,6 +129,12 @@ export class HudScene extends Phaser.Scene {
   }
 
   tocar(p) {
+    if (this.pausado) return;
+    // Botão de pausa no canto de cima.
+    if (p.x > LARGURA - 34 && p.y > 18 && p.y < 52) {
+      this.abrirPausa();
+      return;
+    }
     if (!p.wasTouch) return;
     this.controles.mudarFonte('toque');
     if (p.x < LARGURA * ZONA_DIRECIONAL && ![...this.dedos.values()].includes('direcional')) {
@@ -204,7 +224,103 @@ export class HudScene extends Phaser.Scene {
     b.circulo.setFillStyle(P.branco, valor ? 0.45 : 0.15);
   }
 
+  // ------------------------------------------------------------ pausa
+  criarPausa() {
+    this.botaoPausa = this.add.text(LARGURA - 18, 34, 'II', estiloTexto(hex('branco'), 8)).setOrigin(0.5).setAlpha(0.7);
+    this.add.circle(LARGURA - 18, 34, 10, P.branco, 0.12).setStrokeStyle(1, P.branco, 0.4);
+    this.pausaGrupo = this.add.container(0, 0).setDepth(100).setVisible(false);
+    const fundo = this.add.rectangle(0, 0, LARGURA, ALTURA, P.sombra, 0.75).setOrigin(0).setInteractive();
+    const titulo = this.add.text(LARGURA / 2, 56, 'PAUSA', estiloTexto(hex('amarelo_fogo'), 16)).setOrigin(0.5);
+    this.pausaGrupo.add([fundo, titulo]);
+    this.pausaItens = [];
+    for (let k = 0; k < 5; k++) {
+      const y = 96 + k * 28;
+      const img = this.add.image(LARGURA / 2, y, 'placa').setInteractive();
+      const txt = this.add.text(LARGURA / 2, y, '', estiloTexto(hex('branco'))).setOrigin(0.5);
+      img.on('pointerdown', (p, lx) => {
+        this.escolhaPausa = k;
+        const id = this.itensPausa()[k].id;
+        if (['efeitos', 'musica', 'tremida'].includes(id)) this.ajustarPausa(id, lx < 75 ? -1 : 1);
+        else this.escolherPausa();
+      });
+      this.pausaGrupo.add([img, txt]);
+      this.pausaItens.push({ img, txt });
+    }
+  }
+
+  itensPausa() {
+    return [
+      { texto: 'CONTINUAR', id: 'continuar' },
+      { texto: `EFEITOS: ${ajustes.efeitos}`, id: 'efeitos' },
+      { texto: `MÚSICA: ${ajustes.musica}`, id: 'musica' },
+      { texto: `TREMIDA: ${ajustes.tremida ? 'SIM' : 'NÃO'}`, id: 'tremida' },
+      { texto: 'SAIR PARA O MENU', id: 'sair' },
+    ];
+  }
+
+  montarPausa() {
+    this.itensPausa().forEach((it, k) => {
+      const sel = k === this.escolhaPausa;
+      this.pausaItens[k].img.setTexture(sel ? 'placa_sel' : 'placa');
+      this.pausaItens[k].txt.setText(it.texto).setColor(sel ? hex('amarelo_fogo') : hex('branco'));
+    });
+  }
+
+  abrirPausa() {
+    if (this.pausado) return;
+    this.pausado = true;
+    this.escolhaPausa = 0;
+    this.scene.pause(this.chaveCena);
+    for (const id of [...this.dedos.keys()]) this.soltar({ id });
+    this.pausaGrupo.setVisible(true);
+    this.montarPausa();
+    bip('confirmar');
+  }
+
+  fecharPausa() {
+    this.pausado = false;
+    this.pausaGrupo.setVisible(false);
+    this.scene.resume(this.chaveCena);
+    bip('voltar');
+  }
+
+  ajustarPausa(id, lado) {
+    if (id === 'efeitos') ajustes.efeitos = Phaser.Math.Clamp(ajustes.efeitos + lado, 0, 10);
+    else if (id === 'musica') ajustes.musica = Phaser.Math.Clamp(ajustes.musica + lado, 0, 10);
+    else if (id === 'tremida') ajustes.tremida = !ajustes.tremida;
+    else return;
+    salvarAjustes();
+    bip('mover');
+    this.montarPausa();
+  }
+
+  escolherPausa() {
+    const id = this.itensPausa()[this.escolhaPausa].id;
+    if (id === 'continuar') this.fecharPausa();
+    else if (id === 'sair') {
+      this.pausado = false;
+      this.scene.stop(this.chaveCena);
+      this.scene.start('Menu');
+    } else this.ajustarPausa(id, 1);
+  }
+
+  atualizarPausa() {
+    const c = this.controles;
+    c.atualizar();
+    const n = this.pausaItens.length;
+    if (c.apertou('baixo')) { this.escolhaPausa = (this.escolhaPausa + 1) % n; bip('mover'); this.montarPausa(); }
+    if (c.apertou('cima')) { this.escolhaPausa = (this.escolhaPausa + n - 1) % n; bip('mover'); this.montarPausa(); }
+    const lado = c.lado();
+    if (lado) this.ajustarPausa(this.itensPausa()[this.escolhaPausa].id, lado);
+    if (c.apertou('confirmar') || c.apertou('atirar')) this.escolherPausa();
+    else if (c.apertou('voltar')) this.fecharPausa();
+  }
+
   update() {
+    if (this.pausado) {
+      this.atualizarPausa();
+      return;
+    }
     // Segurança: se o sistema engolir um "soltar" (ex.: notificação no iPhone), libera o dedo.
     for (const p of this.input.manager.pointers) {
       if (this.dedos.has(p.id) && !p.isDown) this.soltar(p);
@@ -227,7 +343,13 @@ export class HudScene extends Phaser.Scene {
       this.blindagem.setVisible(true).setText(`JUMENTO ${'='.repeat(b)}${'-'.repeat(Math.max(0, 6 - b))}`)
         .setColor(b <= 2 && Math.floor(this.time.now / 200) % 2 ? hex('vermelho') : hex('amarelo_claro'));
     } else this.blindagem.setVisible(false);
-    this.vidas.setText(`VIDAS ${j.vidas}`);
+    this.vidas.setText(`x${j.vidas}`);
+    // Cara do Lampião no painel.
+    let cara = 0;
+    if (j.morto) cara = j.bateu ? 4 : 3;
+    else if (j.invulneravel) cara = 2;
+    else if (j.desdeTiro < 160 || this.time.now < this.alegreAte || j.montaria) cara = 1;
+    this.retrato.setTexture(j.gordo ? 'retrato_gordo' : 'retrato', cara);
     this.super.setVisible(j.nivel === 2 && Math.floor(this.time.now / 300) % 2 === 0);
     const cena = this.scene.get(this.chaveCena);
     this.pontos.setText(`${cena.pontos || 0}`);

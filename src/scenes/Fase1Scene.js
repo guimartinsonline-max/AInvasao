@@ -252,17 +252,37 @@ export class Fase1Scene extends CenaJogo {
   contarPontos() {
     const bonus = this.refensSalvos * 1000;
     this.mostrar('MISSÃO 1 CUMPRIDA!', '', 0);
+    // Faixa escura atrás do placar para ler bem sobre o cenário.
+    const faixa = this.add.rectangle(LARGURA / 2, ALTURA / 2 + 10, 340, 250, 0x0e0d14, 0.7).setScrollFactor(0).setDepth(39)
+      .setStrokeStyle(1, 0xd8c8a0, 0.6).setAlpha(0);
+    this.tweens.add({ targets: faixa, alpha: 1, duration: 300 });
     const linhas = [
       `PONTOS ${this.pontos}`,
       `REFÉNS SALVOS ${this.refensSalvos} x 1000`,
       `TOTAL ${this.pontos + bonus}`,
     ];
+    // Nota: reféns salvos, precisão dos tiros e vidas perdidas viram a medalha do cangaço.
+    const totalRefens = Math.max(this.refensSalvos, this.dados.refens.length);
+    const precisao = Math.min(1, (this.acertos || 0) / Math.max(1, this.tiros || 0));
+    const mortes = this.mortes || 0;
+    const nota = (this.refensSalvos / totalRefens) * 40 + precisao * 40 + Math.max(0, 20 - mortes * 7);
+    const medalha = nota >= 75 ? 'ouro' : nota >= 50 ? 'prata' : 'bronze';
+    linhas.splice(2, 0, `PRECISÃO ${Math.round(precisao * 100)}%   VIDAS PERDIDAS ${mortes}`);
     linhas.forEach((txt, k) => {
-      const t = this.add.text(LARGURA / 2, 100 + DY / 2 + k * 14, txt, estiloTexto(hex(k === 2 ? 'amarelo_fogo' : 'branco')))
+      const ultima = k === linhas.length - 1;
+      const t = this.add.text(LARGURA / 2, 92 + DY / 2 + k * 14, txt, estiloTexto(hex(ultima ? 'amarelo_fogo' : 'branco')))
         .setOrigin(0.5).setScrollFactor(0).setDepth(40).setAlpha(0);
       this.tweens.add({ targets: t, alpha: 1, delay: 600 + k * 700, duration: 150 });
     });
-    this.time.delayedCall(6500, () => this.scene.start('Menu'));
+    const atraso = 600 + linhas.length * 700 + 300;
+    const img = this.add.image(LARGURA / 2, 92 + DY / 2 + linhas.length * 14 + 34, `medalha_${medalha}`)
+      .setScrollFactor(0).setDepth(40).setScale(4).setAlpha(0);
+    const nome = this.add.text(LARGURA / 2, img.y + 42, `MEDALHA DE ${medalha.toUpperCase()} DO CANGAÇO`,
+      estiloTexto(hex(medalha === 'ouro' ? 'amarelo_claro' : 'branco'))).setOrigin(0.5).setScrollFactor(0).setDepth(40).setAlpha(0);
+    this.tweens.add({ targets: img, alpha: 1, scale: 2, delay: atraso, duration: 260, ease: 'Back.easeOut',
+      onComplete: () => this.efeitos.tremer(0.006, 120) });
+    this.tweens.add({ targets: nome, alpha: 1, delay: atraso + 300, duration: 200 });
+    this.time.delayedCall(atraso + 4200, () => this.scene.start('Menu'));
   }
 
   // ------------------------------------------------------------ a cada quadro

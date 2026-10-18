@@ -206,6 +206,7 @@ export class Jogador {
     if (this.morto || this.invulneravel) return;
     const cena = this.cena;
     this.morto = true;
+    cena.mortes = (cena.mortes || 0) + 1;
     this.vidas--;
     const lado = Math.sign(vxBala) || -this.direcao;
     this.corpo.body.setVelocity(lado * 90, -240);

@@ -188,6 +188,16 @@ def quadro_morte(nome):
     return pixel.de_texto("\n".join("".join(l) for l in saida), w=lp.W, h=lp.H)
 
 
+def retrato(rosto="serio"):
+    """Rosto do Lampião com o chapéu, para o painel (muda de expressão no jogo)."""
+    g = [["."] * 26 for _ in range(21)]
+    for k, txt in enumerate(lp.ROSTOS[rosto]):
+        lp.pintar(g, 7 + k, 3, txt)
+    for k, txt in enumerate(lp.CHAPEU):
+        lp.pintar(g, k, 0, txt)
+    return pixel.de_texto("\n".join("".join(l) for l in g), w=26, h=21)
+
+
 def chapeu():
     """Chapéu de couro do Lampião sozinho (voa da cabeça quando ele morre)."""
     return pixel.de_texto("\n".join(lp.CHAPEU), w=len(lp.CHAPEU[0]), h=len(lp.CHAPEU))

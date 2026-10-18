@@ -90,6 +90,11 @@ for arma in la.ar.ARMAS:
 la.gravar_bocas(RAIZ / "src/maos.js")
 
 
+def engordar_rosto(t):
+    """Retrato gordo: bochechas esticadas para os lados."""
+    return engordar(t, x0=7, x1=19, extra=4)
+
+
 def engordar(t, x0=8, x1=20, extra=5):
     """Lampião gordo (comeu demais): estica a faixa do meio do corpo (barriga,
     rosto e pernas) para os lados, sem tocar na arma na frente."""
@@ -132,6 +137,9 @@ import comidas as cm  # noqa: E402
 for nome, (fn, _pts) in cm.COMIDAS.items():
     folha([fn()], SAIDA / f"comida_{nome}.png")
 folha([la.chapeu()], SAIDA / "chapeu.png")
+# Retratos do painel: sério, gritando, susto, dor, morto.
+folha([la.retrato(r) for r in ("serio", "grito", "susto", "dor", "morto")], SAIDA / "retrato.png")
+folha([engordar_rosto(la.retrato(r)) for r in ("serio", "grito", "susto", "dor", "morto")], SAIDA / "retrato_gordo.png")
 for nome, quadros in {
     "clarao": [ef.clarao(k) for k in range(3)],
     "clarao_g": [ef.clarao(k, grande=True) for k in range(3)],
