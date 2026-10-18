@@ -148,9 +148,18 @@ export class Fase1Scene extends CenaJogo {
     this.onda = onda;
     this.seta.setVisible(false);
     // Trava da câmera do tamanho da tela (as ondas antigas foram feitas para 384 px de largura).
+    // A borda esquerda desliza até o lugar da trava: a câmera nunca pula (nada parece teletransportar).
     const [x0, x1b] = onda.trava;
     const x1 = Math.max(x1b, x0 + LARGURA);
-    cam.setBounds(x0, -DY, x1 - x0, ALTURA);
+    const inicio = Math.min(x0, Math.floor(cam.scrollX));
+    cam.setBounds(inicio, -DY, x1 - inicio, ALTURA);
+    if (inicio < x0) {
+      const borda = { x: inicio };
+      this.tweens.add({
+        targets: borda, x: x0, duration: Math.min(900, (x0 - inicio) * 6), ease: 'Sine.easeInOut',
+        onUpdate: () => { if (this.onda === onda) cam.setBounds(borda.x, -DY, x1 - borda.x, ALTURA); },
+      });
+    }
     for (const [tipo, lado, atraso, opcoes] of onda.inimigos) {
       this.time.delayedCall(atraso, () => {
         const v = cam.worldView;
@@ -214,6 +223,8 @@ export class Fase1Scene extends CenaJogo {
     onda.estado = 'feita';
     this.tempo = TEMPO;
     this.onda = null;
+    // Solta a câmera sem deixar voltar para trás (ela segue o Lampião suave, sem pulo).
+    this.minX = Math.max(this.minX, Math.floor(this.cameras.main.scrollX));
     this.cameras.main.setBounds(this.minX, -DY, this.larguraMundo - this.minX, ALTURA);
     this.seta.setVisible(true);
     this.tweens.killTweensOf(this.seta);
