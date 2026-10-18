@@ -2,7 +2,7 @@
 
 // Lampião pixel a pixel (tools/arte/pixel/lampiao.txt), ordem de tools/arte/exportar.py.
 const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6',
-  'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada'];
+  'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada', 'facada1', 'mira_baixo', 'recarga'];
 
 export const LAMPIAO = { largura: 44, altura: 46, peX: 14, peY: 45 };
 QUADROS_LAMPIAO.forEach((nome, i) => { LAMPIAO[nome] = i; });
@@ -37,7 +37,7 @@ for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao']) I
 // Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).
 export const REFEM = { largura: 44, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,
   entrega: 5, continencia: 6, corrida: [7, 8, 9, 10], pendurado: [11, 12], maosY: 43.5, maosX: 2 };
-export const DISCO = { largura: 48, altura: 24 };
+export const DISCO = { largura: 88, altura: 40 };
 export const FEIXE = { largura: 14, altura: 120 };
 export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };
 
@@ -65,4 +65,5 @@ export const EFEITOS = {
   rajada: { largura: 68, altura: 40, quadros: 5 },
   labareda: { largura: 34, altura: 34, quadros: 6 },
   granada_g: { largura: 11, altura: 11, quadros: 4 },
+  corte_arco: { largura: 34, altura: 40, quadros: 4 },
 };

@@ -119,6 +119,11 @@ export class Jogador {
     }
 
     this.miraCima = c.estado.cima && !this.agachado;
+    this.miraBaixo = !this.noChao && c.estado.baixo && !this.miraCima;
+    // Ângulo da varredura (0 = frente, 1 = cima): gira em ~150 ms.
+    const alvoVarre = this.miraCima ? 1 : 0;
+    this.angVarre = Phaser.Math.Clamp((this.angVarre || 0) + Math.sign(alvoVarre - (this.angVarre || 0)) * dt / 150, 0, 1);
+    if (this.arma !== 'madsen') this.angVarre = alvoVarre;
     this.animar(dt);
   }
 
@@ -185,24 +190,36 @@ export class Jogador {
     let mira = 'frente';
     if (c.estado.cima) mira = 'cima';
     else if (!this.noChao && c.estado.baixo) mira = 'baixo';
+    // Madsen gira a mira aos poucos entre frente e cima, varrendo na diagonal (como a HMG do Metal Slug).
+    const varre = this.arma === 'madsen' && !this.agachado && (mira === 'cima' || mira === 'frente')
+      && this.angVarre > 0.05 && this.angVarre < 0.95;
 
     // Peixeira automática quando o inimigo está colado.
     if (mira === 'frente') {
       const alvo = cena.alvoProximo(this.x, this.pe - 18, d, ALCANCE_PEIXEIRA);
       if (alvo) {
         // Facada como no Metal Slug: mata na hora quem está colado.
-        this.facada = 180;
+        this.facada = 230;
         cena.peixeirada(this.x + d * 22, this.pe - 22, d, alvo);
         return;
       }
     }
 
     let x, y, ang;
+    const folha = this.arma === 'padrao' ? 'pistola' : this.arma;
     if (mira === 'baixo') {
-      x = this.x; y = this.pe + 2; ang = Math.PI / 2;
+      // No ar olhando para baixo: o tiro sai da arma apontada para o chão.
+      const [bx, by] = BOCAS[folha].baixo;
+      x = this.x + d * bx; y = this.pe - by; ang = Math.PI / 2;
+    } else if (varre) {
+      const k = this.angVarre;
+      const [fx, fy] = BOCAS[folha].frente;
+      const [cx, cy] = BOCAS[folha].cima;
+      x = this.x + d * (fx + (cx - fx) * k);
+      y = this.pe - (fy + (cy - fy) * k);
+      ang = d > 0 ? -k * Math.PI / 2 : Math.PI + k * Math.PI / 2;
     } else {
       // Tiro sai da boca da arma, na pose do Lampião segurando aquela arma (a padrão é a pistola).
-      const folha = this.arma === 'padrao' ? 'pistola' : this.arma;
       const [bx, by] = BOCAS[folha][mira === 'cima' ? 'cima' : this.agachado ? 'agachado' : 'frente'];
       x = this.x + d * bx;
       y = this.pe - by + (mira === 'cima' ? 0 : Phaser.Math.Between(-1, 1) * (this.arma === 'padrao' ? 1 : 0));
@@ -249,11 +266,18 @@ export class Jogador {
     let quadro;
     this.arremesso = (this.arremesso || 0) - dt;
     this.facada = (this.facada || 0) - dt;
-    if (this.facada > 0 && !this.agachado) quadro = 'facada';
+    // Facada em dois tempos: levanta a peixeira e desce o golpe largo.
+    if (this.facada > 0 && !this.agachado) quadro = this.facada > 170 ? 'facada1' : 'facada';
     else if (this.arremesso > 0 && !this.agachado) quadro = 'arremesso';
     else if (this.agachado) quadro = 'agachado';
+    else if (this.arma === 'madsen' && this.angVarre > 0 && this.angVarre < 1) quadro = this.angVarre > 0.5 ? 'mira_cima' : 'atirando';
     else if (this.miraCima) quadro = 'mira_cima';
+    else if (this.miraBaixo) quadro = 'mira_baixo';
     else if (!this.noChao) quadro = 'pulo';
+    else if (this.arma === 'estilingue' && this.desdeTiro < 420) {
+      // Baladeira: solta a liga e logo puxa a próxima pedra.
+      quadro = this.desdeTiro < 110 ? 'atirando' : 'recarga';
+    }
     else if (corpo.velocity.x !== 0) {
       this.passo += dt;
       quadro = LAMPIAO.corrida[Math.floor(this.passo / 80) % LAMPIAO.corrida.length];

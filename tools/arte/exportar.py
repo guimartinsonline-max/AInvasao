@@ -106,6 +106,7 @@ for nome, quadros in {
     "rajada": [ef.rajada(k) for k in range(5)],
     "labareda": [ef.labareda(k) for k in range(6)],
     "granada_g": [ef.granada(k) for k in range(4)],
+    "corte_arco": [ef.corte(k) for k in range(4)],
 }.items():
     folha(quadros, SAIDA / f"{nome}.png")
 

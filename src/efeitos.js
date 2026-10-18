@@ -2,7 +2,7 @@ import { P } from './paleta.js';
 import { EFEITOS } from './quadros.js';
 
 // Velocidade (quadros por segundo) de cada efeito animado.
-const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14, rajada: 20 };
+const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14, rajada: 20, corte_arco: 26 };
 
 // Efeitos de impacto (game feel). Tudo é criado uma vez e reaproveitado.
 export class Efeitos {
@@ -143,7 +143,7 @@ export class Efeitos {
     if (!s) s = this.animados[this.proximoAnimado++ % this.animados.length];
     this.cena.tweens.killTweensOf(s);
     s.setTexture(chave, 0).setPosition(Math.round(x), Math.round(y)).setOrigin(origemX, 0.5)
-      .setRotation(rotacao).setFlipX(espelhar).setDepth(profundidade).setVisible(true).setAlpha(1).setScale(escala);
+      .setRotation(rotacao).setFlipX(espelhar).setDepth(profundidade).setVisible(true).setAlpha(1).setScale(escala).clearTint();
     s.play(anim);
     return s;
   }

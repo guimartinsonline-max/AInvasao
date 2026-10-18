@@ -31,8 +31,8 @@ OMBRO_FRENTE = (17, 22)
 OMBRO_TRAS = (11, 22)
 
 QUADROS = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4", "corre5", "corre6",
-           "pulo", "agachado", "mira_cima", "susto", "arremesso", "facada"]
-ROSTO = {"parado": "serio", "agachado": "serio", "susto": "susto"}
+           "pulo", "agachado", "mira_cima", "susto", "arremesso", "facada", "facada1", "mira_baixo", "recarga"]
+ROSTO = {"parado": "serio", "agachado": "serio", "susto": "susto", "mira_baixo": "baixo"}
 # Braço de trás erguido atirando a granada (por cima do ombro, como no Metal Slug).
 ARREMESSO = {"cotovelo": (4, 15), "mao": (5, 3)}
 
@@ -83,6 +83,10 @@ def linhas_da_arma(tela, girar=False, recorte=None):
         linhas = ["." * x0 + l[x0:x1] + "." * (len(l) - x1) for l in linhas]
     if not girar:
         return linhas
+    if girar == "baixo":
+        # Gira 90 graus no sentido horário: o cano passa a apontar para baixo.
+        h = len(linhas)
+        return ["".join(linhas[h - 1 - x][y] for x in range(h)) for y in range(len(linhas[0]))]
     # Gira 90 graus no sentido anti-horário: o cano passa a apontar para cima.
     w = len(linhas[0])
     return ["".join(linhas[x][w - 1 - y] for x in range(len(linhas))) for y in range(w)]
@@ -117,6 +121,8 @@ def base(nome):
     """Pernas, tronco, rosto e chapéu, sem braços nem arma."""
     rosto = ROSTO.get(nome, "grito")
     pernas = nome if nome.startswith("corre") or nome in ("pulo", "agachado") else "parado"
+    if nome == "mira_baixo":
+        pernas = "pulo"
     g = [["."] * lp.W for _ in range(lp.H)]
     tras, frente, dy = lp.POSES_PERNAS[pernas]
     dy += lp.MARGEM
@@ -126,13 +132,25 @@ def base(nome):
     return g, dy, rosto
 
 
-def cabeca(g, dy, rosto):
+def cabeca(g, dy, rosto, baixa=0):
+    """baixa: cabeça curvada para a frente e para baixo (olhando o chão)."""
     for y, x, txt in lp.TRONCO:
         lp.pintar(g, y + dy, x, txt)
     for k, txt in enumerate(lp.ROSTOS[rosto]):
-        lp.pintar(g, 8 + k + dy, 7, txt)
+        lp.pintar(g, 8 + k + dy + baixa, 7 + baixa, txt)
     for k, txt in enumerate(lp.CHAPEU):
-        lp.pintar(g, 1 + k + dy, 4, txt)
+        lp.pintar(g, 1 + k + dy + baixa, 4 + baixa, txt)
+
+
+def puxa_baladeira(nome, pose):
+    """Onde a mão de trás segura a pedra na liga: perto da forquilha (parado), puxada até
+    o rosto (recarga, mirando) ou aberta depois de soltar (atirando)."""
+    px_, py_ = pose["puxa"]
+    if nome == "recarga":
+        return px_, py_
+    if nome == "atirando":
+        return px_ - 2, py_ + 2
+    return pose["punho"][0] - 7, pose["punho"][1] + 3
 
 
 def quadro(nome, arma, bocas=None):
@@ -160,9 +178,30 @@ def quadro(nome, arma, bocas=None):
             bocas["cima"] = [mx - gx + by - PE[0], PE[1] - (my - gy + ar.W - 1 - bx)]
         return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
 
+    if nome == "mira_baixo":
+        # No pulo, apontando a arma para baixo entre as pernas (como no Metal Slug),
+        # com a cabeça curvada olhando o chão.
+        cabeca(g, dy, rosto, baixa=2)
+        linhas = linhas_da_arma(tela, girar="baixo", recorte=pose.get("recorte"))
+        gx, gy = ar.H - 1 - py, px  # o punho depois de girar
+        mx, my = 21, 27 + dy
+        braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (14, 27 + dy), (mx - 1, my - 4), escurecer=1)
+        braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (22, 24 + dy), (mx, my))
+        for k, l in enumerate(linhas):
+            lp.pintar(g, my - gy + k, mx - gx, l)
+        punho_fechado(g, mx, my)
+        punho_fechado(g, mx - 1, my - 4)
+        if bocas is not None:
+            # Boca depois de girar: (H - 1 - by, bx).
+            bocas["baixo"] = [mx - gx + ar.H - 1 - by - PE[0], PE[1] - (my - gy + bx)]
+        return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
+
     arremesso = nome == "arremesso"
-    facada = nome == "facada"
+    facada = nome in ("facada", "facada1")
     gx, gy = pose["punho"]
+    if arma == "estilingue" and nome not in ("recarga", "atirando"):
+        # Baladeira descansando na altura do peito; só sobe até o rosto para mirar e soltar.
+        gx, gy = gx - 2, gy + 6
     gy += dy
     ox, oy = gx - px, gy - py  # canto do desenho da arma no quadro
     if arremesso:
@@ -196,28 +235,44 @@ def quadro(nome, arma, bocas=None):
     else:
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (pose["cot_frente"][0], pose["cot_frente"][1] + dy), (gx, gy))
         if pose.get("puxa") and not arremesso and not facada:
-            pxa, pya = pose["puxa"]
+            pxa, pya = puxa_baladeira(nome, pose)
             braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (13, 26 + dy), (pxa, pya + dy), escurecer=1)
             maos.append((pxa, pya + dy))
     linhas = linhas_da_arma(tela, recorte=pose.get("recorte"))
     for k, l in enumerate(linhas):
         lp.pintar(g, oy + k, ox, l)
-    if facada:
-        # Facada: o braço de trás vem por cima de tudo, esticado, com a peixeira na mão.
-        fx, fy = 28, 21 + dy
-        braco(g, (OMBRO_TRAS[0] + 2, OMBRO_TRAS[1] + dy), (21, 27 + dy), (fx, fy))
-        for k in range(10):
+    if nome == "facada1":
+        # Preparo: o braço sobe para trás, peixeira apontando para cima, pronta para descer.
+        fx, fy = 9, 9 + dy
+        braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (5, 18 + dy), (fx, fy), escurecer=1)
+        for k in range(9):
+            x = fx + 1 + k // 3
+            y = fy - 2 - k
+            if y >= 0:
+                g[y][x] = "V" if k < 6 else "v"
+                g[y][x + 1] = "c"
+                g[y][x - 1] = "O"
+                g[y][x + 2] = "O"
+        maos.append((fx, fy))
+    elif facada:
+        # Golpe: braço esticado para a frente, de cima para baixo, peixeira comprida na horizontal.
+        fx, fy = 29, 22 + dy
+        braco(g, (OMBRO_TRAS[0] + 2, OMBRO_TRAS[1] + dy), (21, 25 + dy), (fx, fy))
+        for k in range(12):
             x = fx + 2 + k
-            y = fy - k // 4
-            g[y][x] = "V" if k < 7 else "v"
-            g[y + 1][x] = "c" if k < 8 else "O"
-            g[y - 1][x] = "O"
-        g[fy][fx + 12] = "O"
+            y = fy + k // 6
+            if x < lp.W:
+                g[y][x] = "V" if k < 9 else "v"
+                g[y + 1][x] = "c" if k < 10 else "O"
+                g[y - 1][x] = "O"
         maos.append((fx, fy))
     if pose.get("puxa") and not arremesso and not facada:
-        # Baladeira: liga de borracha da forquilha até a mão que puxa.
-        pxa, pya = pose["puxa"]
-        for tx, ty in ((ox + 9, oy + 1), (ox + 15, oy + 1)):
+        # Baladeira: liga de borracha da forquilha até a mão que puxa (solta, ela volta reta entre as pontas).
+        pxa, pya = puxa_baladeira(nome, pose)
+        if nome == "atirando":
+            for x in range(ox + 9, ox + 16):
+                g[oy + 1][x] = "E"
+        for tx, ty in (((ox + 9, oy + 1), (ox + 15, oy + 1)) if nome != "atirando" else ()):
             n = max(abs(tx - pxa), abs(ty - pya - dy))
             for st in range(1, n):
                 x = round(pxa + (tx - pxa) * st / n)
@@ -241,7 +296,7 @@ def gravar_bocas(caminho):
     todas = {}
     for arma in ar.ARMAS:
         b = {}
-        for n in ("parado", "agachado", "mira_cima"):
+        for n in ("parado", "agachado", "mira_cima", "mira_baixo"):
             quadro(n, arma, b)
         todas[arma] = b
     linhas = ["// Gerado por tools/arte/lampiao_armas.py (exportar.py). Não editar à mão.",
@@ -249,6 +304,6 @@ def gravar_bocas(caminho):
               "// (x para a frente, y para cima), em pé, agachado e mirando para cima.",
               "export const BOCAS = {"]
     for arma, b in todas.items():
-        linhas.append(f"  {arma}: {{ frente: {b['frente']}, agachado: {b['agachado']}, cima: {b['cima']} }},")
+        linhas.append(f"  {arma}: {{ frente: {b['frente']}, agachado: {b['agachado']}, cima: {b['cima']}, baixo: {b['baixo']} }},")
     linhas.append("};")
     Path(caminho).write_text("\n".join(linhas).replace("[", "[").replace(", ", ", ") + "\n")

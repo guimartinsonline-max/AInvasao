@@ -1,7 +1,6 @@
 import { hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { REFEM } from '../quadros.js';
-import { PREMIOS } from '../armas.js';
 
 // Quanto tempo (ms) dura cada etapa depois de solto, como os prisioneiros do Metal Slug:
 // pula de alegria, procura no bornal, entrega o item, bate continência e sai correndo.
@@ -103,7 +102,7 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
     if (REFEM[estado] !== undefined) this.setFrame(REFEM[estado]);
     if (estado === 'entrega') {
       // O item sai da mão levantada.
-      this.scene.soltarItem(this.x + 18, this.y - 26, Phaser.Utils.Array.GetRandom(PREMIOS));
+      this.scene.soltarItem(this.x + 18, this.y - 26, Phaser.Utils.Array.GetRandom(this.scene.premios));
     }
   }
 

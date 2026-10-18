@@ -4,6 +4,10 @@ import { Disco, Bode } from '../objetos/Disco.js';
 import { Caixotes } from '../objetos/Caixotes.js';
 import { estiloTexto } from '../texto.js';
 import { hex } from '../paleta.js';
+import { PREMIOS } from '../armas.js';
+
+// Fase 1 é só contra a Volante: nada de arma alienígena.
+const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
 
 const CONTAGEM = 9; // segundos do "continuar?"
 const TEMPO = 60; // segundos por trecho, como no fliperama
@@ -15,6 +19,10 @@ const TIQUE = 1300; // ms por segundo do relógio (o do Metal Slug também anda 
 export class Fase1Scene extends CenaJogo {
   constructor() {
     super('Fase1');
+  }
+
+  get premios() {
+    return PREMIOS_F1;
   }
 
   get tudoVolta() {
@@ -81,17 +89,10 @@ export class Fase1Scene extends CenaJogo {
     this.refensSalvos = 0;
     this.tempo = TEMPO;
     this.proximoTique = 0;
-    // Fogo nos destroços do disco caído.
     if (!this.anims.exists('chama_viva')) {
       this.anims.create({ key: 'chama_viva', frames: this.anims.generateFrameNumbers('chama', { start: 0, end: 3 }),
         frameRate: 10, repeat: -1, yoyo: true });
     }
-    this.fogos = d.fogos.map(([x, y], k) => {
-      const f = this.add.sprite(x, y, 'chama', 0).setOrigin(0.5, 0.8).setDepth(7);
-      f.play({ key: 'chama_viva', startFrame: k % 4 });
-      return f;
-    });
-    this.proximaFumaca = 0;
 
     this.ondas = d.ondas.map((o) => ({ ...o, estado: 'esperando', inimigos: o.inimigos.map((i) => [...i]) }));
     this.onda = null;
@@ -270,17 +271,60 @@ export class Fase1Scene extends CenaJogo {
       if (proxima && j.x >= proxima.gatilho) this.comecarOnda(proxima);
     }
 
-    // Fumaça subindo do disco caído.
-    if (t > this.proximaFumaca && v.right > 2500) {
-      this.proximaFumaca = t + 140;
-      const [fx, fy] = Phaser.Utils.Array.GetRandom(this.dados.fogos);
-      this.efeitos.fumacaSobe(fx + Phaser.Math.Between(-4, 4), fy - 14);
-    }
-
     if (!this.terminou && j.x >= this.dados.fim && !j.morto && this.ondas.every((o) => o.estado === 'feita')) {
       this.terminou = true;
       this.pausado = 'fim';
-      this.contarPontos();
+      this.quedaDoDisco();
     }
+  }
+
+  // Fim da fase: um disco voador passa pegando fogo pelo céu e cai atrás dos morros,
+  // com uma explosão ao longe (o primeiro contato que a fase 2 continua).
+  quedaDoDisco() {
+    const cam = this.cameras.main;
+    const ef = this.efeitos;
+    const prof = -3.5; // atrás dos morros (f1_meio): some atrás deles ao cair
+    const x0 = cam.scrollX + LARGURA + 40;
+    const x1 = cam.scrollX + 110;
+    const yChao = this.dados.camadas.meio.base - 22;
+    const disco = this.add.image(x0, 18, 'disco_voador', 0).setDepth(prof).setScale(0.5).setTint(0xd9a07a);
+    const rastro = this.time.addEvent({
+      delay: 45, loop: true, callback: () => {
+        const fumaca = ef.animar('fumaca', disco.x + 10, disco.y - 2, { profundidade: prof - 0.1, anim: 'fumaca_lenta', escala: 0.7 });
+        this.tweens.add({ targets: fumaca, y: fumaca.y - 10, x: fumaca.x + 12, duration: 900 });
+        ef.animar('chama', disco.x + Phaser.Math.Between(2, 10), disco.y + Phaser.Math.Between(-3, 2),
+          { profundidade: prof + 0.05, escala: 0.55 });
+      },
+    });
+    this.time.delayedCall(500, () => this.mostrar('OLHA LÁ!', '', 1200));
+    this.tweens.add({
+      targets: disco, x: x1, duration: 2400, ease: 'Linear',
+      onUpdate: (tw) => {
+        // Cai em curva, cada vez mais rápido, girando torto.
+        const k = tw.progress;
+        disco.y = 18 + (yChao - 18) * k * k;
+        disco.rotation = -0.25 - k * 0.9 + Math.sin(k * 30) * 0.08;
+      },
+      onComplete: () => {
+        rastro.remove();
+        disco.setVisible(false);
+        // Explosão longe: clarão, bola de fogo pequena e uma coluna de fumaça que fica.
+        ef.animar('explosao', x1, yChao - 20, { profundidade: prof });
+        this.time.delayedCall(90, () => ef.animar('explosao_p', x1 - 14, yChao - 14, { profundidade: prof }));
+        this.time.delayedCall(160, () => ef.animar('explosao_p', x1 + 13, yChao - 24, { profundidade: prof }));
+        this.time.delayedCall(260, () => ef.animar('explosao', x1 + 4, yChao - 34, { profundidade: prof }));
+        cam.flash(120, 255, 240, 200);
+        ef.tremer(0.008, 400);
+        this.time.addEvent({
+          delay: 110, repeat: 60, callback: () => {
+            // Coluna de fumaça preta subindo atrás dos morros.
+            const f = ef.animar('fumaca', x1 + Phaser.Math.Between(-6, 6), yChao - 16, { profundidade: prof - 0.1, anim: 'fumaca_lenta', escala: 2 });
+            f.setTint(0x4a4440);
+            this.tweens.add({ targets: f, y: f.y - 90, x: f.x + 20, duration: 1600 });
+          },
+        });
+        this.time.delayedCall(1400, () => this.contarPontos());
+      },
+    });
   }
 }

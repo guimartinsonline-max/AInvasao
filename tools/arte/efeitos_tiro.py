@@ -362,3 +362,30 @@ def granada(k):
     t.linha(tx, ty, tx + ca * 2.5 + sa, ty + sa * 2.5 - ca, "cinza_claro")
     t.contorno("preto")
     return t
+
+
+def corte(k):
+    """Rastro da facada (4 quadros): meia-lua grande de cima para baixo na frente
+    do Lampião, branca no fio e amarela na borda, que some em pontilhado."""
+    t = Tela(34, 40)
+    cx, cy = 4, 20
+    ang = np.arctan2(t.yy - cy, t.xx - cx)
+    dist = np.hypot(t.xx - cx, t.yy - cy)
+    ate = [-0.2, 0.9, 1.25, 1.25][k]  # até onde o arco já desceu
+    fora = (dist < 29) & (dist > 18 - k * 1.5) & (ang > -1.3) & (ang < ate)
+    # A lâmina passa: mais grossa no meio do arco.
+    grossura = 6 * np.cos((ang - (ate - 0.9) / 2) * 1.1)
+    arco = fora & (dist > 29 - np.clip(grossura, 1.5, 7))
+    t.chapado(arco, "amarelo_fogo")
+    t.chapado(arco & (dist > 29 - np.clip(grossura, 1.5, 7) * 0.6), "amarelo_claro")
+    t.chapado(arco & (dist > 27.6), "branco")
+    if k >= 2:
+        ralo(t, arco, 0.35 if k == 2 else 0.7)
+    if k == 1:
+        # Estrela de brilho na ponta da lâmina.
+        a = ate
+        px, py = cx + math.cos(a) * 28, cy + math.sin(a) * 28
+        t.chapado(t.elipse(px, py, 2.4, 2.4), "branco")
+        t.linha(px - 4, py, px + 4, py, "amarelo_claro")
+        t.linha(px, py - 4, px, py + 4, "amarelo_claro")
+    return t

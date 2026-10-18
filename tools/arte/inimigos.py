@@ -76,23 +76,58 @@ def volante(pose=None):
 
 # ---------------------------------------------------------------- Disco abdutor
 def disco(quadro=0):
-    t = Tela(48, 24)
-    cx, cy = 24, 13
-    # Cúpula de vidro com piloto.
-    t.cel(t.elipse(cx, cy - 4, 9, 7) & (t.yy < cy - 1), VIDRO, sombra=2, luz=2)
-    t.cel(t.elipse(cx + 1, cy - 4, 3.5, 3.2), ["sombra", "alien_esc", "alien", "alien_brilho"], sombra=1)
-    t.pontos([(cx, cy - 5), (cx + 2, cy - 5)], "preto")
-    t.pontos([(cx - 5, cy - 8), (cx - 4, cy - 9)], "branco")
-    # Casco.
-    t.cel(t.elipse(cx, cy + 2, 22, 5.5), DISCO, sombra=2, luz=1)
-    t.cel(t.elipse(cx, cy + 5.5, 12, 3), DISCO, sombra=1, deslocar=-1)
-    t.px[int(cy + 2), 3:45][t.px[int(cy + 2), 3:45] != VAZIO] = IDX["cinza_escuro"]
-    # Luzes do aro piscando em sequência.
-    for k, x in enumerate(range(6, 44, 6)):
-        cor = "alien_brilho" if (k + quadro) % 3 == 0 else "alien_esc"
-        t.pontos([(x, int(cy + 3)), (x + 1, int(cy + 3))], cor)
-    # Emissor do raio embaixo.
-    t.chapado(t.elipse(cx, cy + 8, 3, 1.2), "alien_brilho" if quadro % 2 == 0 else "alien")
+    """Disco abdutor no tamanho certo para o xeremita pilotar: casco de 88 px com
+    aro de luzes, cúpula de vidro e o xeremita (cabeça do tamanho da dele em
+    terra) olhando para baixo pelo vidro, com as mãos no painel."""
+    import math
+    import numpy as np
+    W_, H_ = 88, 40
+    t = Tela(W_, H_)
+    cx = 44
+    METAL = ["sombra", "sombra_media", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz", "cinza_claro"]
+    VIDRO_ = ["azul_sombra", "azul_medio", "ceu_escuro", "ceu_medio", "ceu_claro", "horizonte"]
+    ALIEN_ = ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"]
+    # Cúpula: fundo de vidro escuro, piloto, depois o reflexo por cima.
+    cup = t.elipse(cx, 19, 17, 15) & (t.yy < 20)
+    t.volume(cup, VIDRO_, achatado=5, suave=1.5, ambiente=0.15, brilho=0.8)
+    # Xeremita no comando: cabeçona com caroços e olhão olhando para baixo.
+    cab = t.elipse(cx + 1, 12, 8.5, 7.5)
+    t.volume(cab, ALIEN_, achatado=3, suave=0.8, ambiente=0.25)
+    t.volume(t.elipse(cx - 7, 18.5, 3.5, 2.2) | t.elipse(cx + 9, 18.5, 3.5, 2.2), ALIEN_, achatado=1, suave=0.4,
+             ambiente=0.3)  # mãos no painel
+    t.chapado(t.elipse(cx + 3, 12.5, 4, 4.3), "preto")
+    t.chapado(t.elipse(cx + 3, 12.5, 3, 3.3), "branco")
+    t.chapado(t.elipse(cx + 3.5, 14 + (quadro % 2) * 0.5, 1.7, 1.9), "preto")
+    t.ponto(cx + 3, 13, "branco")
+    t.linha(cx - 2, 18, cx + 4, 18, "alien_profundo")
+    for (x, y) in ((cx - 4, 7), (cx - 6, 11), (cx + 6, 7)):
+        t.ponto(x, y, "alien_luz")
+    t.linha(cx - 1, 4, cx - 3, 1, "alien_esc")
+    t.chapado(t.elipse(cx - 3.5, 1, 1.3, 1.3), "alien_brilho" if quadro % 2 else "alien")
+    # Reflexo do vidro por cima do piloto.
+    reflexo = t.elipse(cx - 9, 10, 3, 5, ang=0.5) & cup
+    t.px[reflexo] = IDX["horizonte"]
+    t.chapado(t.elipse(cx - 10, 9, 1, 2.2, ang=0.5) & cup, "branco")
+    borda_cup = cup & ~t.elipse(cx, 19, 16, 14)
+    t.px[borda_cup] = IDX["azul_sombra"]
+    # Casco em duas abas, com volume metálico, rebites e aro de luzes.
+    casco = t.elipse(cx, 24, 43, 8) & (t.yy > 17)
+    t.volume(casco, METAL, achatado=4, suave=1.0, ambiente=0.3, textura=0.12, semente=quadro)
+    t.px[casco & (np.abs(t.yy - 24.5) < 0.6)] = IDX["sombra"]
+    for k, x in enumerate(range(8, 81, 8)):
+        cor = "alien_brilho" if (k + quadro) % 3 == 0 else ("alien" if (k + quadro) % 3 == 1 else "alien_esc")
+        t.chapado(t.elipse(x, 26.5, 1.8, 1.3), cor)
+        t.ponto(x - 1, 26, "branco") if cor == "alien_brilho" else None
+    for x in range(12, 77, 6):
+        t.ponto(x, 21, "cinza_claro")
+    barriga = t.elipse(cx, 31, 22, 5) & (t.yy > 28)
+    t.volume(barriga, METAL, achatado=2, suave=0.6, ambiente=0.15, deslocar=-0.1)
+    # Emissor do raio e antenas embaixo.
+    t.chapado(t.elipse(cx, 35.5, 6, 2.2), "sombra")
+    t.chapado(t.elipse(cx, 35.5, 4.5, 1.6), "alien_brilho" if quadro % 2 == 0 else "alien")
+    t.ponto(cx - 1, 35, "branco")
+    for x in (cx - 14, cx + 14):
+        t.linha(x, 34, x + (2 if x > cx else -2), 38, "cinza_escuro")
     t.contorno("sombra")
     return t
 

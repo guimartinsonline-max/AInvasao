@@ -56,6 +56,21 @@ ROSTOS = {  # 20 colunas, colocado em x=7, começando na linha 7
         ".......O2333332O....",
         "........OOOOOOO.....",
     ],
+    # Olhando para baixo (no pulo, mirando o chão): pupila no fundo do olho, gritando.
+    "baixo": [
+        "....OKK3445555556O..",
+        "....OKK3445KKKK66O..",
+        "....OK32455OOOOK66O.",
+        "....OK2345OOBBBO67O.",
+        "....O323455OBKKO666O",
+        "....O3344555OOO5665O",
+        "....O4445555554KK32O",
+        "....O3445555KKKKKKO.",
+        ".....O3445OWWWWWO...",
+        "......O334ORTTTRO...",
+        ".......O23OWWWWO....",
+        "........OOOOOOO.....",
+    ],
     # Assustado: olho arregalado, boca em O.
     "susto": [
         "....OKK3445555556O..",

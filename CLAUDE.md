@@ -41,7 +41,9 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Lampião** e **Maria Bonita**, caricatos no estilo Metal Slug: corpo atarracado, expressões exageradas, animações cômicas.
 - Por enquanto só o **Lampião** é jogável; Maria Bonita fica para depois.
 - Visual em construção: desenhado **pixel a pixel** (`tools/arte/pixel/lampiao.txt`, gerado por `tools/arte/lampiao_px.py`), estilo Metal Slug: base agachada, inclinado para a frente, poucos acessórios. O mais importante é o **rosto expressivo** e as **poses**.
-- Ataque corpo a corpo: peixeira, como a faca do Metal Slug: sai sozinha quando o inimigo está colado e **mata na hora** (quadro "facada").
+- Ataque corpo a corpo: peixeira, como a faca do Metal Slug: sai sozinha quando o inimigo está colado e **mata na hora**. Golpe em dois tempos (quadros "facada1" levantando e "facada" descendo) com arco de corte largo (`corte_arco`).
+- **No pulo apertando para baixo:** curva a cabeça olhando o chão e aponta a arma para baixo (quadro "mira_baixo", boca `baixo` em `src/maos.js`), como no Metal Slug.
+- **Baladeira** anima a cada tiro: solta a liga ("atirando") e puxa a próxima pedra até o rosto ("recarga"). **Madsen** gira a mira aos poucos entre frente e cima, varrendo na diagonal (como a HMG).
 - Arma inicial: **pistola Mauser semiautomática** (um tiro por toque), numa mão só.
 - **Cada arma tem o jeito próprio de segurar** (quadros em `tools/arte/lampiao_armas.py`, folhas `lampiao_<arma>.png`): Madsen no quadril, Bacamarte baixo na cintura, Papo-amarelo no ombro mirando, Rojão apoiado no ombro, Desintegrador numa mão só, Candeeiro com a lata nas costas, Baladeira puxando a liga, Buscapé no peito. Braços atrás da arma, só as mãos por cima. Armas no tamanho do fuzil (30x12). Boca do cano gerada em `src/maos.js`.
 
@@ -56,11 +58,13 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Xeremita:** cabeçona verde, olho gigante, tentáculos e pistola de raio. O raio sai reto, sem mirar.
 - **Morte por arma:** fogo vira carvão e cinza (quadro "tostado"), chumbo arremessa longe, Papo-amarelo derruba de costas, desintegrador derrete, explosão manda alto girando.
 - **Refém:** romeiro do mesmo porte do Lampião (chapéu de palha com fitas, barba branca, terço, bornal). Amarrado se debate; solto pula, procura no bornal, entrega o item, bate continência e foge. Alguns ficam **pendurados** pelas mãos num galho seco: o tiro corta a corda e ele cai.
-- **Disco abdutor:** raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
+- **Inteligência dos soldados:** obstáculo baixo (até 26 px) eles pulam, alto (até 74 px) escalam agarrados na borda; na beirada, descem pulando se o Lampião estiver embaixo. Nunca ficam presos (pulo tem tempo limite).
+- **Alienígenas só a partir da fase 2** (a fase 1 é só contra a Volante). Campo de treino mantém xeremita e disco.
+- **Disco abdutor:** 88x40, com o piloto xeremita visível na cúpula de vidro; raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
 
 ## Fases (rascunho aprovado)
 
-1. Caatinga: primeiro contato e queda do disco. **Em construção** (`src/scenes/Fase1Scene.js`; arte e dados em `tools/arte/fase1.py`, que gera as camadas `f1_*.png` e `assets/fases/fase1.json`): caatinga aberta, casa de taipa com a Volante entrincheirada, lajedo em degraus com o disco, curral com cata-vento, barranco e o local da queda com o disco caído. 4 ondas que travam a câmera, câmera que não volta, "CONTINUAR?" no lugar (sem checkpoint, como no Metal Slug).
+1. Caatinga: só contra a Volante, **sem alienígenas**. **Em construção** (`src/scenes/Fase1Scene.js`; arte e dados em `tools/arte/fase1.py`, que gera as camadas `f1_*.png` e `assets/fases/fase1.json`): caatinga aberta, casa de taipa com a Volante entrincheirada, lajedo em degraus, curral com cata-vento e barranco. 4 ondas que travam a câmera, câmera que não volta, "CONTINUAR?" no lugar (sem checkpoint, como no Metal Slug). Caixotes e reféns não soltam o desintegrador nesta fase. **Final:** um disco voador passa pegando fogo pelo céu e cai atrás dos morros com explosão ao longe e coluna de fumaça (gancho para a fase 2), depois a contagem de pontos.
 2. Cidade do interior em dia de feira: invasão e chegada da Volante.
 3. Trem da Great Western: fase em movimento.
 4. Açude e casa-grande: chefe coronel.

@@ -171,6 +171,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.clearTint();
     this.queimaAte = 0;
     this.distraido = false;
+    if (this.estado === 'escalando') this.body.allowGravity = true;
+    this.estado = 'morto';
     cena.pontuar(PONTOS[this.tipo] || 100, this.x, this.y - 50);
     // Sangue nas mortes (menos queimado e derretido); o xeremita espirra gosma.
     if (morte !== 'fogo' && morte !== 'derrete') {
@@ -306,6 +308,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     if (cena.efeitos.congelado) return;
+    if (this.estado === 'escalando' || this.estado === 'pulando') {
+      this.atravessar(t, dt);
+      return;
+    }
     if (this.queimaAte > t) {
       this.correrQueimando(t, dt);
       return;
@@ -363,11 +369,14 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const v = cena.cameras.main.worldView;
     const foraDaTela = this.x < v.x + 14 || this.x > v.right - 14;
     if (foraDaTela && !j.morto) this.virar(this.x < v.x + 14 ? 1 : -1);
-    const anda = foraDaTela || (dist > cfg.distancia && dist < cfg.alcance * 1.4 && !j.morto && this.temChaoAFrente());
-    if (anda) {
-      this.body.setVelocityX(this.direcao * cfg.velocidade * (this.vidaEscudo > 0 ? 0.6 : 1) * (foraDaTela ? 1.5 : 1));
+    const anda = foraDaTela || (dist > cfg.distancia && dist < cfg.alcance * 1.4 && !j.morto);
+    const vel = cfg.velocidade * (this.vidaEscudo > 0 ? 0.6 : 1) * (foraDaTela ? 1.5 : 1);
+    if (anda && this.abrirCaminho(vel, j, foraDaTela)) {
+      this.body.setVelocityX(this.direcao * vel);
       this.passo += dt;
       this.setFrame(q.andar[Math.floor(this.passo / 150) % q.andar.length]);
+    } else if (this.estado === 'escalando' || this.estado === 'pulando') {
+      return;
     } else {
       this.body.setVelocityX(0);
       this.setFrame(q.parado);
@@ -396,6 +405,87 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       this.setTint(P.laranja_fogo).setTintMode(Phaser.TintModes.FILL);
       cena.time.delayedCall(50, () => this.vivo && this.clearTint());
       if (this.vida <= 0) this.morrer(this.direcao, false, 'fogo');
+    }
+  }
+
+  // ------------------------------------------------------------ andar pelo cenário
+  // Antes de dar o passo, vê o que tem na frente: obstáculo baixo ele pula, alto
+  // (caixote empilhado, lajedo, sacos de areia) ele escala; na beirada, desce se o
+  // Lampião estiver lá embaixo. Devolve true se pode simplesmente andar.
+  abrirCaminho(vel, j, foraDaTela) {
+    if (!this.body.blocked.down) return true;
+    this.fimPulo = this.scene.time.now + 2500; // segurança: nunca fica preso no meio do pulo
+    const altura = this.obstaculoAFrente();
+    if (altura > 0) {
+      if (altura <= 26) {
+        // Pula por cima.
+        this.estado = 'pulando';
+        this.velPulo = Math.max(vel, 40) * 1.2;
+        this.body.setVelocity(0, -Math.sqrt(2 * this.scene.physics.world.gravity.y * (altura + 12)));
+        this.setFrame(this.q.andar[1]);
+        return false;
+      }
+      if (altura <= 74) {
+        // Escala: agarra na borda e sobe.
+        this.estado = 'escalando';
+        this.topoEscalada = this.y - altura;
+        this.body.allowGravity = false;
+        this.body.setVelocity(0, 0);
+        return false;
+      }
+      return false; // alto demais: espera ali e atira
+    }
+    if (!this.temChaoAFrente()) {
+      // Beirada: desce num pulinho se o Lampião estiver mais embaixo (ou se está entrando na tela).
+      if (foraDaTela || j.pe > this.y + 10) {
+        this.estado = 'pulando';
+        this.velPulo = Math.max(vel, 40) * 1.3;
+        this.body.setVelocity(this.velPulo * this.direcao, -130);
+        this.setFrame(this.q.andar[1]);
+      }
+      return false;
+    }
+    return true;
+  }
+
+  // Altura (px) do sólido logo à frente dos pés, ou 0 se o caminho está livre.
+  obstaculoAFrente() {
+    const fisica = this.scene.physics;
+    const x = this.x + this.direcao * (this.q.corpoL / 2 + 3);
+    if (!fisica.overlapRect(x - 1, this.y - 26, 2, 22, false, true).length) return 0;
+    let yy = this.y - 4;
+    while (yy > this.y - 90 && fisica.overlapRect(x - 1, yy - 1, 2, 1, false, true).length) yy--;
+    return this.y - yy;
+  }
+
+  // Pulando ou escalando: continua até pousar ou passar da borda de cima.
+  atravessar(t, dt) {
+    const q = this.q;
+    if (t > this.fimPulo) {
+      this.body.allowGravity = true;
+      this.estado = 'andando';
+      return;
+    }
+    if (this.estado === 'escalando') {
+      // Mãos para cima, subindo agarrado na borda.
+      this.setFrame(Math.floor(t / 120) % 2 ? q.panico : q.andar[0]);
+      this.body.setVelocity(this.direcao * 6, -75);
+      if (this.y <= this.topoEscalada + 1) {
+        this.body.allowGravity = true;
+        this.body.setVelocity(this.direcao * 45, -110);
+        this.velPulo = 45;
+        this.estado = 'pulando';
+        this.scene.efeitos.poeira(this.x + this.direcao * 6, this.topoEscalada, 4);
+      }
+      return;
+    }
+    // Pulando: segue no ar até pousar.
+    if (this.body.blocked.down && this.body.velocity.y >= 0) {
+      this.estado = 'andando';
+      this.scene.efeitos.poeira(this.x, this.y, 4);
+    } else {
+      // Segue empurrando para a frente: encostado na parede sobe reto e passa por cima ao alcançar o topo.
+      this.body.setVelocityX(this.direcao * (this.velPulo || 40));
     }
   }
 

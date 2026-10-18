@@ -1,4 +1,3 @@
-import { PREMIOS } from '../armas.js';
 
 // Caixotes de madeira e barris de querosene destrutíveis. Bloqueiam a passagem
 // até serem quebrados por tiro, peixeira ou explosão. O caixote vira tábuas e
@@ -85,7 +84,7 @@ class Caixote {
       ef.poeira(cx, this.inicio.y + this.cfg.altura, 8);
       ef.tremer(0.004, 90);
       const dentro = surpresa();
-      if (dentro === 'item') cena.soltarItem(cx, cy, Phaser.Utils.Array.GetRandom(PREMIOS));
+      if (dentro === 'item') cena.soltarItem(cx, cy, Phaser.Utils.Array.GetRandom(cena.premios));
       else if (dentro === 'refem') cena.surpresaRefem(cx, this.y);
       else if (dentro === 'bode') cena.surpresaBode(cx, this.y);
     }

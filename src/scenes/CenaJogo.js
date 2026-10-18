@@ -4,7 +4,7 @@ import { Jogador } from '../objetos/Jogador.js';
 import { Inimigo } from '../objetos/Inimigo.js';
 import { BalasInimigas } from '../objetos/BalasInimigas.js';
 import { Balas } from '../objetos/Balas.js';
-import { ARMAS } from '../armas.js';
+import { ARMAS, PREMIOS } from '../armas.js';
 import { Refem } from '../objetos/Refem.js';
 import { Itens } from '../objetos/Itens.js';
 import { Caixotes } from '../objetos/Caixotes.js';
@@ -118,9 +118,8 @@ export class CenaJogo extends Phaser.Scene {
   }
 
   peixeirada(x, y, direcao, alvo) {
-    this.corte.setPosition(x, y).setFlipX(direcao < 0).setVisible(true).setAlpha(1);
-    this.tweens.killTweensOf(this.corte);
-    this.tweens.add({ targets: this.corte, alpha: 0, duration: 120, onComplete: () => this.corte.setVisible(false) });
+    // Arco largo da peixeira, desenhado quadro a quadro, logo depois de levantar a faca.
+    this.time.delayedCall(55, () => this.efeitos.animar('corte_arco', x + direcao * 2, y, { espelhar: direcao < 0, profundidade: 20 }));
     // A peixeirada mata na hora (como a faca do Metal Slug) e racha o escudo de uma vez.
     if (alvo.vidaEscudo > 0) alvo.danoEscudo(alvo.vidaEscudo, alvo.x, alvo.y - 20);
     if (alvo.zona) alvo.levarDano(99); // caixote ou barril
@@ -248,6 +247,11 @@ export class CenaJogo extends Phaser.Scene {
   }
 
   // No campo de treino tudo volta (inimigos, caixotes, disco); numa fase, não.
+  // Armas que caixotes e reféns podem soltar nesta cena.
+  get premios() {
+    return PREMIOS;
+  }
+
   get tudoVolta() {
     return true;
   }

@@ -749,7 +749,7 @@ FASE = {
         [1622, 158, 66, 6, True],     # girau de madeira do curral
         [2120, 170, 90, 24],          # barranco
         [2300, 150, 72, 6, True],     # girau
-        [2780, 172, 30, 22],          # destroço do disco
+        [2780, 172, 30, 22],          # pedra grande
     ],
     "caixotes": [
         [250, CHAO - 18], [740, CHAO - 18], [764, CHAO - 18], [752, CHAO - 36],
@@ -762,42 +762,41 @@ FASE = {
                [1048, 166, {"pendurado": 124}], [2448, 166, {"pendurado": 124}]],
     "itens": [[560, CHAO - 20, "madsen"]],
     "bodes": [[1400, CHAO]],
-    "discos": [[1360]],
+    "discos": [],
     # Inimigos que já estão no lugar quando o Lampião chega.
     "inimigos": [
-        [600, CHAO, "xeremita"], [940, CHAO, "granadeiro", {"distraido": True}],
+        [600, CHAO, "volante"], [940, CHAO, "granadeiro", {"distraido": True}],
         [968, CHAO, "volante", {"distraido": True}], [995, CHAO, "volante", {"escudo": True}],
-        [1250, 152, "xeremita"], [1312, 138, "rojao"], [1650, 158, "granadeiro", {"distraido": True}],
-        [2160, 170, "metralhador"], [2340, 150, "xeremita"], [2560, CHAO, "rojao", {"distraido": True}],
+        [1250, 152, "volante"], [1312, 138, "rojao"], [1650, 158, "granadeiro", {"distraido": True}],
+        [2160, 170, "metralhador"], [2340, 150, "granadeiro"], [2560, CHAO, "rojao", {"distraido": True}],
     ],
     # Ondas: ao passar do gatilho, a câmera trava entre trava[0] e trava[1] até todos caírem.
     # Cada inimigo: [tipo, de onde vem ("dir", "esq" ou "ceu"), atraso em ms, opções].
     "ondas": [
-        {"gatilho": 300, "trava": [140, 524], "inimigos": [["xeremita", "dir", 0], ["xeremita", "dir", 900],
+        {"gatilho": 300, "trava": [140, 524], "inimigos": [["volante", "dir", 0], ["volante", "dir", 900],
                                                            ["volante", "salta:500", 1700]]},
         {"gatilho": 860, "trava": [700, 1084], "inimigos": [["volante", "salta:910", 0], ["facao", "dir", 700],
                                                             ["volante", "esq", 1600], ["metralhador", "dir", 2400],
                                                             ["rojao", "dir", 3200]]},
-        {"gatilho": 1720, "trava": [1560, 1944], "inimigos": [["xeremita", "ceu", 0], ["xeremita", "ceu", 500],
-                                                              ["granadeiro", "dir", 1200], ["xeremita", "ceu", 1800],
+        {"gatilho": 1720, "trava": [1560, 1944], "inimigos": [["volante", "salta:1700", 0], ["volante", "dir", 500],
+                                                              ["granadeiro", "dir", 1200], ["metralhador", "esq", 1800],
                                                               ["facao", "salta:1862", 2400], ["volante", "salta:1862", 3000]]},
         {"gatilho": 2260, "trava": [2100, 2484], "inimigos": [["metralhador", "dir", 0], ["volante", "salta:2382", 300],
-                                                              ["xeremita", "ceu", 400], ["rojao", "dir", 2600],
+                                                              ["volante", "dir", 400], ["rojao", "dir", 2600],
                                                               ["volante", "dir", 1000, {"escudo": True}],
                                                               ["facao", "esq", 1400], ["granadeiro", "dir", 1800],
-                                                              ["xeremita", "ceu", 2200]]},
+                                                              ["volante", "salta:2382", 2200]]},
     ],
     "fogueiras": [[918, CHAO], [2580, CHAO]],
     "forquilhas": [[1010, 90], [2410, 90]],
     "buracos": [1862, 2382],
-    "fogos": [[2650, CHAO - 2], [2735, CHAO - 2], [2795, 172 - 2], [2880, CHAO - 2], [3040, 150]],
     "fim": 2920,
 }
 
 
 def camada_jogo():
     """Plano do jogo: chão em corte, lajedos, trincheira, giraus, barranco,
-    destroços e o disco caído, mais os enfeites que ficam no chão."""
+    mais os enfeites que ficam no chão."""
     alt = 104
     topo = 216 - alt  # y do mundo onde a camada começa
     t = Tela(LARGURA_FASE, alt)
@@ -808,13 +807,12 @@ def camada_jogo():
         if rng.random() < 0.55:
             c = capim(semente=x, seco=True)
             colar(t, c, x + rng.integers(-3, 3), y(CHAO) - c.h + 1)
-    # Chão: normal até o local da queda, queimado depois.
-    t.colar(chao(2620, 26, semente=3), 0, y(CHAO) - 2)
-    t.colar(chao(LARGURA_FASE - 2620, 26, semente=4, queimado=True), 2620, y(CHAO) - 2)
+    # Chão de terra batida a fase inteira.
+    t.colar(chao(LARGURA_FASE, 26, semente=3), 0, y(CHAO) - 2)
     yc = y(CHAO) - 1  # linha do chão na camada
-    for x in (70, 205, 640, 1010, 1470, 1930, 2420):
+    for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050):
         assentar(t, xiquexique(semente=x), x, yc)
-    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610)):
+    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850, 3000)):
         assentar(t, pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=k + 20), x, yc, afundar=2)
     assentar(t, cranio_boi(), 1880, yc)
     assentar(t, cranio_boi(), 2540, yc)
@@ -832,13 +830,8 @@ def camada_jogo():
                     (1720, pote_barro(3)), (1910, roda_carroca(8)), (2080, pote_barro(4, 12)), (2450, pilao()),
                     (2500, carroca_quebrada()), (180, cerca_farpada(70, 1)), (1950, cerca_farpada(100, 2))):
         assentar(t, peca, x, yc)
-    # Emenda pontilhada entre o chão normal e o queimado.
-    for xx in range(2590, 2650):
-        for yy in range(y(CHAO) - 2, alt):
-            if (xx - 2590) / 60 > BAYER4[yy % 4, xx % 4] and t.px[yy, xx] != VAZIO:
-                t.px[yy, xx] = IDX["terra_escura"] if yy % 3 else IDX["sombra"]
     # Lajedos e barranco (sólidos).
-    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8)], range(6)):
+    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10)], range(7)):
         lj = lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
         sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
@@ -855,12 +848,8 @@ def camada_jogo():
         tab = tabuas(gw, 5, vertical=True, semente=gx)
         tab.contorno("sombra")
         colar(t, tab, gx, y(gy))
-    # Destroços do disco espalhados e o disco caído no fim.
-    for k, dx in enumerate((2660, 2780, 2870)):
-        assentar(t, destrocos(semente=k), dx, yc, afundar=4)
-    dc = disco_caido()
-    sombra_contato(t, 2960 + dc.w / 2, yc + 1, dc.w * 1.1, 4)
-    colar(t, dc, 2960, y(CHAO) - dc.h + 10)
+    # Cerca no fim do trecho.
+    assentar(t, cerca_farpada(90, 3), 2860, yc)
     return t, topo
 
 
@@ -894,7 +883,7 @@ def camada_perto():
 
 def camada_meio():
     """Longe (anda a 0,45 da câmera): morros baixos com caatinga miúda e uma casinha.
-    (A fumaça do disco caído é animada no jogo.)"""
+    (O disco que cai no fim passa atrás dela, animado no jogo.)"""
     fator = 0.45
     W = int(LARGURA_FASE * fator + 384)
     alt = 64
