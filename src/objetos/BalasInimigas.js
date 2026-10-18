@@ -70,6 +70,22 @@ export class BalasInimigas {
     d.proximaFumaca = 0;
   }
 
+  // Carvão em brasa da chaminé do trem: arco que cai perto de alvoX e estoura pequeno.
+  lancarCarvao(x, y, alvoX) {
+    const d = this.dinamites.get(x, y, 'carvao');
+    if (!d) return;
+    d.setTexture('carvao', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
+    d.body.reset(x, y);
+    d.body.setSize(6, 6);
+    const vy = -Phaser.Math.Between(200, 260);
+    const queda = Math.max(0, 192 - y);
+    const tempo = (-vy + Math.sqrt(vy * vy + 2 * 900 * queda)) / 900;
+    d.body.setVelocity((alvoX - x) / tempo, vy);
+    d.body.setAngularVelocity(400);
+    d.carvao = true;
+    d.proximaFumaca = 0;
+  }
+
   explodirDinamite(d) {
     if (!d.active) return;
     const cena = this.cena;
@@ -80,11 +96,14 @@ export class BalasInimigas {
     d.body.reset(-100, -100);
     const forte = d.rojao;
     const obus = d.obus;
+    const carvao = d.carvao;
     d.rojao = false;
     d.obus = false;
-    cena.efeitos.explosao(x, y - 4, obus ? 1.4 : forte ? 0.9 : 0.6);
+    d.carvao = false;
+    cena.efeitos.explosao(x, y - 4, obus ? 1.4 : forte ? 0.9 : carvao ? 0.45 : 0.6);
+    if (carvao) cena.efeitos.chama(x, y - 4);
     const j = this.jogador;
-    const raio = obus ? 36 : forte ? 28 : 20;
+    const raio = obus ? 36 : forte ? 28 : carvao ? 16 : 20;
     if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < raio && Math.abs(j.pe - 14 - y) < 26) j.morrer(j.x - x);
   }
 
@@ -117,6 +136,12 @@ export class BalasInimigas {
     const v = this.cena.cameras.main.worldView;
     const agora = this.cena.time.now;
     for (const d of this.dinamites.getChildren()) {
+      if (d.active && d.carvao && agora > d.proximaFumaca) {
+        // Brasa soltando faísca no ar.
+        d.proximaFumaca = agora + 60;
+        d.setFrame(Math.floor(agora / 80) % 2);
+        this.cena.efeitos.faisca(d.x, d.y, 1);
+      }
       if (!d.active || !d.rojao) continue;
       // O rojão aponta para onde vai e solta fumaça.
       d.setRotation(Math.atan2(d.body.velocity.y, d.body.velocity.x));

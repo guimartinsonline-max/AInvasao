@@ -152,7 +152,7 @@ export class Fase1Scene extends CenaJogo {
         const v = cam.worldView;
         let x;
         let y;
-        if (tipo === 'caminhao' || tipo === 'blindado') {
+        if (tipo === 'caminhao' || tipo === 'blindado' || tipo === 'trem') {
           this.chegarVeiculo(tipo, lado, opcoes || {}, onda);
           onda.faltam--;
           return;

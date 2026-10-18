@@ -2,6 +2,7 @@ import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
 import { TOUCEIRA, LAMPIAO, LAMPIAO_GORDO, COMIDAS, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS } from './quadros.js';
 import { BOCAS } from './maos.js';
 import { AMBIENTE } from './objetos/Ambiente.js';
+import { TREM } from './objetos/Trem.js';
 import { VERSAO } from './config.js';
 import { PEDACOS } from './fase1_pedacos.js';
 
@@ -28,6 +29,13 @@ export function carregarSprites(cena) {
   cena.load.image('chapeu', s('chapeu'));
   cena.load.spritesheet('jumento', s('jumento'), { frameWidth: 72, frameHeight: 60 });
   cena.load.image('metralha_jumento', s('metralha_jumento'));
+  // Chefe da fase 1: trem blindado e suas partes.
+  cena.load.spritesheet('trem_loco', s('trem_loco'), { frameWidth: TREM.loco.largura, frameHeight: TREM.loco.altura });
+  cena.load.spritesheet('trem_vagao', s('trem_vagao'), { frameWidth: TREM.vagao.largura, frameHeight: TREM.vagao.altura });
+  for (const [nome, c] of Object.entries(TREM.partes)) {
+    cena.load.spritesheet(`trem_${nome}`, s(`trem_${nome}`), { frameWidth: c.largura, frameHeight: c.altura });
+  }
+  cena.load.spritesheet('carvao', s('carvao'), { frameWidth: 8, frameHeight: 8 });
   // Lampião gordo com cada arma, e as comidas.
   cena.load.spritesheet('lampiao_gordo', s('lampiao_gordo'), { frameWidth: LAMPIAO_GORDO.largura, frameHeight: LAMPIAO_GORDO.altura });
   for (const arma of Object.keys(BOCAS).filter((a) => a !== 'pistola')) {

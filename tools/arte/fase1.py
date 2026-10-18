@@ -733,7 +733,7 @@ def destrocos(semente=0):
 
 
 # ================================================================ a fase
-LARGURA_FASE = 5800
+LARGURA_FASE = 6500
 PEDACO = 2048
 CHAO = 194  # topo do chão sólido (o desenho do chão começa 2 px acima)
 
@@ -829,11 +829,13 @@ FASE = {
         # Carro blindado da Volante.
         {"gatilho": 5420, "trava": [5230, 5778], "inimigos": [["blindado", "dir", 300, {"para": 5640}],
                                                               ["volante", "esq", 5000], ["volante", "esq", 9000]]},
+        # Chefe: o trem blindado da Volante chega pelos trilhos.
+        {"gatilho": 5960, "trava": [5900, 6448], "inimigos": [["trem", "dir", 600]]},
     ],
     "fogueiras": [[918, CHAO], [2580, CHAO], [5266, CHAO]],
     "forquilhas": [[1010, 90], [2410, 90]],
     "buracos": [1862, 2382],
-    "fim": 5720,
+    "fim": 6440,
     # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
     "casas": [[3060, 130, 84, 21, False], [3680, 110, 72, 22, True]],  # x, largura, altura, semente, buraco
     "varais": [3795],
@@ -923,6 +925,9 @@ def camada_jogo():
     assentar(t, ext.barraca(84, 44, semente=2), 5180, yc + 1)
     assentar(t, ext.mastro(110), 5330, yc)
     assentar(t, ext.caixas_municao(2, 2), 5470, yc)
+    # ---- Linha de trem no fim (arena do chefe): trilhos no chão.
+    import trem as tr
+    t.colar(tr.trilhos(LARGURA_FASE - 5780), 5780, y(CHAO) - 6)
     return t, topo
 
 

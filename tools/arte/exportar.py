@@ -117,6 +117,14 @@ for k, (_x, w_, h_, sem, buraco) in enumerate(fase1.FASE["casas"]):
     folha([fx.casa_vila(w_, h_, sem, buraco), fx.casa_vila(w_, h_, sem, buraco, destelhada=True)], SAIDA / f"casa_vila_{k}.png")
 folha([fx.ponte_segmento(fase1.FASE["ponte"][3], semente=2), fx.ponte_segmento(fase1.FASE["ponte"][3], quebrada=True, semente=2)],
       SAIDA / "ponte_seg.png")
+import trem as tr  # noqa: E402
+folha([tr.locomotiva(q) for q in range(3)], SAIDA / "trem_loco.png")
+folha([tr.vagao(q) for q in range(2)], SAIDA / "trem_vagao.png")
+folha([tr.mg(q) for q in range(3)], SAIDA / "trem_mg.png")
+folha([tr.chamine(q) for q in range(3)], SAIDA / "trem_chamine.png")
+folha([tr.torre(q) for q in range(3)], SAIDA / "trem_torre.png")
+folha([tr.porta(q) for q in range(2)], SAIDA / "trem_porta.png")
+folha([tr.carvao(q) for q in range(2)], SAIDA / "carvao.png")
 import jumento as jm  # noqa: E402
 folha(jm.QUADROS, SAIDA / "jumento.png")
 folha([jm.metralhadora()], SAIDA / "metralha_jumento.png")

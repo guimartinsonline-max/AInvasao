@@ -9,6 +9,7 @@ import { Refem } from '../objetos/Refem.js';
 import { Itens } from '../objetos/Itens.js';
 import { Caixotes } from '../objetos/Caixotes.js';
 import { Caminhao, Blindado } from '../objetos/Veiculos.js';
+import { TremBlindado } from '../objetos/Trem.js';
 import { estiloTexto } from '../texto.js';
 import { hex } from '../paleta.js';
 
@@ -119,6 +120,15 @@ export class CenaJogo extends Phaser.Scene {
     const x = lado === 'esq' ? v.x - 80 : v.right + 80;
     const para = opcoes.para ?? (lado === 'esq' ? v.x + 110 : v.right - 120);
     let veiculo;
+    if (tipo === 'trem') {
+      // Chefe: o trem blindado chega pelos trilhos.
+      const trem = new TremBlindado(this, {
+        aoSoltar: (inimigo) => { if (onda) onda.vivos.push(inimigo); },
+      });
+      this.trens = [...(this.trens || []), trem];
+      if (onda) onda.vivos.push(trem);
+      return trem;
+    }
     if (tipo === 'caminhao') {
       const soldados = opcoes.soldados || ['volante', 'volante', 'volante'];
       if (onda) onda.faltam += soldados.length;
@@ -318,6 +328,7 @@ export class CenaJogo extends Phaser.Scene {
     this.efeitos.atualizar();
     this.itens.atualizar(t);
     for (const jm of this.jumentos || []) jm.atualizar(t, dt);
+    for (const tr of this.trens || []) tr.atualizar(t, dt);
 
     for (const g of this.granadas.getChildren()) {
       if (!g.active) continue;
