@@ -266,16 +266,70 @@ def mastro(altura=110):
     return t
 
 
+def caixa_municao(t, x, y, w=16, h=12, semente=0, aberta=False):
+    """Caixote de munição de madeira pintado de verde-oliva, visto um pouco de
+    cima: face de cima clara com as tábuas da tampa, frente com tábuas e tinta
+    gasta, cantoneiras de ferro com rebite, alça de corda e estêncil amarelo.
+    aberta: sem tampa, mostrando os pentes de latão lá dentro."""
+    topo = 3  # altura da face de cima
+    rng = np.random.default_rng(semente)
+    frente = t.retangulo(x, y + topo, w, h - topo)
+    t.volume(frente, LONA_VERDE, achatado=1.4, suave=0.3, ambiente=0.28)
+    for yy in range(int(y + topo) + 3, int(y + h) - 1, 3):
+        t.linha(x + 1, yy, x + w - 2, yy, "caatinga_esc")
+    for _ in range(3):  # tinta lascada mostrando a madeira
+        px, py = x + rng.uniform(2, w - 3), y + topo + rng.uniform(2, h - topo - 2)
+        t.ponto(px, py, "couro")
+        t.ponto(px + 1, py, "couro_escuro")
+    cima = t.retangulo(x, y, w, topo)
+    if aberta:
+        # Boca aberta: borda de madeira e os pentes de latão enfileirados.
+        t.volume(cima, ["couro_profundo", "couro_escuro", "couro"], achatado=0.6, suave=0.2)
+        t.chapado(t.retangulo(x + 1, y + 1, w - 2, topo - 1), "preto")
+        for j in range(int(w - 3)):
+            t.ponto(x + 1.5 + j, y + 1, "amarelo_claro" if j % 2 else "ouro_escuro")
+            if j % 2:
+                t.ponto(x + 1.5 + j, y, "amarelo_fogo")  # pontas das balas saindo
+    else:
+        t.volume(cima, LONA_VERDE, achatado=0.8, suave=0.2, ambiente=0.55, brilho=1.25)
+        t.linha(x, y, x + w - 1, y, "mandacaru_luz")
+        t.linha(x + w // 2, y, x + w // 2, y + topo - 1, "caatinga_media")  # junta da tampa
+    t.linha(x, y + topo, x + w - 1, y + topo, "sombra")  # quina entre a tampa e a frente
+    # Cantoneiras de ferro nos cantos da frente.
+    for cx in (x, x + w - 2):
+        for cy in (y + topo, y + h - 2):
+            t.chapado(t.retangulo(cx, cy, 2, 2), "cinza_escuro")
+            t.ponto(cx, cy, "cinza_luz")
+    # Estêncil amarelo e alça de corda no lado.
+    t.chapado(t.retangulo(x + 3, y + topo + (h - topo) / 2 - 1, w - 6, 1.6), "amarelo_fogo")
+    for k in range(int((w - 6) // 3)):
+        t.ponto(x + 4 + k * 3, y + topo + (h - topo) / 2 - 0.5, "ouro_escuro")
+    t.linha(x + w - 1, y + topo + 2, x + w + 1, y + topo + 4, "areia")
+    t.linha(x + w + 1, y + topo + 4, x + w - 1, y + topo + 6, "areia_media")
+
+
 def caixas_municao(n=3, semente=0):
-    """Pilha de caixas de munição verdes com alça e letras pintadas."""
-    t = Tela(n * 15 + 2, 22)
+    """Pilha de caixotes de munição sobre um estrado: fileira de baixo inteira,
+    a de cima centrada (a da ponta aberta, mostrando os pentes) e a tampa dela
+    encostada de pé no lado da pilha."""
+    cw, ch = 16, 12
+    W = n * (cw + 1) + 12
+    H = ch * 2 + 5
+    t = Tela(W, H)
+    base_y = H - 3 - ch
+    t.volume(t.retangulo(1, H - 3, n * (cw + 1) + 2, 3), ["marrom_noite", "couro_profundo", "couro_escuro", "couro"],
+             achatado=1, suave=0.2, ambiente=0.35)
+    for x in range(3, n * (cw + 1), 5):
+        t.ponto(x, H - 1, "preto")
     for k in range(n):
-        x, y = 1 + k * 15, 9
-        m = t.retangulo(x, y, 14, 12)
-        t.volume(m, LONA_VERDE, achatado=1.5, suave=0.4, ambiente=0.3, textura=0.1, semente=k)
-        t.chapado(t.retangulo(x + 4, y + 4, 6, 1), "amarelo_fogo")
-        t.chapado(t.retangulo(x + 5, y - 1, 4, 1), "cinza_escuro")
-    t.volume(t.retangulo(8, 0, 14, 9), LONA_VERDE, achatado=1.5, suave=0.4, ambiente=0.35)
+        caixa_municao(t, 2 + k * (cw + 1), base_y, cw, ch, semente + k)
+    for k in range(n - 1):
+        x = 2 + (cw + 1) / 2 + k * (cw + 1)
+        caixa_municao(t, x, base_y - ch + 1, cw, ch, semente + 10 + k, aberta=(k == n - 2))
+    # Tampa da caixa aberta largada no chão, ao lado do estrado.
+    x0 = n * (cw + 1) + 3
+    tampa = t.poligono([(x0, H - 1), (x0 + 6, H - 3.5), (x0 + 7, H - 2), (x0 + 1, H + 0.5)])
+    t.volume(tampa, LONA_VERDE, achatado=0.8, suave=0.2, ambiente=0.45)
     t.contorno("sombra")
     return t
 

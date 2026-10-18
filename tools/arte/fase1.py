@@ -865,7 +865,8 @@ def camada_jogo():
     # Chão de terra batida; no leito do rio, lama seca rachada.
     import fase1_extra as ext
     t.colar(chao(LARGURA_FASE, 26, semente=3), 0, y(CHAO) - 2)
-    t.colar(ext.chao_rachado(4636 - 3972, 26, semente=8), 3972, y(CHAO) - 2)
+    # Lama rachada do leito misturando aos poucos na terra batida (sem corte reto).
+    colar_suave(t, ext.chao_rachado(4740 - 3880, 26, semente=8), 3880, y(CHAO) - 2, borda=70, semente=8)
     yc = y(CHAO) - 1  # linha do chão na camada
     for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050, 3870, 4760, 5160, 5700):
         assentar(t, xiquexique(semente=x), x, yc)
@@ -888,10 +889,16 @@ def camada_jogo():
                     (2500, carroca_quebrada()), (180, cerca_farpada(70, 1)), (1950, cerca_farpada(100, 2))):
         assentar(t, peca, x, yc)
     # Lajedos e barranco (sólidos).
-    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10, 12, 13, 14, 15)], range(11)):
+    for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10)], range(7)):
         lj = lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
         sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
+    # Barrancos do rio seco onde a ponte apoia (terra em camadas, muro de pedra, viga).
+    for x0, perfil, lado, sem in ((3940, [(32, 18), (52, 48)], 1, 61), (4580, [(56, 48), (40, 18)], -1, 62)):
+        cb = cabeceira(perfil, lado, sem)
+        dx = 26 if lado > 0 else 10  # rampa de terra do lado de fora
+        sombra_contato(t, x0 - dx + cb.w / 2, yc + 1, cb.w * 1.05, 3.5)
+        colar(t, cb, x0 - dx, y(CHAO) - (cb.h - 1))
     # Trincheira de sacos de areia.
     sx, sy, sw, sh = FASE["solidos"][2]
     sa = sacos_detalhados(4, 3, 1)
@@ -916,7 +923,7 @@ def camada_jogo():
     # (A ponte é feita de pedaços à parte que a granada quebra.)
     # ---- Acampamento da Volante: barracas, torre de vigia, mastro, munição.
     assentar(t, ext.barraca(84, 44, semente=1), 4740, yc + 1)
-    assentar(t, ext.caixas_municao(3, 1), 4862, yc)
+    assentar(t, ext.caixas_municao(3, 1), 4975, yc)  # atrás da barricada, de onde a Volante se abastece
     sa2 = sacos_detalhados(4, 3, 2)
     for sx_ in (4900, 5400):
         assentar(t, sa2, sx_ - 3, yc, afundar=3)
@@ -924,7 +931,7 @@ def camada_jogo():
     colar(t, tv, 5030, y(CHAO) - tv.h + 1)
     assentar(t, ext.barraca(84, 44, semente=2), 5180, yc + 1)
     assentar(t, ext.mastro(110), 5330, yc)
-    assentar(t, ext.caixas_municao(2, 2), 5470, yc)
+    assentar(t, ext.caixas_municao(2, 2), 5088, yc)  # munição ao pé da torre de vigia
     # ---- Linha de trem no fim (arena do chefe): trilhos no chão.
     import trem as tr
     t.colar(tr.trilhos(LARGURA_FASE - 5780), 5780, y(CHAO) - 6)
@@ -1251,3 +1258,146 @@ def sacos_detalhados(n=4, filas=3, semente=0):
              suave=0.3)
     t.contorno("sombra")
     return t
+
+
+TERRA_BANCO = ["marrom_noite", "terra_escura", "terra", "terra_media", "barro", "areia_media", "areia"]
+
+
+def cabeceira(perfil, lado_ponte=1, semente=0):
+    """Barranco natural do rio seco onde a ponte apoia: o corte de terra desce em
+    curva (sem caixote), com camadas acompanhando a encosta, beirada de capim
+    pendendo, raízes, pedras encravadas, terra desmoronada no pé e uma rampa
+    baixa de terra se espalhando no chão do lado de fora (a passagem para o
+    trecho seguinte é suave). Embaixo da ponta da ponte, a cabeceira é de pedra
+    bruta encaixada (pedras de tamanhos diferentes, sem tijolo), metida no
+    barranco, com a viga de madeira e os parafusos por cima.
+    perfil: lista de (largura, altura) da esquerda para a direita; lado_ponte:
+    1 se a ponte fica à direita, -1 se à esquerda."""
+    rng = np.random.default_rng(semente)
+    RAMPA = 26  # rampa de terra espalhada do lado de fora (sem quina no chão)
+    W = sum(w for w, _ in perfil) + RAMPA + 10
+    hmax = max(h for _, h in perfil)
+    H = hmax + 8
+    t = Tela(W, H)
+    chao_y = H - 1
+    x0 = RAMPA if lado_ponte > 0 else 10
+    topo = np.full(W, float(chao_y))
+    x = x0
+    for w, h in perfil:
+        topo[x:x + w] = chao_y - h
+        x += w
+    # Rampa de fora: terra que escorreu do barranco, baixinha e comprida.
+    fora = range(0, x0) if lado_ponte > 0 else range(x, W)
+    for k in fora:
+        d = (x0 - k) if lado_ponte > 0 else (k - x + 1)
+        borda = topo[x0] if lado_ponte > 0 else topo[x - 1]
+        alvo = chao_y - (chao_y - borda) * 0.35
+        topo[k] = alvo + (chao_y - alvo) * min(1, d / RAMPA) ** 0.7
+    # Encosta em curva entre os degraus e beirada comida pela erosão.
+    topo = ndimage.gaussian_filter1d(topo, 3.2)
+    topo += ndimage.gaussian_filter1d(rng.standard_normal(W), 1.5) * 0.8
+    # A ponta da ponte fica reta (é onde a viga apoia).
+    xm = (x0 + sum(w for w, _ in perfil) - 22) if lado_ponte > 0 else x0 + 2
+    topo[xm - 2:xm + 22] = chao_y - hmax
+    topo = np.minimum(topo, chao_y)
+    yy, xx = t.yy, t.xx
+    xi = np.clip(xx.astype(int), 0, W - 1)
+    corpo = (yy >= topo[xi]) & (yy < H)
+    prof = yy - topo[xi]  # profundidade a partir da superfície
+    # Camadas de terra: perto da superfície acompanham a encosta, no fundo deitam.
+    mistura = np.clip(prof / 14, 0, 1)
+    onda = (prof * (1 - mistura) + (yy - chao_y + hmax) * mistura
+            + np.sin(xx / 7 + semente) * 1.2 + np.sin(xx / 3.1) * 0.4)
+    faixa = (onda // 4.5).astype(int) % 5
+    nivel = np.choose(faixa, [2, 3, 2, 4, 3])
+    t.px[corpo] = np.array([IDX[c] for c in TERRA_BANCO])[nivel][corpo]
+    linha = corpo & ((onda % 4.5) < 0.9) & (prof > 3)
+    t.px[linha] = IDX["terra_escura"]
+    # Sombra fria na parte de baixo do corte e luz na beirada.
+    baixo = corpo & (yy > chao_y - 6) & (prof > 4)
+    t.px[baixo] = ESCURO[t.px[baixo]]
+    borda_topo = corpo & ~np.vstack([np.zeros((1, W), bool), corpo[:-1]])
+    t.px[borda_topo] = IDX["areia"]
+    t.px[np.vstack([np.zeros((1, W), bool), borda_topo[:-1]]) & corpo] = IDX["barro"]
+    # Pedras encravadas no corte (fora da cabeceira de pedra).
+    miolo = ndimage.binary_erosion(corpo, iterations=3)
+    miolo[:, max(0, xm - 4):xm + 24] = False
+    ys, xs = np.where(miolo)
+    for _ in range(max(3, len(ys) // 160)):
+        i = rng.integers(len(ys))
+        pd = pedra(int(rng.integers(5, 10)), int(rng.integers(4, 7)), semente=semente + i, musgo=False)
+        colar(t, pd, xs[i] - pd.w // 2, ys[i] - pd.h // 2)
+    # Raízes penduradas saindo da beirada.
+    for _ in range(max(3, W // 16)):
+        x = rng.uniform(4, W - 4)
+        if xm - 3 <= x <= xm + 23:
+            continue
+        y0 = topo[int(x)] + 2
+        for d in range(int(rng.integers(5, 14))):
+            x += rng.uniform(-0.7, 0.7)
+            yy_ = int(y0 + d)
+            if 0 <= yy_ < H and 0 <= int(x) < W - 1 and corpo[yy_, int(x)]:
+                t.px[yy_, int(x)] = IDX["marrom_noite"]
+                if d % 3 == 0 and corpo[yy_, int(x) + 1]:
+                    t.px[yy_, int(x) + 1] = IDX["couro_escuro"]
+    # Cabeceira de pedra bruta encaixada, metida no barranco.
+    ym = int(chao_y - hmax)
+    # Pedra da própria região (arenito puxando para o cinza), para não destoar do barranco.
+    PEDRA_MURO = ["sombra", "azul_sombra", "cinza_escuro", "terra_media", "areia_media", "areia_luz"]
+    muro = np.zeros((H, W), bool)
+    yb = ym + 4
+    while yb < chao_y:
+        alt = int(rng.integers(5, 8))
+        xb = xm - int(rng.integers(0, 3))
+        while xb < xm + 20:
+            larg = int(rng.integers(5, 10))
+            r = min(alt, larg) * 0.45
+            bl = (t.retangulo(xb + r, yb, larg - 2 * r, alt) | t.retangulo(xb, yb + r, larg, alt - 2 * r)
+                  | t.elipse(xb + r, yb + r, r, r) | t.elipse(xb + larg - r, yb + r, r, r)
+                  | t.elipse(xb + r, yb + alt - r, r, r) | t.elipse(xb + larg - r, yb + alt - r, r, r))
+            bl &= (t.xx >= xm - 2) & (t.xx < xm + 21) & (t.yy < chao_y + 1) & ~muro
+            t.volume(bl, PEDRA_MURO, achatado=2, suave=0.5, ambiente=0.3, brilho=1.1, linha=False)
+            muro |= bl
+            xb += larg
+        yb += alt - 1
+    junta = (t.xx >= xm - 2) & (t.xx < xm + 21) & (t.yy >= ym + 4) & (t.yy <= chao_y) & ~muro
+    t.px[junta] = IDX["terra_escura"]
+    # Terra cobrindo as laterais da cabeceira (ela está enterrada no barranco).
+    for lado in (xm - 2, xm + 20):
+        for yy_ in range(ym + 6, chao_y + 1):
+            if rng.random() < 0.7:
+                t.px[yy_, lado] = IDX["terra_media"]
+    # Viga de madeira atravessada, com cabeça dos parafusos.
+    tora(t, xm - 3, ym + 2.5, xm + 22, ym + 2.5, 2.2, semente + 5)
+    for xv in (xm + 2, xm + 10, xm + 17):
+        t.ponto(xv, ym + 2, "cinza_claro")
+        t.ponto(xv, ym + 3, "sombra")
+    # Capim pendendo na beirada e no pé.
+    for x in range(3, W - 3, 4):
+        if rng.random() < 0.5 and not (xm - 3 <= x <= xm + 23):
+            c = capim(7, semente=semente + x, seco=True)
+            colar(t, c, x - c.w // 2, int(topo[x]) - c.h + 3)
+    # Terra desmoronada e pedregulho no pé.
+    for _ in range(W // 6):
+        x = rng.uniform(1, W - 1)
+        m = t.elipse(x, chao_y - 0.5, rng.uniform(1, 2.5), rng.uniform(0.8, 1.5))
+        t.volume(m, ["sombra", "azul_sombra", "cinza_escuro", "cinza_medio", "cinza"] if rng.random() < 0.5
+                 else ["terra_escura", "terra", "terra_media", "barro"], achatado=1, suave=0.2, ambiente=0.3)
+    t.contorno("sombra")
+    return t
+
+
+def colar_suave(t, peca, x, y, borda=48, semente=0):
+    """Cola uma peça larga (outro tipo de chão) com as pontas se misturando no que
+    já está embaixo: a borda some aos poucos em pontilhado irregular, sem corte reto."""
+    rng = np.random.default_rng(semente)
+    h, w = peca.px.shape
+    lim = np.tile(BAYER4, (h // 4 + 1, w // 4 + 1))[:h, :w]
+    xs = np.arange(w)[None, :].repeat(h, 0)
+    ruido_ = ndimage.gaussian_filter(rng.standard_normal((h, w)), 2.0) * 0.35
+    fade = np.clip(np.minimum(xs, w - 1 - xs) / borda + ruido_, 0, 1)
+    p = peca.px.copy()
+    p[(fade < lim) | (fade <= 0.02)] = VAZIO
+    tmp = Tela(w, h)
+    tmp.px = p
+    t.colar(tmp, x, y)

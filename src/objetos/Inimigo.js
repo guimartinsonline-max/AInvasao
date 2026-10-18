@@ -249,15 +249,35 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     if (morte === 'facada') {
-      // Facada: grita, recua cambaleando e cai no lugar.
-      this.setFrame(this.q.morte);
-      this.body.setVelocity(lado * 40, -90);
+      // Facada, como no Metal Slug: o golpe congela um instante, ele grita com a mão
+      // para o alto e recua, as pernas dobram (de joelhos), desaba de cara no chão
+      // com poeira e sangue, fica estirado com a poça crescendo e só então some piscando.
+      const [joelhos, caido] = this.q.facada;
+      this.setFrame(this.q.morte).setRotation(0).setAlpha(1);
+      this.body.setVelocity(lado * 30, -40).setDragX(320);
+      ef.parar(70);
       this.gritar();
-      cena.time.delayedCall(700, () => {
-        cena.tweens.add({ targets: this, alpha: 0, duration: 120, yoyo: true, repeat: 2,
-          onComplete: () => { this.setVisible(false); this.body.enable = false; this.setAlpha(1); } });
+      cena.time.delayedCall(240, () => {
+        this.setFrame(joelhos);
+        this.body.setVelocity(0, 0);
+        ef.sangue(this.x, this.y - 14, 10);
       });
-      cena.time.delayedCall(2600, () => this.renascer());
+      cena.time.delayedCall(480, () => {
+        this.setFrame(caido);
+        ef.poeira(this.x + this.direcao * 10, this.y, 8);
+        ef.poeiraPasso(this.x + this.direcao * 14, this.y, this.direcao < 0);
+        ef.sangue(this.x + this.direcao * 12, this.y - 4, 12);
+        ef.tremer(0.004, 80);
+        if (!this.poca) this.poca = cena.add.image(0, 0, 'poca').setDepth(7).setVisible(false);
+        this.poca.setPosition(Math.round(this.x + this.direcao * 14), Math.round(this.y) - 1).setVisible(true).setAlpha(1).setScale(0.2, 0.5);
+        cena.tweens.add({ targets: this.poca, scaleX: 0.9, scaleY: 0.9, duration: 700, ease: 'Quad.easeOut' });
+      });
+      cena.time.delayedCall(2300, () => {
+        cena.tweens.add({ targets: this, alpha: 0, duration: 110, yoyo: true, repeat: 3,
+          onComplete: () => { this.setVisible(false); this.body.enable = false; this.setAlpha(1); } });
+        if (this.poca) cena.tweens.add({ targets: this.poca, alpha: 0, duration: 800, delay: 300, onComplete: () => this.poca.setVisible(false) });
+      });
+      cena.time.delayedCall(3300, () => this.renascer());
       return;
     }
     if (morte === 'costas') {

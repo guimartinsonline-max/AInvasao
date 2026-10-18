@@ -59,6 +59,31 @@ def tostar(tela):
 
 
 from motor import CORES  # noqa: E402
+import numpy as _np  # noqa: E402
+
+
+def ajoelhar(tela):
+    """Morte na peixeira, 2º tempo: as pernas dobram e ele cai de joelhos (o corpo desce 8 px)."""
+    t = _Tela(tela.w, tela.h)
+    h = tela.h
+    t.px[8:h - 4] = tela.px[0:h - 12]
+    pes = tela.px[h - 4:h]
+    t.px[h - 4:h] = _np.where(pes >= 0, pes, t.px[h - 4:h])
+    return t
+
+
+def deitar(tela):
+    """Morte na peixeira, 3º tempo: desaba de cara no chão (girado em pixel, sem borrar)."""
+    rot = _np.rot90(tela.px, -1)  # horário: a cabeça vai para a frente, o rosto para baixo
+    ys, xs = _np.where(rot >= 0)
+    t = _Tela(tela.w, tela.h)
+    alt, larg = ys.max() - ys.min() + 1, xs.max() - xs.min() + 1
+    dy = tela.h - 1 - ys.max()
+    dx = max(0, (tela.w - larg) // 2) - xs.min()
+    for y, x in zip(ys, xs):
+        if 0 <= y + dy < t.h and 0 <= x + dx < t.w:
+            t.px[y + dy, x + dx] = rot[y, x]
+    return t
 import repintar as rp  # noqa: E402
 for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "granadeiro": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
@@ -71,7 +96,8 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
     d = {k: rp.repintar_tela(v) for k, v in d.items()}
     # Soldados da Volante também têm os quadros sentados (distraídos) depois do tostado.
     extra = [d["sentado1"], d["sentado2"]] if "sentado1" in d else []
-    folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra, SAIDA / f"{nome}.png")
+    folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra + [ajoelhar(d["morte"]), deitar(d["morte"])],
+          SAIDA / f"{nome}.png")
 d = {k: rp.repintar_tela(v) for k, v in pixel.ler("refem.txt").items()}
 folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
                       "corre1", "corre2", "corre3", "corre4", "pendurado1", "pendurado2"]], SAIDA / "refem.png")
