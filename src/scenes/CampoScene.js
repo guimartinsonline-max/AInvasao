@@ -2,6 +2,7 @@ import { CenaJogo, CHAO_Y, LARGURA, ALTURA, DY } from './CenaJogo.js';
 import { Refem } from '../objetos/Refem.js';
 import { Disco, Bode } from '../objetos/Disco.js';
 import { Caixotes } from '../objetos/Caixotes.js';
+import { Jumento } from '../objetos/Jumento.js';
 
 const LARGURA_MUNDO = LARGURA * 3;
 
@@ -56,6 +57,7 @@ export class CampoScene extends CenaJogo {
       [480, c, 'volante', { distraido: true }], [1150, c, 'oficial'], [900, c, 'volante', { refem: true }]]) {
       this.adicionarInimigo(x, y, tipo, opcoes || {});
     }
+    this.jumentos = [new Jumento(this, 200, c)];
     // Refém (as balas do Lampião soltam a corda) e o bode Fubá.
     this.refem = new Refem(this, 340, c);
     this.alvos.add(this.refem);

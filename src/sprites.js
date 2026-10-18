@@ -26,6 +26,8 @@ export function carregarSprites(cena) {
   }
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.image('chapeu', s('chapeu'));
+  cena.load.spritesheet('jumento', s('jumento'), { frameWidth: 72, frameHeight: 60 });
+  cena.load.image('metralha_jumento', s('metralha_jumento'));
   // Lampião gordo com cada arma, e as comidas.
   cena.load.spritesheet('lampiao_gordo', s('lampiao_gordo'), { frameWidth: LAMPIAO_GORDO.largura, frameHeight: LAMPIAO_GORDO.altura });
   for (const arma of Object.keys(BOCAS).filter((a) => a !== 'pistola')) {

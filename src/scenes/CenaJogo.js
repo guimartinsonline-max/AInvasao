@@ -317,6 +317,7 @@ export class CenaJogo extends Phaser.Scene {
     this.balasInimigas.atualizar();
     this.efeitos.atualizar();
     this.itens.atualizar(t);
+    for (const jm of this.jumentos || []) jm.atualizar(t, dt);
 
     for (const g of this.granadas.getChildren()) {
       if (!g.active) continue;

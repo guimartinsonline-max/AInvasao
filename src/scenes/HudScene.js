@@ -73,7 +73,8 @@ export class HudScene extends Phaser.Scene {
     this.rotuloArma = this.add.text(x + 24, y + 5, 'ARMA', rotulo);
     this.numArma = this.add.text(x + 24, y + 15, '', estiloTexto(hex('branco'), 16));
     this.infinito = this.add.image(x + 26, y + 18, 'infinito').setOrigin(0);
-    this.add.text(x + 80, y + 5, 'GRANADA', rotulo);
+    this.rotuloGranada = this.add.text(x + 80, y + 5, 'GRANADA', rotulo);
+    this.blindagem = this.add.text(x, y + 48, '', estiloTexto(hex('amarelo_claro'))).setVisible(false);
     this.numGranada = this.add.text(x + 80, y + 15, '', estiloTexto(hex('branco'), 16));
     this.vidas = this.add.text(x, y + 38, '', estiloTexto(hex('branco')));
     this.super = this.add.text(x + 4, y + 26, 'SUPER', estiloTexto(hex('amarelo_fogo'))).setVisible(false);
@@ -217,7 +218,15 @@ export class HudScene extends Phaser.Scene {
     const pouca = !padrao && j.municao <= Math.max(3, ARMAS[j.arma].municao * 0.15);
     const pisca = pouca && Math.floor(this.time.now / 200) % 2 === 0;
     this.numArma.setText(padrao ? '' : `${j.municao}`).setColor(pisca ? hex('vermelho') : hex('branco'));
-    this.numGranada.setText(`${j.granadas}`).setColor(j.granadas === 0 ? hex('vermelho') : hex('branco'));
+    // Montado no jumento: o número de granadas vira o de bombas do canhão, e aparece a blindagem.
+    const bombas = j.montaria ? j.montaria.bombas : j.granadas;
+    this.numGranada.setText(`${bombas}`).setColor(bombas === 0 ? hex('vermelho') : hex('branco'));
+    this.rotuloGranada.setText(j.montaria ? 'BOMBA' : 'GRANADA');
+    if (j.montaria) {
+      const b = j.montaria.blindagem;
+      this.blindagem.setVisible(true).setText(`JUMENTO ${'='.repeat(b)}${'-'.repeat(Math.max(0, 6 - b))}`)
+        .setColor(b <= 2 && Math.floor(this.time.now / 200) % 2 ? hex('vermelho') : hex('amarelo_claro'));
+    } else this.blindagem.setVisible(false);
     this.vidas.setText(`VIDAS ${j.vidas}`);
     this.super.setVisible(j.nivel === 2 && Math.floor(this.time.now / 300) % 2 === 0);
     const cena = this.scene.get(this.chaveCena);

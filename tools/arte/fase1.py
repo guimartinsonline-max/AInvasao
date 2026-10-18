@@ -837,6 +837,7 @@ FASE = {
     # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
     "casas": [[3060, 130, 84, 21, False], [3680, 110, 72, 22, True]],  # x, largura, altura, semente, buraco
     "varais": [3795],
+    "jumentos": [2680],  # jumento blindado esperando (o Lampião monta e atravessa a vila nele)
     "ponte": [4024, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
     "urubus": [[1010, 106], [2410, 106], [700, CHAO], [1880, CHAO], [2540, CHAO], [4390, CHAO], [5120, CHAO]],
     "galinhas": [330, 3150, 3330, 3560, 3740, 5080],

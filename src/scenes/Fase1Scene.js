@@ -7,6 +7,7 @@ import { hex } from '../paleta.js';
 import { PREMIOS } from '../armas.js';
 import { PEDACO, PEDACOS } from '../fase1_pedacos.js';
 import { Urubus, Galinha, Varal, CasaVila, Ponte } from '../objetos/Ambiente.js';
+import { Jumento } from '../objetos/Jumento.js';
 
 // Fase 1 é só contra a Volante: nada de arma alienígena.
 const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
@@ -95,6 +96,8 @@ export class Fase1Scene extends CenaJogo {
     }
     for (const [x, y, arma] of d.itens) this.itens.colocar(x, y, arma);
     this.urubus = new Urubus(this, d.urubus);
+    // Jumento blindado esperando no fim da caatinga (trecho de veículo).
+    this.jumentos = (d.jumentos || []).map((x) => new Jumento(this, x, this.chaoAbaixo(x, 60)));
     for (const x of d.galinhas) {
       const g = new Galinha(this, x, this.chaoAbaixo(x, 60));
       this.alvos.add(g);

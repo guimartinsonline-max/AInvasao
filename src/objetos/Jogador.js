@@ -95,6 +95,11 @@ export class Jogador {
       return;
     }
     if (this.invulneravel) this.visual.setVisible(Math.floor(this.cena.time.now / 70) % 2 === 0);
+    if (this.montaria) {
+      // Montado no jumento blindado: ele cuida do movimento, da mira e dos tiros.
+      this.montaria.controlar(dt, c);
+      return;
+    }
     const estavaNoChao = this.noChao;
     this.noChao = corpo.blocked.down;
 
@@ -193,6 +198,11 @@ export class Jogador {
 
   // Um tiro mata, como no Metal Slug: careta de susto, voa para trás e renasce piscando.
   morrer(vxBala = 0) {
+    if (this.montaria && !this.morto) {
+      // Montado: quem leva o tiro é a blindagem do jumento.
+      this.montaria.levarDano();
+      return;
+    }
     if (this.morto || this.invulneravel) return;
     const cena = this.cena;
     this.morto = true;

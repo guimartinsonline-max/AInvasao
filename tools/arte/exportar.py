@@ -117,6 +117,9 @@ for k, (_x, w_, h_, sem, buraco) in enumerate(fase1.FASE["casas"]):
     folha([fx.casa_vila(w_, h_, sem, buraco), fx.casa_vila(w_, h_, sem, buraco, destelhada=True)], SAIDA / f"casa_vila_{k}.png")
 folha([fx.ponte_segmento(fase1.FASE["ponte"][3], semente=2), fx.ponte_segmento(fase1.FASE["ponte"][3], quebrada=True, semente=2)],
       SAIDA / "ponte_seg.png")
+import jumento as jm  # noqa: E402
+folha(jm.QUADROS, SAIDA / "jumento.png")
+folha([jm.metralhadora()], SAIDA / "metralha_jumento.png")
 import comidas as cm  # noqa: E402
 for nome, (fn, _pts) in cm.COMIDAS.items():
     folha([fn()], SAIDA / f"comida_{nome}.png")
