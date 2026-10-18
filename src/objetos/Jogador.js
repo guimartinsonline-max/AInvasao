@@ -1,4 +1,5 @@
-import { LAMPIAO, ARMAS_SPRITE } from '../quadros.js';
+import { LAMPIAO } from '../quadros.js';
+import { BOCAS } from '../maos.js';
 import { ARMAS } from '../armas.js';
 
 // Lampião. A física usa um corpo invisível; o sprite visível só acompanha,
@@ -23,8 +24,7 @@ export class Jogador {
     this.corpo = cena.physics.add.image(x, y, 'px').setVisible(false);
     this.corpo.body.setSize(14, ALTURA_EM_PE).setMaxVelocityY(420);
     this.visual = cena.add.sprite(x, y, 'lampiao', LAMPIAO.parado).setDepth(10);
-    // Arma pesada nas mãos (some com o fuzil padrão).
-    this.armaVisual = cena.add.sprite(x, y, 'armas', 0).setDepth(11).setVisible(false);
+
 
     this.direcao = 1;
     this.beirada = 0;
@@ -170,17 +170,11 @@ export class Jogador {
     let x, y, ang;
     const pesada = this.arma !== 'padrao' && mira !== 'baixo';
     if (pesada) {
-      // Tiro sai da boca do desenho da arma pesada.
-      const [mx, my] = this.mao(mira === 'cima');
-      const g = ARMAS_SPRITE.punho[this.arma];
-      const b = ARMAS_SPRITE.boca[this.arma];
-      const dx = b[0] - g[0];
-      const dy = b[1] - g[1];
-      if (mira === 'cima') {
-        x = mx + d * dy; y = my - dx; ang = -Math.PI / 2;
-      } else {
-        x = mx + d * dx; y = my + dy; ang = d > 0 ? 0 : Math.PI;
-      }
+      // Tiro sai da boca da arma, na pose do Lampião segurando aquela arma.
+      const [bx, by] = BOCAS[this.arma][mira === 'cima' ? 'cima' : this.agachado ? 'agachado' : 'frente'];
+      x = this.x + d * bx;
+      y = this.pe - by;
+      ang = mira === 'cima' ? -Math.PI / 2 : d > 0 ? 0 : Math.PI;
     } else if (mira === 'cima') {
       const [cx, cy] = LAMPIAO.cano.cima;
       x = this.x + d * (cx - 2); y = this.pe - cy; ang = -Math.PI / 2;
@@ -208,12 +202,6 @@ export class Jogador {
     if (arma.tranco && this.noChao) this.corpo.x -= d * arma.tranco;
     this.recuo = 50;
     if (this.arma !== 'padrao' && --this.municao <= 0) this.trocarArma('padrao');
-  }
-
-  // Posição da mão que segura a arma pesada, no mundo.
-  mao(cima) {
-    const [fx, fy] = LAMPIAO.mao[cima ? 'cima' : this.agachado ? 'agachado' : 'frente'];
-    return [this.x + this.direcao * fx, this.pe - fy];
   }
 
   // Muda a altura do corpo mantendo o pé no mesmo lugar (o corpo é centrado).
@@ -250,6 +238,9 @@ export class Jogador {
       // Grita ao atirar parado.
       quadro = this.desdeTiro < 160 ? 'atirando' : 'parado';
     }
+    // Com arma pesada, usa a folha do Lampião segurando aquela arma.
+    const folha = this.arma === 'padrao' ? 'lampiao' : `lampiao_${this.arma}`;
+    if (v.texture.key !== folha) v.setTexture(folha);
     v.setFrame(LAMPIAO[quadro]);
     v.setFlipX(this.direcao < 0);
     // O pé fica na origem; ao virar, o desenho espelha e o centro muda de lado.
@@ -259,19 +250,5 @@ export class Jogador {
     const recuo = this.recuo > 0 ? -this.direcao : 0;
     this.recuo -= dt;
     v.setPosition(Math.round(this.x + recuo), Math.round(this.pe));
-
-    const a = this.armaVisual;
-    if (this.arma === 'padrao' || this.morto) {
-      a.setVisible(false);
-    } else {
-      const cima = quadro === 'mira_cima';
-      const [mx, my] = this.mao(cima);
-      const g = ARMAS_SPRITE.punho[this.arma];
-      const d = this.direcao;
-      a.setFrame(ARMAS_SPRITE.ordem.indexOf(this.arma)).setVisible(v.visible).setFlipX(d < 0)
-        .setOrigin((d > 0 ? g[0] : ARMAS_SPRITE.largura - g[0]) / ARMAS_SPRITE.largura, g[1] / ARMAS_SPRITE.altura)
-        .setRotation(cima ? -d * Math.PI / 2 : 0)
-        .setPosition(Math.round(mx + recuo * 2), Math.round(my));
-    }
   }
 }

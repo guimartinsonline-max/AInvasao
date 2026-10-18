@@ -1,5 +1,6 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA, LAMPIAO, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, ARMAS_SPRITE } from './quadros.js';
+import { TOUCEIRA, LAMPIAO, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS } from './quadros.js';
+import { BOCAS } from './maos.js';
 import { VERSAO } from './config.js';
 
 // Personagens e cenário vêm de PNGs gerados por tools/arte/exportar.py.
@@ -17,7 +18,10 @@ export function carregarSprites(cena) {
   }
   cena.load.spritesheet('barril', s('barril'), { frameWidth: 18, frameHeight: 24 });
   cena.load.spritesheet('escudo', s('escudo'), { frameWidth: 12, frameHeight: 26 });
-  cena.load.spritesheet('armas', s('armas'), { frameWidth: ARMAS_SPRITE.largura, frameHeight: ARMAS_SPRITE.altura });
+  // Lampião com cada arma pesada nas mãos.
+  for (const arma of Object.keys(BOCAS)) {
+    cena.load.spritesheet(`lampiao_${arma}`, s(`lampiao_${arma}`), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
+  }
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
   for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {

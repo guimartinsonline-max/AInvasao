@@ -108,7 +108,7 @@ def volante(rosto="serio", pose="parado", passo=0):
         membro(t, (12, 25), (15, 31), (22, 31), 2.2, 2.0, FARDA, -1)
 
     # Barriga redonda com cinto e cartucheira.
-    corpo = t.elipse(15, 29.5, 8, 7) | t.retangulo(9, 24, 12, 8)
+    corpo = t.elipse(15, 29.5, 7.5, 6.5) | t.retangulo(9, 24.5, 12, 8)
     t.cel(corpo, FARDA, sombra=2)
     t.chapado(t.capsula(9, 23, 21, 33, 0.9) & corpo, "couro")
     t.chapado(t.capsula(9, 22.5, 21, 32.5, 0.5) & corpo, "couro_medio")
@@ -125,57 +125,60 @@ def volante(rosto="serio", pose="parado", passo=0):
     else:
         perna(t, (17, 35), (19, 40), (19, CHAO), FARDA)
 
-    # Cabeçona.
-    hy = 15 + pulo
-    t.cel(t.elipse(10.5, hy + 2, 2.2, 2.8), PELE, sombra=1)  # orelha
-    cabeca = t.elipse(18, hy, 9.5, 9) & (t.yy < hy + 8.5)
+    # Cabeça no tamanho da do Lampião (caricata, sem exagero).
+    hy = 17 + pulo
+    t.cel(t.elipse(10.5, hy + 1.5, 1.8, 2.4), PELE, sombra=1)  # orelha
+    cabeca = t.elipse(17, hy, 7.6, 7.4) & (t.yy < hy + 7)
     t.cel(cabeca, PELE, sombra=2)
     # Barba por fazer no queixo.
-    queixo = t.elipse(21, hy + 6, 7, 3.5) & cabeca & (t.yy > hy + 4)
+    queixo = t.elipse(19.5, hy + 5, 6, 2.8) & cabeca & (t.yy > hy + 3)
     xadrez = ((t.xx.astype(int) + t.yy.astype(int)) % 2) == 0
     t.px[queixo & xadrez & (t.px != IDX["pele_luz"])] = IDX["pele_media"]
-    # Bochecha corada.
-    t.chapado(t.elipse(22, hy + 3, 1.6, 1), "rosa_poeira")
+    t.chapado(t.elipse(20.5, hy + 2.5, 1.3, 0.9), "rosa_poeira")
 
     # Quepe com aba (sobe de susto no pânico).
     q = -2 if pose == "panico" else 0
-    t.cel(t.poligono([(8.5, hy - 5 + q), (10, hy - 12 + q), (25, hy - 13 + q), (26.5, hy - 6 + q)]), FARDA_ESC, sombra=1)
-    t.chapado(t.retangulo(9, hy - 7 + q, 17.5, 2), "caatinga_esc")
-    t.cel(t.poligono([(21, hy - 6 + q), (31, hy - 5.5 + q), (31, hy - 4 + q), (21, hy - 4 + q)]), BOTA, sombra=0)
-    t.chapado(t.retangulo(16, hy - 11 + q, 2, 2), "amarelo_fogo")
+    t.cel(t.poligono([(9.5, hy - 4 + q), (11, hy - 10 + q), (23, hy - 11 + q), (24.5, hy - 5 + q)]), FARDA_ESC, sombra=1)
+    t.chapado(t.retangulo(10, hy - 6 + q, 14.5, 1.6), "caatinga_esc")
+    t.cel(t.poligono([(20, hy - 5 + q), (27.5, hy - 4.5 + q), (27.5, hy - 3.2 + q), (20, hy - 3.2 + q)]), BOTA, sombra=0)
+    t.chapado(t.retangulo(16, hy - 9 + q, 2, 2), "amarelo_fogo")
 
     # Rosto.
+    ox, oy = 22, hy - 0.5
     if rosto == "panico":
-        olho(t, 24, hy - 1, "esbugalhado")
-        suor(t, 12, hy - 3)
-        suor(t, 31, hy - 7)
+        t.chapado(t.elipse(ox, oy, 2.6, 2.8), "preto")
+        t.chapado(t.elipse(ox, oy, 1.7, 1.9), "branco")
+        t.ponto(ox, int(oy), "preto")
+        suor(t, 12, hy - 2)
+        suor(t, 27, hy - 6)
     elif rosto == "morto":
-        olho(t, 24, hy - 1, "x")
+        t.linha(ox - 1.5, oy - 1.5, ox + 1.5, oy + 1.5, "preto")
+        t.linha(ox - 1.5, oy + 1.5, ox + 1.5, oy - 1.5, "preto")
     else:
-        olho(t, 24, hy - 1, "bravo" if rosto in ("bravo", "grito") else "normal")
-        # Sobrancelha grossa.
-        inclina = 1 if rosto in ("bravo", "grito") else 0
-        t.linha(20, hy - 4 - inclina, 27, hy - 4 + inclina, "couro_profundo")
-        t.linha(20, hy - 5 - inclina, 26, hy - 5 + inclina, "couro_profundo")
-    # Narigão em batata.
-    t.cel(t.elipse(29.5, hy + 2, 3.4, 3), PELE_CLARA, sombra=1)
-    t.ponto(28, hy + 3, "pele_sombra")
-    # Bigodão.
-    t.cel(t.poligono([(22, hy + 4), (31, hy + 4), (33.5, hy + 6.5), (30, hy + 6), (27, hy + 7), (23, hy + 6.5)]),
+        bravo = rosto in ("bravo", "grito")
+        t.chapado(t.elipse(ox, oy, 2, 1.8), "preto")
+        t.chapado(t.elipse(ox, oy, 1.2, 1.1), "branco")
+        t.chapado(t.retangulo(ox, oy - 0.5, 1, 1.5), "preto")
+        inclina = 1 if bravo else 0
+        t.linha(19, hy - 3 - inclina, 24, hy - 3 + inclina, "couro_profundo")
+    # Nariz grande, mas na medida.
+    t.cel(t.elipse(26, hy + 1.5, 2.5, 2.2), PELE_CLARA, sombra=1)
+    t.ponto(25, hy + 2, "pele_sombra")
+    # Bigode.
+    t.cel(t.poligono([(20, hy + 3.5), (27, hy + 3.5), (29, hy + 5.5), (26.5, hy + 5), (24, hy + 6), (21, hy + 5.5)]),
           ["couro_profundo", "couro_profundo", "couro_escuro", "couro"], sombra=1)
     # Boca.
     if rosto == "grito":
-        t.chapado(t.elipse(26, hy + 8.5, 3, 2), "preto")
-        t.chapado(t.retangulo(24, hy + 7, 5, 1), "branco")
+        t.chapado(t.elipse(23.5, hy + 7, 2.2, 1.4), "preto")
+        t.chapado(t.retangulo(22, hy + 6, 3.5, 1), "branco")
     elif rosto == "panico":
-        t.chapado(t.elipse(25.5, hy + 9, 3.2, 3), "preto")
-        t.chapado(t.elipse(25.5, hy + 10.5, 2, 1.2), "vermelho")
-        t.chapado(t.retangulo(23.5, hy + 6.5, 4, 1), "branco")
+        t.chapado(t.elipse(23, hy + 7.5, 2.4, 2.2), "preto")
+        t.chapado(t.elipse(23, hy + 8.5, 1.4, 0.9), "vermelho")
     elif rosto == "morto":
-        t.chapado(t.elipse(26, hy + 8, 2, 1.4), "preto")
-        t.chapado(t.elipse(27, hy + 9.5, 1.3, 1.5), "vermelho")
+        t.chapado(t.elipse(23.5, hy + 7, 1.6, 1.1), "preto")
+        t.chapado(t.elipse(24.5, hy + 8.3, 1, 1.2), "vermelho")
     else:
-        t.linha(24, hy + 8, 27, hy + 8, "couro_profundo")
+        t.linha(22, hy + 6.5, 24, hy + 6.5, "couro_profundo")
 
     # Braço da frente e fuzil.
     if pose == "panico":
@@ -239,7 +242,7 @@ def xeremita(cara="normal", pose="parado", passo=0):
     # Tentáculos de trás, depois os da frente.
     for k, x in enumerate((12, 16)):
         tentaculo(t, x, 33 + pulo, f + k * 1.7, 12 - pulo, ALIEN_ESC, deslocar=0)
-    corpo = t.elipse(17, 30 + pulo, 6.5, 5.5)
+    corpo = t.elipse(17, 29.5 + pulo, 6, 5.5)
     t.cel(corpo, ACO, sombra=2)
     t.chapado(t.retangulo(11, 31 + pulo, 13, 1) & corpo, "cinza_escuro")
     t.cel(t.elipse(19, 29 + pulo, 1.6, 1.6), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
@@ -251,53 +254,53 @@ def xeremita(cara="normal", pose="parado", passo=0):
         tentaculo(t, 9, 26, 2.0, 16, ALIEN_ESC, para_cima=True, lado=-1)
 
     # Cabeçona com caroços.
-    hy = 15 + pulo
-    cabeca = t.elipse(18, hy, 11.5, 11) | t.elipse(13, hy + 6, 7, 5.5)
+    hy = 17 + pulo
+    cabeca = t.elipse(18, hy, 9, 8.6) | t.elipse(14, hy + 5, 5.5, 4.5)
     t.cel(cabeca, ALIEN, sombra=2)
-    for (x, y, r) in ((11, hy - 5, 1.6), (15, hy - 8, 1.2), (9, hy + 1, 1.3), (13, hy - 2, 1)):
+    for (x, y, r) in ((12, hy - 4, 1.4), (16, hy - 6.5, 1.1), (10.5, hy + 1, 1.1), (14, hy - 1.5, 0.9)):
         t.chapado(t.elipse(x, y, r, r * 0.8), "alien_medio")
         t.ponto(int(x - r * 0.5), int(y - r * 0.5), "alien_luz")
-    t.chapado(t.elipse(12, hy - 7, 2.2, 1.4), "alien_brilho")
+    t.chapado(t.elipse(13, hy - 5.5, 1.8, 1.1), "alien_brilho")
     # Antena com bolinha.
-    t.linha(16, hy - 11, 14, hy - 15, "alien_esc")
-    t.cel(t.elipse(13.5, hy - 15.5, 1.8, 1.8), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
+    t.linha(16, hy - 8.5, 14, hy - 12, "alien_esc")
+    t.cel(t.elipse(13.5, hy - 12.5, 1.6, 1.6), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
 
     # Olhão.
-    ox, oy = 25, hy - 1
+    ox, oy = 23, hy - 1
     if cara == "morto":
-        t.chapado(t.elipse(ox, oy, 4.6, 5), "preto")
-        t.chapado(t.elipse(ox, oy, 3.6, 4), "branco")
+        t.chapado(t.elipse(ox, oy, 3.8, 4.3), "preto")
+        t.chapado(t.elipse(ox, oy, 2.8, 3.3), "branco")
         for a in range(0, 360, 30):  # espiral tonta
-            r = 0.6 + a / 360 * 3
+            r = 0.5 + a / 360 * 2.3
             t.ponto(int(ox + math.cos(math.radians(a * 2)) * r), int(oy + math.sin(math.radians(a * 2)) * r), "preto")
     else:
-        rx, ry = (5.4, 6) if cara in ("grito", "susto") else (4.6, 5.2)
+        rx, ry = (4.4, 4.9) if cara in ("grito", "susto") else (3.8, 4.3)
         t.chapado(t.elipse(ox, oy, rx, ry), "preto")
         t.chapado(t.elipse(ox, oy, rx - 1, ry - 1), "branco")
         if cara == "susto":
             t.chapado(t.elipse(ox + 1, oy, 1, 1), "preto")
         else:
-            t.chapado(t.elipse(ox + 1.5, oy + 0.5, 2.2, 2.6), "preto")
+            t.chapado(t.elipse(ox + 1.2, oy + 0.5, 1.8, 2.1), "preto")
             t.ponto(ox + 1, oy - 1, "branco")
         if cara in ("bravo", "grito"):
             # Pálpebra caída de raiva.
             t.chapado(t.elipse(ox, oy - ry + 0.5, rx + 0.5, 2.8) & t.elipse(ox, oy, rx + 0.5, ry + 0.5), "alien_esc")
             t.linha(ox - rx, oy - ry + 2, ox + rx, oy - ry + 3, "preto")
     # Boca.
-    by = hy + 7
+    by = hy + 5
     if cara == "grito":
-        t.chapado(t.elipse(24, by + 1, 3.4, 2.4), "preto")
-        t.pontos([(22, by), (24, by), (26, by)], "branco")
-        t.chapado(t.elipse(24, by + 2, 1.6, 0.8), "vermelho_medio")
+        t.chapado(t.elipse(22.5, by + 1, 2.6, 1.8), "preto")
+        t.pontos([(21, by), (23, by)], "branco")
+        t.chapado(t.elipse(22.5, by + 2, 1.2, 0.6), "vermelho_medio")
     elif cara == "susto":
-        t.chapado(t.elipse(24, by + 1, 2.2, 2.6), "preto")
-        t.chapado(t.elipse(24, by + 2, 1.2, 1), "vermelho_medio")
+        t.chapado(t.elipse(22.5, by + 1, 1.8, 2), "preto")
+        t.chapado(t.elipse(22.5, by + 2, 1, 0.8), "vermelho_medio")
     elif cara == "morto":
-        t.linha(21, by, 27, by + 1, "preto")
-        t.chapado(t.elipse(25, by + 2.5, 1.3, 1.8), "vermelho")
+        t.linha(20, by, 25, by + 1, "preto")
+        t.chapado(t.elipse(23.5, by + 2.2, 1.1, 1.5), "vermelho")
     else:
-        t.linha(21, by, 26, by + 1, "alien_profundo")
-        t.ponto(23, by + 1, "branco")
+        t.linha(20, by, 24, by + 1, "alien_profundo")
+        t.ponto(22, by + 1, "branco")
 
     # Braço-tentáculo com a pistola de raio.
     if cima:

@@ -73,9 +73,11 @@ folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
 
 # Armas (tools/arte/armas.py -> pixel/armas.txt) e efeitos de tiro (tools/arte/efeitos_tiro.py).
 import efeitos_tiro as ef  # noqa: E402
-ORDEM_ARMAS = ["madsen", "bacamarte", "rojao", "desintegrador", "candeeiro", "papo_amarelo", "estilingue", "buscape"]
-d = pixel.ler("armas.txt")
-folha([d[n] for n in ORDEM_ARMAS], SAIDA / "armas.png")
+# Lampião segurando cada arma pesada (tools/arte/lampiao_armas.py), mesma ordem de quadros do lampiao.png.
+import lampiao_armas as la  # noqa: E402
+for arma in la.ar.ARMAS:
+    folha(la.folha_da_arma(arma), SAIDA / f"lampiao_{arma}.png")
+la.gravar_bocas(RAIZ / "src/maos.js")
 for nome, quadros in {
     "clarao": [ef.clarao(k) for k in range(3)],
     "clarao_g": [ef.clarao(k, grande=True) for k in range(3)],
