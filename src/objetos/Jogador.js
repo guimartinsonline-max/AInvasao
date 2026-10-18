@@ -109,7 +109,10 @@ export class Jogador {
     if (c.apertou('granada') && this.granadas > 0 && this.desdeGranada > 300) {
       this.desdeGranada = 0;
       this.granadas--;
-      this.cena.lancarGranada(this.x + this.direcao * 6, this.pe - 36, this.direcao, corpo.velocity.x);
+      // Quadro de arremesso: o braço de trás sobe e a granada sai da mão lá em cima.
+      this.arremesso = 220;
+      const [gx, gy] = LAMPIAO.maoGranada;
+      this.cena.lancarGranada(this.x + this.direcao * gx, this.pe - gy, this.direcao, corpo.velocity.x);
     }
 
     this.miraCima = c.estado.cima && !this.agachado;
@@ -178,25 +181,18 @@ export class Jogador {
     }
 
     let x, y, ang;
-    const pesada = this.arma !== 'padrao' && mira !== 'baixo';
-    if (pesada) {
-      // Tiro sai da boca da arma, na pose do Lampião segurando aquela arma.
-      const [bx, by] = BOCAS[this.arma][mira === 'cima' ? 'cima' : this.agachado ? 'agachado' : 'frente'];
-      x = this.x + d * bx;
-      y = this.pe - by;
-      ang = mira === 'cima' ? -Math.PI / 2 : d > 0 ? 0 : Math.PI;
-    } else if (mira === 'cima') {
-      const [cx, cy] = LAMPIAO.cano.cima;
-      x = this.x + d * (cx - 2); y = this.pe - cy; ang = -Math.PI / 2;
-    } else if (mira === 'baixo') {
+    if (mira === 'baixo') {
       x = this.x; y = this.pe + 2; ang = Math.PI / 2;
     } else {
-      const [cx, cy] = LAMPIAO.cano[this.agachado ? 'agachado' : 'frente'];
-      x = this.x + d * cx;
-      y = this.pe - cy + Phaser.Math.Between(-1, 1);
-      ang = d > 0 ? 0 : Math.PI;
+      // Tiro sai da boca da arma, na pose do Lampião segurando aquela arma (a padrão é a pistola).
+      const folha = this.arma === 'padrao' ? 'pistola' : this.arma;
+      const [bx, by] = BOCAS[folha][mira === 'cima' ? 'cima' : this.agachado ? 'agachado' : 'frente'];
+      x = this.x + d * bx;
+      y = this.pe - by + (mira === 'cima' ? 0 : Phaser.Math.Between(-1, 1) * (this.arma === 'padrao' ? 1 : 0));
+      ang = mira === 'cima' ? -Math.PI / 2 : d > 0 ? 0 : Math.PI;
     }
     const arma = ARMAS[this.arma];
+    if (arma.rajada) cena.rajada(x, y, ang, arma.rajada, d);
     for (let k = 0; k < arma.tiros; k++) {
       let a = ang;
       if (arma.leque) a += (k / (arma.tiros - 1) - 0.5) * arma.leque;
@@ -234,7 +230,9 @@ export class Jogador {
     const v = this.visual;
     const corpo = this.corpo.body;
     let quadro;
-    if (this.agachado) quadro = 'agachado';
+    this.arremesso = (this.arremesso || 0) - dt;
+    if (this.arremesso > 0 && !this.agachado) quadro = 'arremesso';
+    else if (this.agachado) quadro = 'agachado';
     else if (this.miraCima) quadro = 'mira_cima';
     else if (!this.noChao) quadro = 'pulo';
     else if (corpo.velocity.x !== 0) {

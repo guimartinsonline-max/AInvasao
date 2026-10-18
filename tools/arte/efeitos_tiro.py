@@ -263,3 +263,102 @@ def chama(k):
     if k == 4:
         ralo(t, total, 0.45)
     return t
+
+
+# ---------------------------------------------------------------- rajada do bacamarte
+def rajada(k):
+    """Rajada do bacamarte (5 quadros), como a shotgun do Metal Slug: um cone
+    largo de fogo e chumbo saindo do cano, que vira estilhaços e fumaça."""
+    W, H = 68, 40
+    t = Tela(W, H)
+    cy = H / 2
+    rng = np.random.default_rng(7)
+    ang = np.arctan2(t.yy - cy, t.xx)
+    dist = np.hypot(t.xx, t.yy - cy)
+    borda = 0.42 + 0.06 * np.sin(dist * 0.9 + k)  # meia-abertura do cone, serrilhada
+    alcance = [46, 62, 66, 66, 60][k]
+    cone = (np.abs(ang) < borda) & (dist < alcance) & (t.xx > 0)
+    if k == 0:
+        t.chapado(cone, "laranja_fogo")
+        t.chapado(cone & (dist < alcance * 0.8) & (np.abs(ang) < borda * 0.75), "amarelo_fogo")
+        t.chapado(cone & (dist < alcance * 0.55) & (np.abs(ang) < borda * 0.5), "branco")
+    elif k == 1:
+        t.chapado(cone, "laranja_escuro")
+        t.chapado(cone & (dist < alcance * 0.85) & (np.abs(ang) < borda * 0.8), "laranja_fogo")
+        t.chapado(cone & (dist < alcance * 0.6) & (np.abs(ang) < borda * 0.55), "amarelo_fogo")
+        t.chapado(cone & (dist < alcance * 0.3), "amarelo_claro")
+        # Riscos de chumbo voando.
+        for a in np.linspace(-0.38, 0.38, 7):
+            r0 = rng.uniform(30, 44)
+            t.linha(math.cos(a) * r0, cy + math.sin(a) * r0, math.cos(a) * (r0 + 14), cy + math.sin(a) * (r0 + 14), "amarelo_claro")
+    elif k == 2:
+        anel = cone & (dist > 26)
+        t.chapado(anel, "laranja_fogo")
+        ralo(t, anel, 0.55)
+        t.chapado(cone & (dist < 26) & (np.abs(ang) < borda * 0.6), "vermelho_medio")
+        for a in np.linspace(-0.4, 0.4, 9):
+            r0 = rng.uniform(46, 62)
+            t.chapado(t.elipse(math.cos(a) * r0, cy + math.sin(a) * r0, 1.4, 1.4), "amarelo_fogo")
+    else:
+        # Fumaça que fica no ar, se desfazendo.
+        for a, r0 in ((-0.25, 14), (0.1, 22), (0.3, 32), (-0.15, 40), (0.05, 50)):
+            r = 5 + r0 * 0.12 + (k - 3) * 2
+            m = t.elipse(math.cos(a) * r0 + 4, cy + math.sin(a) * r0 - (k - 3) * 2, r, r * 0.85)
+            t.volume(m, ["cinza_escuro", "cinza_medio", "cinza", "cinza_luz", "cinza_claro"], achatado=2, suave=0.8,
+                     ambiente=0.3, linha=False)
+        ralo(t, t.px != VAZIO, 0.3 if k == 3 else 0.62)
+        if k == 3:
+            for a in np.linspace(-0.35, 0.35, 5):
+                t.ponto(int(math.cos(a) * 60), int(cy + math.sin(a) * 60), "laranja_fogo")
+    return t
+
+
+# ---------------------------------------------------------------- labareda do Candeeiro
+def labareda(k):
+    """Bola de fogo grande do Candeeiro (6 quadros): nasce branca no bico,
+    cresce em gomos, escurece em brasa e vira fumaça preta."""
+    t = Tela(34, 34)
+    c = 17
+    if k == 0:
+        t.chapado(t.elipse(c, c, 6, 5), "amarelo_fogo")
+        t.chapado(t.elipse(c, c, 4, 3), "branco")
+        return t
+    r = [0, 8, 11, 13, 14, 14][k]
+    rampa = [None, FOGO_VOL, FOGO_VOL, FOGO_VOL, BRASA_VOL, FUMACA_VOL][k]
+    total = gomos(t, c, c, r, rampa, semente=40 + k, achatado=2.5)
+    if k == 1:
+        t.chapado(t.elipse(c, c, r * 0.5, r * 0.45), "amarelo_claro")
+        t.chapado(t.elipse(c - 1, c, r * 0.25, r * 0.22), "branco")
+    elif k == 2:
+        t.chapado(t.elipse(c, c + 1, r * 0.35, r * 0.3), "amarelo_claro")
+    elif k == 3:
+        t.chapado(t.elipse(c, c + 2, r * 0.3, r * 0.25), "amarelo_fogo")
+    elif k == 5:
+        ralo(t, total, 0.5)
+    return t
+
+
+# ---------------------------------------------------------------- granada
+def granada(k):
+    """Granada de mão (4 quadros girando): corpo verde-oliva gomado, alça e
+    espoleta de metal. Gira 45 graus por quadro."""
+    t = Tela(11, 11)
+    a = k * math.pi / 4
+    c = 5.5
+    corpo = t.elipse(c, c + 0.5, 3.4, 4.2, ang=a)
+    t.volume(corpo, ["preto", "caatinga_esc", "caatinga_media", "caatinga", "mandacaru"], achatado=2, suave=0.4,
+             ambiente=0.25)
+    # Gomos: linhas cruzadas escuras.
+    ca, sa = math.cos(a), math.sin(a)
+    for d in (-1.5, 1.5):
+        for s_ in np.linspace(-3, 3, 7):
+            x = c + ca * d - sa * s_
+            y = c + 0.5 + sa * d + ca * s_
+            if corpo[int(y), int(x)]:
+                t.px[int(y), int(x)] = IDX["caatinga_esc"]
+    # Espoleta e alça na ponta.
+    tx, ty = c + sa * 4.6, c + 0.5 - ca * 4.6
+    t.cel(t.elipse(tx, ty, 1.6, 1.6), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=0)
+    t.linha(tx, ty, tx + ca * 2.5 + sa, ty + sa * 2.5 - ca, "cinza_claro")
+    t.contorno("preto")
+    return t

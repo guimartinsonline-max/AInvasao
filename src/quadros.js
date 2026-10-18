@@ -2,13 +2,15 @@
 
 // Lampião pixel a pixel (tools/arte/pixel/lampiao.txt), ordem de tools/arte/exportar.py.
 const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6',
-  'pulo', 'agachado', 'mira_cima', 'susto'];
+  'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso'];
 
 export const LAMPIAO = { largura: 44, altura: 46, peX: 14, peY: 45 };
 QUADROS_LAMPIAO.forEach((nome, i) => { LAMPIAO[nome] = i; });
 LAMPIAO.corrida = ['corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6'];
 // Boca do cano em relação ao pé (x para a frente, y para cima).
 LAMPIAO.cano = { frente: [29, 15], agachado: [29, 10], cima: [10, 45] };
+// Mão erguida no quadro de arremesso da granada.
+LAMPIAO.maoGranada = [-9, 42];
 
 // Inimigos pixel a pixel (tools/arte/pixel/*.txt), ordem de tools/arte/exportar.py.
 // Caricatos (tools/arte/caricatos.py): o quadro 7 é a morte e o 8 é o tostado (queimado).
@@ -48,4 +50,7 @@ export const EFEITOS = {
   explosao_p: { largura: 24, altura: 24, quadros: 8 },
   fumaca: { largura: 14, altura: 14, quadros: 4 },
   chama: { largura: 22, altura: 22, quadros: 5 },
+  rajada: { largura: 68, altura: 40, quadros: 5 },
+  labareda: { largura: 34, altura: 34, quadros: 6 },
+  granada_g: { largura: 11, altura: 11, quadros: 4 },
 };

@@ -2,7 +2,7 @@ import { P } from './paleta.js';
 import { EFEITOS } from './quadros.js';
 
 // Velocidade (quadros por segundo) de cada efeito animado.
-const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14 };
+const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14, rajada: 20 };
 
 // Efeitos de impacto (game feel). Tudo é criado uma vez e reaproveitado.
 export class Efeitos {

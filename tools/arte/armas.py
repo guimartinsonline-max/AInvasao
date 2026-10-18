@@ -164,7 +164,28 @@ def buscape():
     return t
 
 
+def pistola():
+    """Pistola Mauser "cabo de vassoura" (arma inicial, infinita), numa mão só."""
+    t = Tela(W, H)
+    # Cabo de madeira inclinado para trás.
+    t.cel(t.poligono([(2, 5), (6, 5), (5, 11), (1.5, 11), (1, 9)]), MADEIRA, sombra=1)
+    for y in (7, 9):
+        t.linha(2, y, 5, y, "couro_escuro")
+    # Corpo e carregador na frente do gatilho.
+    t.cel(t.retangulo(4, 3, 9, 3), ACO, sombra=1)
+    t.cel(t.retangulo(8, 6, 4, 3.5), ACO_ESC, sombra=1)
+    # Cano fino e comprido.
+    t.cel(t.retangulo(12, 3.5, 8, 1.6), ACO, sombra=0)
+    t.ponto(19, 3, "cinza")
+    t.pontos([(4, 2), (5, 2)], "cinza_escuro")  # cão
+    t.pontos([(6, 6), (7, 7)], "sombra")  # guarda-mato
+    t.contorno("sombra")
+    PUNHO["pistola"], APOIO["pistola"], BOCA["pistola"] = (4, 7), (4, 7), (20, 4)
+    return t
+
+
 ARMAS = {
+    "pistola": pistola,
     "madsen": madsen, "bacamarte": bacamarte, "rojao": rojao, "desintegrador": desintegrador,
     "candeeiro": candeeiro, "papo_amarelo": papo_amarelo, "estilingue": estilingue, "buscape": buscape,
 }

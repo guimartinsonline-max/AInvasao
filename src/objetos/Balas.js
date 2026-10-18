@@ -24,7 +24,7 @@ export class Balas {
       }
       if (solido.caixote && !tipo.explode) aoAcertarCaixote(solido.caixote, bala);
       if (tipo.explode) this.explodir(bala);
-      else if (tipo.textura === 'chama') cena.efeitos.fumaca(bala.x, bala.y);
+      else if (tipo.porIdade) cena.efeitos.fumaca(bala.x, bala.y);
       else cena.efeitos.impacto(bala.x, bala.y, tipo.impacto);
       this.recolher(bala);
     });
@@ -59,7 +59,7 @@ export class Balas {
     bala.body.allowGravity = !!cfg.gravidade;
     bala.body.setGravityY(cfg.gravidade ? cfg.gravidade - this.cena.physics.world.gravity.y : 0);
     // A pedra e a chama não giram com a direção; as outras apontam para onde vão.
-    const gira = !cfg.gravidade && cfg.textura !== 'chama' && cfg.textura !== 'chumbo';
+    const gira = !cfg.gravidade && !cfg.porIdade && cfg.textura !== 'chumbo';
     bala.setRotation(gira ? ang : 0);
     bala.setFlipX(!gira && Math.cos(ang) < -0.1);
     const vertical = gira && Math.abs(Math.sin(ang)) > 0.7;
@@ -109,8 +109,8 @@ export class Balas {
       const cfg = bala.tipo;
       const idade = agora - bala.nasceu;
       const quadros = EFEITOS[cfg.textura].quadros;
-      if (cfg.textura === 'chama') {
-        // A chama nasce branca, cresce, escurece e vira fumaça ao longo da vida.
+      if (cfg.porIdade) {
+        // A labareda nasce branca, cresce, escurece e vira fumaça ao longo da vida.
         bala.setFrame(Math.min(quadros - 1, Math.floor((idade / cfg.vida) * quadros)));
         const k = Math.pow(cfg.freio, dt / 16.7);
         bala.body.setVelocity(bala.body.velocity.x * k, bala.body.velocity.y * k - cfg.sobe * dt / 1000);

@@ -56,9 +56,15 @@ export class CenaJogo extends Phaser.Scene {
       if (tipo.pausa) this.efeitos.parar(tipo.pausa);
     }, (caixote, bala) => caixote.levarDano(bala.tipo.dano || 1));
 
-    this.granadas = this.physics.add.group({ defaultKey: 'granada', maxSize: 6 });
+    // Granada como a do Metal Slug: arco, um quique e explode no segundo toque
+    // no chão ou quando encosta num inimigo.
+    this.granadas = this.physics.add.group({ defaultKey: 'granada_g', maxSize: 6 });
     this.physics.add.collider(this.granadas, this.solidos, (g) => {
-      if (g.body.blocked.down) g.body.setAngularVelocity(g.body.angularVelocity * 0.6);
+      if (!g.active || !g.body.blocked.down || this.time.now - g.ultimoQuique < 150) return;
+      g.ultimoQuique = this.time.now;
+      g.quiques++;
+      this.efeitos.poeira(g.x, g.y + 4, 3);
+      if (g.quiques >= 2) this.explodirGranada(g);
     });
     this.physics.add.overlap(this.granadas, this.alvos, (g, alvo) => {
       if (g.active && alvo.vivo) this.explodirGranada(g);
@@ -123,13 +129,16 @@ export class CenaJogo extends Phaser.Scene {
   }
 
   lancarGranada(x, y, direcao, vx) {
-    const g = this.granadas.get(x, y);
+    const g = this.granadas.get(x, y, 'granada_g');
     if (!g) return;
-    g.setActive(true).setVisible(true).setRotation(0);
+    g.setActive(true).setVisible(true).setRotation(0).setDepth(14).setFlipX(direcao < 0);
     g.body.reset(x, y);
-    g.body.setBounce(0.35).setDrag(40, 0).setAngularVelocity(direcao * 600);
-    g.body.setVelocity(direcao * 120 + vx * 0.4, -210);
-    g.explodeEm = this.time.now + 1100;
+    g.body.setSize(7, 7).setOffset(2, 2);
+    g.body.setBounce(0.45).setDrag(30, 0);
+    g.body.setVelocity(direcao * 150 + vx * 0.4, -230);
+    g.quiques = 0;
+    g.ultimoQuique = 0;
+    g.explodeEm = this.time.now + 2500; // segurança, se ficar presa
   }
 
   explodirGranada(g) {
@@ -138,7 +147,27 @@ export class CenaJogo extends Phaser.Scene {
     g.setActive(false).setVisible(false);
     g.body.stop();
     g.body.reset(-100, -100);
-    this.explodir(x, y - 4, RAIO_GRANADA, 10, 1);
+    this.explodir(x, y - 6, RAIO_GRANADA, 10, 1.2);
+  }
+
+  // Rajada do bacamarte: cone curto e largo; acerta tudo dentro dele de uma vez.
+  rajada(x, y, ang, cfg, direcao) {
+    this.efeitos.animar('rajada', x, y, { rotacao: ang, origemX: 0.02, profundidade: 20 });
+    this.efeitos.parar(40);
+    const c = Math.cos(ang);
+    const s = Math.sin(ang);
+    const tg = Math.tan(cfg.abertura);
+    for (const alvo of [...this.alvos.getChildren(), ...this.caixotes.vivos()]) {
+      if (!alvo.vivo) continue;
+      const dx = alvo.x - x;
+      const dy = alvo.y - 16 - y;
+      const lx = dx * c + dy * s;
+      const ly = -dx * s + dy * c;
+      if (lx < -6 || lx > cfg.alcance || Math.abs(ly) > 10 + lx * tg) continue;
+      if (alvo.bloqueia && alvo.bloqueia(direcao * c || 1)) alvo.danoEscudo(cfg.dano, alvo.x, alvo.y - 16);
+      else alvo.levarDano(cfg.dano, x, true, 'arremessa');
+      this.efeitos.impacto(alvo.x, alvo.y - 16, 'comum');
+    }
   }
 
   // Explosão com dano em área (granada, rojão, barril).
@@ -219,7 +248,10 @@ export class CenaJogo extends Phaser.Scene {
     this.itens.atualizar(t);
 
     for (const g of this.granadas.getChildren()) {
-      if (g.active && t >= g.explodeEm) this.explodirGranada(g);
+      if (!g.active) continue;
+      // Gira no ar, quadro a quadro.
+      if (!g.body.blocked.down) g.setFrame(Math.floor(t / 55) % 4);
+      if (t >= g.explodeEm) this.explodirGranada(g);
     }
 
     // A câmera olha um pouco para onde o Lampião está virado.

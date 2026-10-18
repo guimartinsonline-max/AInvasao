@@ -33,7 +33,9 @@ import pixel  # noqa: E402
 QUADROS_LAMPIAO = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4", "corre5", "corre6",
                    "pulo", "agachado", "mira_cima", "susto"]
 desenhos = pixel.ler("lampiao.txt")
-folha([desenhos[n] for n in QUADROS_LAMPIAO], SAIDA / "lampiao.png")
+# A folha padrão do Lampião é com a pistola (arma inicial), feita como as das armas pesadas.
+import lampiao_armas as la  # noqa: E402
+folha(la.folha_da_arma("pistola"), SAIDA / "lampiao.png")
 # Inimigos pixel a pixel (fonte: tools/arte/pixel/volante.txt e xeremita.txt).
 # Inimigos caricatos (fonte: tools/arte/caricatos.py). O último quadro, "tostado",
 # é a morte recolorida de carvão, para quem morre queimado pelo Candeeiro.
@@ -76,7 +78,8 @@ import efeitos_tiro as ef  # noqa: E402
 # Lampião segurando cada arma pesada (tools/arte/lampiao_armas.py), mesma ordem de quadros do lampiao.png.
 import lampiao_armas as la  # noqa: E402
 for arma in la.ar.ARMAS:
-    folha(la.folha_da_arma(arma), SAIDA / f"lampiao_{arma}.png")
+    if arma != "pistola":
+        folha(la.folha_da_arma(arma), SAIDA / f"lampiao_{arma}.png")
 la.gravar_bocas(RAIZ / "src/maos.js")
 for nome, quadros in {
     "clarao": [ef.clarao(k) for k in range(3)],
@@ -94,6 +97,9 @@ for nome, quadros in {
     "explosao_p": [ef.explosao(k, tamanho=24) for k in range(8)],
     "fumaca": [ef.fumaca(k) for k in range(4)],
     "chama": [ef.chama(k) for k in range(5)],
+    "rajada": [ef.rajada(k) for k in range(5)],
+    "labareda": [ef.labareda(k) for k in range(6)],
+    "granada_g": [ef.granada(k) for k in range(4)],
 }.items():
     folha(quadros, SAIDA / f"{nome}.png")
 
