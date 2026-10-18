@@ -11,7 +11,10 @@ RAMPAS = {
     "caqui": "qwetyui",   # camisa: terra escura até areia clara
     "couro": "asdfgh",    # chapéu, alpercata, cinturão, bornal
     "calca": "ZxXcCv",    # calça de mescla
+    "farda": "jJkP",      # farda verde da Volante
 }
+LAMPIAO = ("caqui", "couro", "calca")
+INIMIGO = ("farda", "couro", "caqui")
 MATERIAL = {ch: nome for nome, r in RAMPAS.items() for ch in r}
 LUZ = (-0.6, -0.8)  # de cima e da esquerda
 
@@ -28,19 +31,23 @@ def _volume(m, achatado=2.2, suave=0.7):
     return np.clip((lum - 0.45) * 2.2 + 0.5, 0, 1)
 
 
-def repintar(g, alvo):
+def repintar(g, alvo, materiais=LAMPIAO, inteiro=False):
     """g: grade (lista de listas de caracteres); alvo: máscara bool do que pode ser repintado."""
     a = np.array(g)
     h, w = a.shape
     yy = np.mgrid[0:h, 0:w][0]
     novo = a.copy()
-    for nome, rampa in RAMPAS.items():
+    for nome in materiais:
+        rampa = RAMPAS[nome]
         m = alvo & np.isin(a, list(rampa))
         if not m.any():
             continue
         k = len(rampa)
         orig = np.vectorize(lambda c: rampa.find(c))(np.where(m, a, rampa[0])) / (k - 1)
-        rot, n = ndimage.label(m)
+        # inteiro: luz calculada no corpo todo (fecha as linhas internas), sem
+        # manchas em cada pedacinho entre contornos (inimigos e refém).
+        base = ndimage.binary_closing(m, iterations=2) | m if inteiro else m
+        rot, n = ndimage.label(base)
         luz = np.zeros(m.shape)
         for i in range(1, n + 1):
             p = rot == i
@@ -48,13 +55,13 @@ def repintar(g, alvo):
             # Gradiente do volume inteiro: claro em cima à esquerda, escuro embaixo à direita.
             gx = (xs - xs.mean()) / max(4, np.ptp(xs) + 1)
             gyv = (ys - ys.mean()) / max(4, np.ptp(ys) + 1)
-            luz[p] = _volume(p)[p] - 0.45 * gx - 0.4 * gyv
-        peso = {'caqui': 0.7, 'couro': 0.55, 'calca': 0.5}[nome]
+            luz[p] = (_volume(p, achatado=3.5, suave=1.2)[p] * 0.6 + 0.2 if inteiro else _volume(p)[p]) - 0.45 * gx - 0.4 * gyv
+        peso = {'caqui': 0.7, 'couro': 0.55, 'calca': 0.5, 'farda': 0.65}[nome] * (0.75 if inteiro else 1)
         v = (1 - peso) * orig + peso * luz
         if nome == 'calca':
             v = v - 0.12
-        if nome == "caqui":
-            v = v + _dobras_camisa(m, yy)
+        if nome in ("caqui", "farda"):
+            v = v + _dobras_camisa(m, yy) * (0.6 if inteiro else 1)
         nivel = np.clip(np.round(v * (k - 1)), 0, k - 1).astype(int)
         # Tira pixel solto: fica com o nível da maioria dos vizinhos do mesmo material.
         nivel = _limpar(nivel, m)
@@ -140,3 +147,11 @@ def _couro_gasto(a, m, rampa):
     for y, x in zip(*np.where(interior)):
         if rng.random() < 0.05 and 2 <= nv(a[y, x]) <= 3:
             a[y, x] = rampa[min(k - 1, nv(a[y, x]) + 2)]
+
+
+def repintar_tela(tela, materiais=INIMIGO):
+    """Repinta uma Tela inteira (inimigos e refém: arma e rosto ficam como estão)."""
+    import pixel
+    g = [list(l) for l in pixel.para_texto(tela).split("\n")]
+    g = repintar(g, np.array(g) != ".", materiais, inteiro=True)
+    return pixel.de_texto("\n".join("".join(l) for l in g), w=tela.w, h=tela.h)

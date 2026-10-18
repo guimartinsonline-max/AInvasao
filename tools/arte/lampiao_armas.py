@@ -149,6 +149,12 @@ def cabeca(g, dy, rosto, baixa=0):
 _CORPO = None
 
 
+def _todo(g):
+    """Quadro sem arma (morte): repinta tudo."""
+    g = repintar.repintar(g, np.array(g) != ".")
+    return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
+
+
 def _fim(g):
     """Fecha o quadro: repinta o corpo (tons, dobras, couro gasto) sem tocar na arma."""
     global _CORPO
@@ -173,7 +179,7 @@ def quadro_morte(nome):
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (25, 15 + dy), (29, 9 + dy))
         punho_fechado(g, 5, 8 + dy)
         punho_fechado(g, 29, 9 + dy)
-        return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
+        return _todo(g)
     # Deitado de costas, estatelado: desenhado "em pé" com as pernas esticadas e os
     # braços jogados para trás da cabeça, sem o chapéu (ele cai à parte), e girado
     # 90 graus. Assim as costas ficam retas no chão e as alpercatas apontam para o céu.
@@ -201,7 +207,7 @@ def quadro_morte(nome):
         ny, nx = y + desce, x + esq
         if 0 <= ny < lp.H and 0 <= nx < lp.W:
             saida[ny, nx] = rot[y, x]
-    return pixel.de_texto("\n".join("".join(l) for l in saida), w=lp.W, h=lp.H)
+    return _todo(saida)
 
 
 def retrato(rosto="serio"):
@@ -211,6 +217,7 @@ def retrato(rosto="serio"):
         lp.pintar(g, 7 + k, 3, txt)
     for k, txt in enumerate(lp.CHAPEU):
         lp.pintar(g, k, 0, txt)
+    g = repintar.repintar(g, np.array(g) != ".")
     return pixel.de_texto("\n".join("".join(l) for l in g), w=26, h=21)
 
 

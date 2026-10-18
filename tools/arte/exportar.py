@@ -59,6 +59,7 @@ def tostar(tela):
 
 
 from motor import CORES  # noqa: E402
+import repintar as rp  # noqa: E402
 for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "granadeiro": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "metralhador": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
@@ -67,10 +68,11 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
                     "oficial": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "xeremita": ["parado", "atira", "grito", "anda1", "anda2", "anda3", "anda4", "morte"]}.items():
     d = pixel.ler(f"{nome}.txt")
+    d = {k: rp.repintar_tela(v) for k, v in d.items()}
     # Soldados da Volante também têm os quadros sentados (distraídos) depois do tostado.
     extra = [d["sentado1"], d["sentado2"]] if "sentado1" in d else []
     folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra, SAIDA / f"{nome}.png")
-d = pixel.ler("refem.txt")
+d = {k: rp.repintar_tela(v) for k, v in pixel.ler("refem.txt").items()}
 folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
                       "corre1", "corre2", "corre3", "corre4", "pendurado1", "pendurado2"]], SAIDA / "refem.png")
 import inimigos as ini  # noqa: E402
