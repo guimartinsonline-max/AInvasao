@@ -9,6 +9,12 @@ Este arquivo reúne tudo o que já foi decidido. Leia antes de qualquer tarefa.
 - Decisões criativas (visual, história, fases, chefes): proponha opções e espere eu aprovar antes de implementar.
 - Eu testo no iPhone e no PC pelo endereço do ramo `dev` no Netlify.
 - **Custo zero:** nada pago. Nenhuma ferramenta, asset, serviço ou biblioteca paga.
+- **Economia de créditos (Claude):**
+  - Uma conversa nova por etapa ou por lote de pedidos; este arquivo guarda tudo o que foi decidido. Conversa longa encarece cada passo.
+  - Conferir visual com imagens pequenas e recortadas só na área que mudou (uma folha de comparação por rodada, nada de print inteiro de 1096 px a cada ajuste).
+  - Antes de mudança visual grande, testar numa peça só e só depois aplicar em tudo.
+  - Ler só o trecho do arquivo que vai mexer; saída de comando sempre resumida (`tail`).
+  - Teste automático longo (`autoplay`) só no fim do lote, não a cada ajuste.
 
 ## Conceito
 
@@ -152,7 +158,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - Paleta de cores fixa: `assets/paleta.json` (64 cores: as 32 originais e degraus intermediários). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.
 - Sprites de tamanho médio e animações com poucos quadros bem escolhidos, onde a consistência entre quadros se mantém.
 - Renderizar e conferir visualmente cada sprite antes de usar.
-- Cenário em camadas com parallax. Paredão de arenito (768 px) e chão em corte gerados em `tools/arte/rocha.py`: blocos irregulares com volume próprio, juntas, rachaduras, líquen, moitas, tálus e perspectiva aérea (fundo mais claro e de menor contraste). Serras em duas fileiras com volume; morros com textura de capim, pedrinhas e moitas.
+- Cenário em camadas com parallax. Paredão de arenito (768 px) e chão em corte gerados em `tools/arte/rocha.py`: blocos irregulares com volume próprio, juntas, rachaduras, líquen, moitas, tálus e perspectiva aérea (fundo mais claro e de menor contraste). Serras em duas fileiras com volume; morros com textura de capim, pedrinhas e moitas. Construções passam por `envelhecer()` (`fase1.py`): sujeira subindo da base e escorridos do beiral; caiação da capela lisa; lona da barraca com dobras; mandacaru com gomos de aresta clara.
 - O impacto visual vem dos efeitos: explosões grandes, partículas, fumaça, faíscas, cápsulas de bala.
 
 ### Game feel (prioridade máxima)

@@ -91,6 +91,31 @@ def assentar(t, peca, x, chao_y, afundar=1):
     colar(t, peca, x, chao_y - peca.h + afundar)
 
 
+def envelhecer(t, parede, topo, semente=0, escorridos=True):
+    """Parede velha do sertão: sujeira de terra subindo da base (pontilhada),
+    escorridos escuros descendo do beiral e das janelas."""
+    rng = np.random.default_rng(semente + 77)
+    h, w = parede.shape
+    lim = np.tile(BAYER4, (h // 4 + 1, w // 4 + 1))[:h, :w]
+    linhas = np.where(parede.any(1))[0]
+    if not len(linhas):
+        return
+    fundo = linhas[-1]
+    for k in range(9):
+        y = fundo - k
+        sel = parede[y] & (lim[y] < (1 - k / 9) * 0.85)
+        t.px[y, sel] = ESCURO[t.px[y, sel]]
+    if escorridos:
+        cols = np.where(parede.any(0))[0]
+        for _ in range(max(2, len(cols) // 10)):
+            x = int(rng.choice(cols))
+            y0 = topo + int(rng.integers(1, 4))
+            for d in range(int(rng.integers(5, 18))):
+                y = y0 + d
+                if y < h and parede[y, x] and (d < 4 or rng.random() < 0.8):
+                    t.px[y, x] = ESCURO[t.px[y, x]]
+
+
 def tabuas(w, h, vertical=True, semente=0, rampa=None):
     """Tábuas uma a uma: contorno entre elas, veio da madeira, nós, pregos,
     luz na borda de cima/esquerda e sombra na de baixo/direita."""
@@ -252,37 +277,39 @@ def arvore(altura=70, semente=0, folhas=True):
 
 
 def mandacaru(altura=48, semente=0, bracos=2):
-    """Mandacaru: coluna com gomos, braços em candelabro, espinhos e flor."""
-    W = 34
+    """Mandacaru robusto: coluna grossa com gomos de 2 px (aresta clara à
+    esquerda, vão escuro), braços em candelabro, espinhos claros e flor."""
+    W = 38
     t = Tela(W, altura)
     rng = np.random.default_rng(semente)
     cx = W / 2
-    partes = [t.capsula(cx, altura - 1, cx, 5, 3.6, 3.2)]
+    partes = [(t.capsula(cx, altura - 1, cx, 5, 4.6, 4.0), cx)]
     for k in range(bracos):
         lado = -1 if k % 2 == 0 else 1
         y0 = altura * rng.uniform(0.45, 0.7)
-        x1 = cx + lado * rng.uniform(7, 10)
+        x1 = cx + lado * rng.uniform(9, 12)
         y1 = y0 - rng.uniform(2, 4)
         topo = y0 - altura * rng.uniform(0.3, 0.45)
-        partes.append(t.capsula(cx, y0, x1, y1, 2.6, 2.6) | t.capsula(x1, y1, x1, topo, 2.7, 2.4))
-    for m in partes:
-        t.volume(m, CACTO, achatado=2.5, suave=0.6, ambiente=0.15)
-        # Gomos: linhas verticais escuras e claras alternadas.
-        xs = t.xx.astype(int)
-        gomo = m & (xs % 3 == 0)
-        t.px[gomo] = IDX["caatinga_esc"]
-        luz = m & (xs % 3 == 1) & (t.px == IDX["mandacaru"])
-        t.px[luz] = IDX["mandacaru_luz"]
+        partes.append((t.capsula(cx, y0, x1, y1, 3.0, 3.0) | t.capsula(x1, y1, x1, topo, 3.4, 3.0), x1))
+    xs = t.xx.astype(int)
+    for m, px_ in partes:
+        t.volume(m, CACTO, achatado=3.0, suave=0.7, ambiente=0.18, luz=(-0.7, -0.4))
+        # Gomos verticais: vão escuro a cada 3 px, aresta clara logo à esquerda dele.
+        fase = int(px_) % 3
+        t.px[m & ((xs - fase) % 3 == 0)] = ESCURO[t.px[m & ((xs - fase) % 3 == 0)]]
+        aresta = m & ((xs - fase) % 3 == 2) & (t.xx < px_ + 1)
+        t.px[aresta] = IDX["mandacaru_luz"]
     tudo = np.zeros((altura, W), dtype=bool)
-    for m in partes:
+    for m, _ in partes:
         tudo |= m
-    # Espinhos: pontinhos claros na borda dos gomos.
-    esp = tudo & ((t.xx.astype(int) % 3 == 0) & (t.yy.astype(int) % 3 == 1))
+    # Espinhos: tufinhos claros nas arestas, em fileira.
+    esp = tudo & ((xs % 3) == 1) & (t.yy.astype(int) % 4 == 1)
     t.px[esp] = IDX["areia_clara"]
     t.contorno("sombra")
     if rng.random() < 0.6:
         t.ponto(int(cx), 3, "rosa_poeira")
         t.ponto(int(cx) - 1, 4, "lilas_claro")
+        t.ponto(int(cx) + 1, 4, "branco")
     return t
 
 
@@ -373,7 +400,7 @@ def casa_taipa(w=120, h=86, semente=0, quebrada=True):
     beiral = max(9, int(h * 0.3))
     alt_porta = min(40, h - beiral - 3)
     parede = t.retangulo(6, beiral, w - 12, h - beiral)
-    t.volume(parede, REBOCO, achatado=3, suave=1.0, ambiente=0.35, textura=0.22, semente=semente, luz=(-0.3, -0.9))
+    t.volume(parede, REBOCO, achatado=3, suave=1.0, ambiente=0.35, textura=0.1, semente=semente, luz=(-0.3, -0.9))
     # Reboco caído: manchas mostrando o trançado de varas com barro.
     caido = (ruido(h, w, 3.0, semente + 1) > 1.0) & parede & (t.yy > beiral + 6)
     # Onde o reboco caiu aparecem os tijolos de adobe, um a um, com junta escura.
@@ -401,6 +428,7 @@ def casa_taipa(w=120, h=86, semente=0, quebrada=True):
             y += 1
             if 0 <= int(y) < h and parede[int(y), int(x)]:
                 t.px[int(y), int(x)] = IDX["terra_escura"]
+    envelhecer(t, parede, beiral + 3, semente)
     # Porta de tábuas entreaberta.
     lp_ = max(6, w * 0.15)  # largura da porta
     porta = t.retangulo(w * 0.22, h - alt_porta, lp_, alt_porta)

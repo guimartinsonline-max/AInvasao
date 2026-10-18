@@ -6,6 +6,7 @@ Mesmo estilo e rampas de fase1.py. Usado por fase1.py.
 import math
 
 import numpy as np
+from scipy import ndimage
 
 from motor import IDX, VAZIO, Tela
 import fase1 as f
@@ -26,8 +27,12 @@ def capela(w=96, h=112, semente=0):
     frontao = t.poligono([(6, corpo_y + 2), (w / 2, 12), (w - 6, corpo_y + 2)])
     corpo = t.retangulo(8, corpo_y, w - 16, h - corpo_y)
     torre = t.retangulo(w / 2 - 9, 2, 18, 16)
-    t.volume(corpo | frontao | torre, CAL, achatado=3, suave=1.0, ambiente=0.35, textura=0.15, semente=semente,
+    t.volume(corpo | frontao | torre, CAL, achatado=3, suave=1.0, ambiente=0.35, textura=0.06, semente=semente,
              luz=(-0.3, -0.9))
+    # Caiação lisa: cada pixel fica com a cor que mais aparece em volta (tira o granulado).
+    cal = corpo | frontao | torre
+    moda = ndimage.generic_filter(t.px, lambda v: np.bincount(v.astype(int) + 1).argmax() - 1, size=3)
+    t.px[cal] = moda[cal]
     # Cornija do frontão e beiral.
     for k in range(2):
         t.linha(6, corpo_y + 2 - k, w / 2, 12 - k, "cinza_medio" if k else "cinza_escuro")
@@ -61,6 +66,7 @@ def capela(w=96, h=112, semente=0):
     barra = (corpo) & (t.yy > base - 10)
     t.px[barra] = IDX["azul_medio"]
     t.px[barra & (t.yy > base - 3)] = IDX["azul_sombra"]
+    f.envelhecer(t, corpo, corpo_y + 4, semente)
     caido = (f.ruido(h, w, 2.5, semente + 2) > 1.1) & corpo & (t.yy > corpo_y + 8) & (t.yy < base - 10) & ~porta
     t.px[caido] = IDX["barro"]
     t.px[caido & (f.ruido(h, w, 0.8, semente + 3) > 0.6)] = IDX["terra_media"]
@@ -187,8 +193,21 @@ def barraca(w=84, h=44, semente=0, aberta=True):
     t.volume(corpo, LONA_VERDE, achatado=4, suave=1.0, ambiente=0.25, textura=0.15, semente=semente,
              luz=(-0.5, -0.8))
     t.linha(w * 0.3, 4, w * 0.7, 4, "caatinga_esc")
+    t.linha(w * 0.3, 5, w * 0.7, 5, "mandacaru")  # cumeeira iluminada
     for x in (w * 0.4, w * 0.6):
         t.linha(x, 5, x - (w * 0.5 - x) * 0.6, base, "caatinga_esc")
+    # Dobras da lona: caimentos verticais (vão escuro com borda clara) e barra suja embaixo.
+    rng = np.random.default_rng(semente + 5)
+    for k in range(9):
+        x0 = w * (0.12 + k * 0.095) + rng.uniform(-2, 2)
+        for y in range(6, base + 1):
+            fx = x0 + (x0 - w / 2) * (y - 6) / max(1, base - 6) * 0.35
+            xi = int(fx)
+            if 0 < xi < w - 1 and corpo[y, xi] and rng.random() < 0.85:
+                t.px[y, xi] = f.ESCURO[t.px[y, xi]]
+                if corpo[y, xi - 1]:
+                    t.px[y, xi - 1] = IDX["caatinga"] if y < base - 6 else t.px[y, xi - 1]
+    f.envelhecer(t, corpo, 0, semente, escorridos=False)
     if aberta:
         porta = t.poligono([(w * 0.5, 10), (w * 0.38, base), (w * 0.62, base)])
         t.chapado(porta, "marrom_noite")

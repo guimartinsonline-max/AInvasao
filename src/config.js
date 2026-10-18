@@ -9,4 +9,4 @@ export const DY = ALTURA - 216;
 
 // Versão dos arquivos de assets/. Entra no endereço (?v=) para o navegador
 // nunca usar uma cópia velha guardada em cache. Aumentar a cada mudança em assets/.
-export const VERSAO = 57;
+export const VERSAO = 59;
