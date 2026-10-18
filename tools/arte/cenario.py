@@ -77,81 +77,36 @@ def nuvens(semente=3):
     return t
 
 
-def serras(h=200):
-    """Serras azuladas ao longe, altas, enchendo o céu atrás dos paredões
-    (a tela de 548x308 mostra mais céu)."""
-    t = Tela(L, h)
-    x = np.arange(L)
-    # Serras do sertão: lombos arredondados, nada de pico pontudo.
-    perfil = (58 + 13 * np.sin(x / L * 2 * np.pi * 2 + 1) + 6 * np.sin(x / L * 2 * np.pi * 5 + 2)
-              + 1.5 * ruido(1, L, 8, 7)[0])
-    perfil = ndimage.uniform_filter1d(perfil, 9, mode="wrap")
-    m = t.yy >= perfil[None, :]
-    t.cel(m, SERRA, sombra=0, luz=0, linha=False)
-    # Lado sombreado das encostas: onde o perfil desce para a direita.
-    desce = np.gradient(perfil) > 0.12
-    for xx in np.where(desce)[0]:
-        y0 = int(perfil[xx]) + 1
-        col = t.px[y0:y0 + 40, xx]
-        col[col != VAZIO] = IDX["ceu"]
+def serras(h=200, Ls=768):
+    """Serras azuladas ao longe em duas fileiras (a de trás mais clara), com
+    volume suave, encostas na sombra e névoa até o horizonte."""
+    t = Tela(Ls, h)
+    x = np.arange(Ls)
+
+    def fileira(base, amp, semente, rampa):
+        perfil = (base + amp * np.sin(x / Ls * 2 * np.pi * 3 + semente) + amp * 0.45 * np.sin(x / Ls * 2 * np.pi * 7 + 2 * semente)
+                  + 2.5 * ruido(1, Ls, 10, semente)[0])
+        perfil = ndimage.uniform_filter1d(perfil, 11, mode="wrap")
+        m = t.yy >= perfil[None, :]
+        sub = Tela(Ls, h)
+        sub.volume(m, rampa, luz=(-0.8, -0.5), achatado=14, suave=4, ambiente=0.3, linha=False)
+        t.px[m] = sub.px[m]
+        return m
+
+    m1 = fileira(46, 12, 7, ["ceu_medio", "ceu_claro", "ceu_claro", "ceu_luz"])
+    m2 = fileira(78, 9, 13, ["ceu", "ceu_medio", "ceu_claro", "ceu_luz"])
+    m = m1 | m2
     # Névoa: as serras clareiam para baixo até sumir no horizonte.
-    degrade(t, 90, 130, "ceu", "ceu_claro", mascara=m)
-    t.px[m & (t.yy >= 130)] = IDX["ceu_claro"]
+    degrade(t, 110, 140, "ceu_medio", "ceu_claro", mascara=m & (t.yy >= 110) & (t.px == IDX["ceu_medio"]))
+    t.px[m & (t.yy >= 140) & (t.px != IDX["ceu_luz"])] = IDX["ceu_claro"]
     degrade(t, h - 30, h, "ceu_claro", "horizonte", mascara=m)
     return t
 
 
 def paredoes(semente=11, h=130):
-    """Paredões de arenito com camadas, rachaduras e sombra fria."""
-    t = Tela(L, h)
-    rng = np.random.default_rng(semente)
-    perfil = np.full(L, h, dtype=float)
-    x = 0
-    while x < L:
-        largura = rng.integers(50, 110)
-        topo = rng.integers(8, 52)
-        rampa = rng.integers(4, 10)
-        for k in range(largura):
-            xx = (x + k) % L
-            borda = min(k, largura - 1 - k)
-            y = topo + max(0, rampa - borda) * 2.2 + rng.uniform(0, 1.2)
-            perfil[xx] = min(perfil[xx], y)
-        x += largura - rng.integers(0, 20)
-    perfil = ndimage.uniform_filter1d(perfil, 3, mode="wrap")
-    m = t.yy >= perfil[None, :]
-    # Volume: topo iluminado, faces mais escuras, lado direito na sombra.
-    t.cel(m, ARENITO, sombra=0, luz=2, linha=False)
-    nivel = np.full((h, L), 2)
-    prof = t.yy - perfil[None, :]
-    nivel[prof < 3] = 3
-    nivel[prof < 1.5] = 4
-    # Camadas de sedimento.
-    estratos = ruido(h, L, (0.6, 12), 5)
-    faixa = (np.floor((t.yy + estratos * 3) / 9) % 3 == 0)
-    nivel = np.where(faixa & (prof > 4), nivel - 1, nivel)
-    # Sombra das faces que olham para a direita.
-    desce = np.gradient(perfil) > 0.6
-    sombra = ndimage.binary_dilation(np.repeat(desce[None, :], h, 0), structure=np.ones((1, 9)), origin=(0, -4))
-    nivel = np.where(sombra & (prof > 1), np.minimum(nivel, 1), nivel)
-    # Sulcos verticais de erosão.
-    sulcos = ruido(h, L, (14, 1.2), 9)
-    nivel = np.where((sulcos > 1.1) & (prof > 5), nivel - 1, nivel)
-    nivel = np.where((sulcos < -1.4) & (prof > 5) & ~sombra, nivel + 1, nivel)
-    # Rachaduras verticais.
-    for _ in range(9):
-        cx = rng.integers(0, L)
-        y = perfil[cx] + rng.integers(4, 14)
-        for _k in range(rng.integers(5, 12)):
-            if 0 <= int(y) < h:
-                nivel[int(y), cx % L] = 0
-            y += 1
-            if rng.random() < 0.25:
-                cx += rng.choice((-1, 1))
-    # Pé do paredão some na névoa quente.
-    cores = np.array([IDX[c] for c in ARENITO])[np.clip(nivel, 0, 4)]
-    t.px[m] = cores[m]
-    degrade(t, h - 22, h, "barro", "areia", mascara=m & (prof > 6))
-    return t
+    """Paredões de arenito em blocos com volume (tools/arte/rocha.py), 768 px emendando."""
+    import rocha
+    return rocha.paredoes(768, h, semente)
 
 
 def planicie(h=40):
@@ -228,29 +183,10 @@ def caatinga(semente=21):
     return t
 
 
-def chao_tile(w=128, h=24, semente=31):
-    """Ladrilho do chão: borda de areia, terra com pedrinhas e sombra embaixo."""
-    t = Tela(w, h)
-    rng = np.random.default_rng(semente)
-    t.px[:] = IDX["barro"]
-    n = ruido(h, w, 1.2, semente)
-    t.px[(n > 0.9) & (t.yy > 4)] = IDX["terra"]
-    t.px[(n < -1.2) & (t.yy > 4)] = IDX["areia"]
-    degrade(t, 12, h, "barro", "terra")
-    degrade(t, 18, h + 6, "terra", "terra_escura", mascara=(t.yy >= 18))
-    # Borda de cima.
-    t.px[0:2] = IDX["areia_clara"]
-    t.px[2:4] = IDX["areia"]
-    t.px[4] = IDX["barro"]
-    for x in range(0, w, 3):
-        if rng.random() < 0.5:
-            t.px[2, x] = IDX["areia_clara"]
-    # Pedrinhas.
-    for _ in range(5):
-        px, py, r = rng.uniform(4, w - 4), rng.uniform(8, h - 3), rng.uniform(1.0, 2.2)
-        t.cel(t.elipse(px, py, r * 1.3, r), PEDRA, sombra=1, luz=1, linha=False)
-    return t
-
+def chao_tile(w=256, h=24, semente=31):
+    """Ladrilho do chão do campo de treino: o mesmo chão em corte da fase 1."""
+    import rocha
+    return rocha.chao(w, h, semente)
 
 def touceira(semente):
     """Tufo de capim seco para enfeitar a beira do chão."""

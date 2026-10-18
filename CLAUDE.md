@@ -152,7 +152,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - Paleta de cores fixa: `assets/paleta.json` (64 cores: as 32 originais e degraus intermediários). Céu azul e sombras frias equilibrando a terra quente, como no trailer de Metal Slug: Awakening. Não deixar o ambiente todo em tons quentes.
 - Sprites de tamanho médio e animações com poucos quadros bem escolhidos, onde a consistência entre quadros se mantém.
 - Renderizar e conferir visualmente cada sprite antes de usar.
-- Cenário em camadas com parallax.
+- Cenário em camadas com parallax. Paredão de arenito (768 px) e chão em corte gerados em `tools/arte/rocha.py`: blocos irregulares com volume próprio, juntas, rachaduras, líquen, moitas, tálus e perspectiva aérea (fundo mais claro e de menor contraste). Serras em duas fileiras com volume; morros com textura de capim, pedrinhas e moitas.
 - O impacto visual vem dos efeitos: explosões grandes, partículas, fumaça, faíscas, cápsulas de bala.
 
 ### Game feel (prioridade máxima)

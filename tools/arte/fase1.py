@@ -459,51 +459,9 @@ def cata_vento(altura=70):
 
 # ================================================================ chão em corte
 def chao(w, h=26, semente=0, queimado=False):
-    """Faixa de chão vista em corte: capim e pedrisco em cima, camadas de terra
-    com pedras enterradas, raízes e rachaduras."""
-    t = Tela(w, h)
-    rng = np.random.default_rng(semente)
-    n = ruido(h, w, 2.0, semente)
-    # Camadas de terra (estratos) levemente onduladas.
-    camada = (t.yy + n * 1.5) / h
-    rampa = TERRA_ESC if queimado else TERRA
-    nivel = np.clip((1 - camada) * (len(rampa) - 1), 0, len(rampa) - 1)
-    lim = np.tile(BAYER4, (h // 4 + 1, w // 4 + 1))[:h, :w]
-    nivel = np.floor(nivel + (lim - 0.5) * 0.6).clip(0, len(rampa) - 1).astype(int)
-    t.px[:, :] = np.array([IDX[c] for c in rampa])[nivel]
-    # Faixas escuras de estrato.
-    for y0 in (9, 16):
-        faixa = (np.abs(t.yy - y0 - n * 1.2) < 0.6)
-        t.px[faixa] = IDX[rampa[1]]
-    # Crosta clara no topo.
-    t.px[0:2, :] = IDX["areia" if not queimado else "terra"]
-    t.px[0, :] = IDX["areia_luz" if not queimado else "terra_media"]
-    # Pedras enterradas.
-    for _ in range(w // 18):
-        pw, ph = rng.integers(4, 9), rng.integers(3, 6)
-        p = pedra(pw, ph, semente=int(rng.integers(0, 9999)), musgo=False)
-        colar(t, p, rng.uniform(0, w - pw), rng.uniform(4, h - ph))
-    # Pedrisco na crosta.
-    for _ in range(w // 4):
-        x = int(rng.uniform(0, w))
-        t.ponto(x, int(rng.integers(1, 4)), rng.choice(["cinza_luz", "cinza", "terra_escura", "areia_clara"]))
-    # Raízes finas.
-    for _ in range(w // 40):
-        x = rng.uniform(0, w)
-        y = 2
-        for k in range(rng.integers(6, 12)):
-            nx, ny = x + rng.uniform(-1.5, 1.5), y + 1
-            t.linha(x, y, nx, ny, "couro_escuro" if not queimado else "preto")
-            x, y = nx, ny
-    # Rachaduras.
-    for _ in range(w // 30):
-        x = rng.uniform(0, w)
-        y = 1
-        for k in range(rng.integers(4, 9)):
-            nx, ny = x + rng.uniform(-1, 1), y + 1
-            t.linha(x, y, nx, ny, "sombra")
-            x, y = nx, ny
-    return t
+    """Chão em corte no nível do Metal Slug (tools/arte/rocha.py)."""
+    import rocha
+    return rocha.chao(w, h, semente, queimado)
 
 
 def lajedo(w, h=40, semente=0):
@@ -971,6 +929,45 @@ def camada_perto():
     return t, fator
 
 
+def textura_morro(t, morro, alto, rng):
+    """Chão do morro visto de longe: manchas de terra, capim seco riscado,
+    pedrinhas com sombra, moitas miúdas e sulcos de erosão."""
+    h, w = morro.shape
+    lim = np.tile(BAYER4, (h // 4 + 1, w // 4 + 1))[:h, :w]
+    mancha = (ruido(h, w, (2, 9), 41) > 0.8) & morro & (lim < 0.5)
+    t.px[mancha] = IDX["terra_media"]
+    clara = (ruido(h, w, (2, 12), 42) > 1.0) & morro & (lim < 0.4)
+    t.px[clara] = IDX["areia_luz"]
+    for _ in range(w // 3):
+        x = int(rng.integers(0, w))
+        y = int(rng.integers(alto[x] + 2, h))
+        if morro[y, x] and y + 1 < h:
+            t.px[y, x] = IDX["areia_luz"]
+            t.px[y + 1, x] = IDX["barro"]
+    for _ in range(w // 14):
+        x = int(rng.integers(1, w - 2))
+        y = int(rng.integers(alto[x] + 3, h - 1))
+        if morro[y, x]:
+            t.px[y, x:x + 2] = IDX["cinza_luz"]
+            t.px[y + 1, x:x + 2] = IDX["terra_escura"]
+    for _ in range(w // 22):
+        x = int(rng.integers(2, w - 6))
+        y = int(rng.integers(alto[x] + 3, h - 2))
+        larg = int(rng.integers(3, 6))
+        if morro[y, x]:
+            t.px[y, x:x + larg] = IDX["caatinga_esc"]
+            t.px[y - 1, x + 1:x + larg - 1] = IDX["caatinga_media"]
+            t.px[y + 1, x:x + larg] = IDX["terra"]
+    for _ in range(w // 60):
+        x = float(rng.integers(0, w))
+        y = float(alto[int(x)] + 3)
+        for _k in range(int(rng.integers(6, 16))):
+            if 0 <= int(x) < w and int(y) < h and morro[int(y), int(x)]:
+                t.px[int(y), int(x)] = IDX["terra"]
+            x += rng.choice((-1, 1)) * rng.uniform(0.5, 1.5)
+            y += 1
+
+
 def camada_meio():
     """Longe (anda a 0,45 da câmera): morros baixos com caatinga miúda e uma casinha.
     (O disco que cai no fim passa atrás dela, animado no jogo.)"""
@@ -985,6 +982,7 @@ def camada_meio():
     morro = t.yy >= alto[np.newaxis, :].repeat(alt, 0)
     t.volume(morro, ["azul_sombra", "terra", "terra_media", "barro", "areia_media", "areia"], achatado=6,
              suave=3, ambiente=0.35, textura=0.2, semente=2, linha=False)
+    textura_morro(t, morro, alto, rng)
     # Caatinga miúda e espalhada: arbustos em tufos, algumas árvores secas sem folha.
     x = 0
     while x < W:
