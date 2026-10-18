@@ -148,3 +148,117 @@ def _lama(t, rng, chao=None):
             px[y, sel] = ESC[px[y, sel]]
         respingo = pintura[y] & (rng.random(w) < p * 0.07)
         px[y, respingo] = IDX["terra" if rng.random() < 0.5 else "terra_media"]
+
+
+def danificar(t, nivel, semente=0):
+    """Lataria ficando arrebentada conforme leva tiro (nível 0 a 3), sempre nos
+    mesmos lugares para os quadros de uma etapa baterem entre si:
+    1: furos de bala (miolo preto e borda de metal claro) e amassados;
+    2: mais furos, chamuscado de fumaça e rachaduras;
+    3: rasgos abertos com a chapa virada para fora, fuligem e tinta queimada."""
+    if nivel <= 0:
+        return t
+    px = t.px
+    h, w = px.shape
+    cheio = px != VAZIO
+    miolo = ndimage.binary_erosion(cheio, iterations=2)
+    pintura = np.isin(px, VERDES + [int(ESC[v]) for v in VERDES] + [int(CLA[v]) for v in VERDES]) & miolo
+    alvo = pintura if pintura.sum() > 40 else miolo
+    if not alvo.any():
+        return t
+    ys_, xs_ = np.where(alvo)
+    top, bot, esq, dir_ = ys_.min(), ys_.max(), xs_.min(), xs_.max()
+    area = int(alvo.sum())
+    # Lugares sorteados em frações da caixa do veículo: a mesma sequência em todos
+    # os quadros (o dano não pula quando a carroceria balança) e em todas as etapas
+    # (o dano só acumula).
+    rng = np.random.default_rng(semente * 31 + 7)
+    fr = rng.random((4000, 2))
+    i = 0
+
+    def pega():
+        nonlocal i
+        for _ in range(60):
+            fy, fx = fr[i % len(fr)]
+            i += 1
+            y = int(top + fy * (bot - top))
+            x = int(esq + fx * (dir_ - esq))
+            if alvo[y, x]:
+                return y, x
+        return y, x
+
+    def ok(y, x):
+        return 0 <= y < h and 0 <= x < w and miolo[y, x]
+
+    # Chamuscado (nível 2+): manchas escuras de borda irregular.
+    if nivel >= 2:
+        for k in range(2 if nivel == 2 else 4):
+            y, x = pega()
+            r = 5 + area / 700 + k
+            m = t.elipse(x, y, r * 1.4, r) & cheio
+            borda = m & ~ndimage.binary_erosion(m, iterations=2)
+            lim = np.tile(BAYER4, (h // 4 + 1, w // 4 + 1))[:h, :w]
+            sel = m & ~(borda & (lim < 0.5))
+            px[sel] = ESC[px[sel]]
+            nucleo = t.elipse(x, y, r * 0.85, r * 0.6) & cheio
+            px[nucleo] = ESC[px[nucleo]]
+            if nivel == 3:
+                px[t.elipse(x, y, r * 0.45, r * 0.3) & cheio] = IDX["preto"]
+    # Rachaduras (nível 2+): linha quebrada escura com brilho de um lado.
+    for _ in range({1: 0, 2: 2, 3: 4}[nivel]):
+        y, x = pega()
+        for _ in range(int(rng.integers(5, 10))):
+            if ok(y, x):
+                px[y, x] = IDX["preto"]
+                if ok(y, x + 1):
+                    px[y, x + 1] = CLA[px[y, x + 1]]
+            y += int(rng.choice([-1, 0, 1]))
+            x += int(rng.choice([1, 1, 2]))
+    # Amassados: meia-lua escura com brilho embaixo.
+    for _ in range({1: 2, 2: 3, 3: 4}[nivel]):
+        y, x = pega()
+        for dx in range(-2, 3):
+            if ok(y - 1 + abs(dx) // 2, x + dx):
+                px[y - 1 + abs(dx) // 2, x + dx] = ESC[px[y - 1 + abs(dx) // 2, x + dx]]
+            if ok(y + 1, x + dx):
+                px[y + 1, x + dx] = CLA[px[y + 1, x + dx]]
+    # Furos de bala.
+    n_furos = int({1: 8, 2: 16, 3: 26}[nivel] * max(1.0, area / 2500))
+    for _ in range(n_furos):
+        y, x = pega()
+        if not ok(y, x):
+            continue
+        px[y, x] = IDX["preto"]
+        if ok(y, x + 1) and rng.random() < 0.6:
+            px[y, x + 1] = IDX["preto"]
+        for dy, dx in ((-1, 0), (0, -1), (-1, -1)):
+            if ok(y + dy, x + dx) and px[y + dy, x + dx] != IDX["preto"]:
+                px[y + dy, x + dx] = IDX["cinza_luz"]
+        for dy, dx in ((1, 0), (1, 1)):
+            if ok(y + dy, x + dx) and px[y + dy, x + dx] != IDX["preto"]:
+                px[y + dy, x + dx] = IDX["cinza_medio"]
+    # Rasgos (nível 3): buraco aberto na chapa com as pontas viradas para fora.
+    if nivel == 3:
+        for _ in range(2 if area < 3000 else 3):
+            y, x = pega()
+            r = min(4.5, 3 + area / 2500)
+            buraco = t.elipse(x, y, r * 1.3, r) & miolo
+            jag = rng.random(buraco.shape) < 0.25
+            buraco &= ~(jag & ~ndimage.binary_erosion(buraco))
+            borda = ndimage.binary_dilation(buraco) & ~buraco & cheio
+            px[borda] = IDX["cinza_medio"]
+            cima = borda & np.vstack([buraco[1:], np.zeros((1, w), bool)])
+            px[cima] = IDX["cinza_luz"]
+            px[buraco] = IDX["preto"]
+            # Brasa lá dentro.
+            if buraco.sum() > 6:
+                ys, xs = np.where(buraco)
+                k = len(ys) // 2
+                px[ys[k], xs[k]] = IDX["laranja_escuro"]
+            # Pontas da chapa arrancada saindo do buraco.
+            for _ in range(3):
+                a = rng.uniform(0, 2 * np.pi)
+                xx, yy = int(x + np.cos(a) * (r + 2)), int(y + np.sin(a) * (r + 1.5))
+                if ok(yy, xx):
+                    px[yy, xx] = IDX["cinza_claro"]
+    return t

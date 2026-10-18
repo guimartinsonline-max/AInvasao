@@ -49,8 +49,10 @@ export const DISCO = { largura: 123, altura: 56 };
 export const FEIXE = { largura: 14, altura: 160 };
 // Veículos da Volante (tools/arte/veiculos.py), virados para a direita; pé no centro de baixo.
 export const VEICULOS = {
-  caminhao: { largura: 124, altura: 62, andar: [0, 1], aberto: 2, destruido: 3 },
-  blindado: { largura: 132, altura: 90, andar: [0, 1], tiro: 2, quebrado: 3, destruido: 4 },
+  // Cada folha tem 4 etapas de dano (0 inteiro a 3 arrebentado) com n quadros cada,
+  // e o quadro destruído no fim. rodas: dx das rodas a partir do centro (desenho virado para a direita).
+  caminhao: { largura: 124, altura: 62, n: 5, andar: [0, 1, 2, 3], aberto: 4, destruido: 20, rodas: [-36, 38] },
+  blindado: { largura: 132, altura: 90, n: 9, andar: [0, 1, 2, 3], tiro: 4, quebrado: [5, 6, 7, 8], destruido: 36, rodas: [-38, 36] },
 };
 export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };
 

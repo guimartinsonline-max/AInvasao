@@ -18,6 +18,12 @@ class Veiculo extends Phaser.Physics.Arcade.Sprite {
     this.persegue = true;
     this.vivo = true;
     this.vida = opcoes.vida;
+    this.vidaMax = opcoes.vida;
+    this.etapa = 0; // dano na lataria: 0 inteiro a 3 arrebentado
+    this.base = 0; // quadro sem a etapa somada
+    this.giro = 0; // distância rodada (gira as rodas)
+    this.proximaPoeira = 0;
+    this.proximoDano = 0;
     this.direcao = opcoes.direcao || -1;
     this.setFlipX(this.direcao < 0);
     this.body.setCollideWorldBounds(false);
@@ -36,6 +42,44 @@ class Veiculo extends Phaser.Physics.Arcade.Sprite {
     const chao = this.scene.chaoAbaixo(this.x, this.y - 24) - 1;
     this.y += Phaser.Math.Clamp(chao - this.y, -3, 4);
     this.body.updateFromGameObject?.();
+    if (this.vivo) this.fumegar(t);
+  }
+
+  // Mostra um quadro da etapa de dano atual.
+  mostrar(i) {
+    this.base = i;
+    this.setFrame(i + this.etapa * this.q.n);
+  }
+
+  // Quadro de rodar conforme a distância andada (as rodas giram no ritmo do chão).
+  quadroRoda(lista, dist) {
+    this.giro += Math.abs(dist);
+    return lista[Math.floor(this.giro / 2.2) % lista.length];
+  }
+
+  // Lataria arrebentada solta fumaça (etapa 2) e pega fogo (etapa 3).
+  fumegar(t) {
+    if (this.etapa < 2 || t < this.proximoDano) return;
+    this.proximoDano = t + (this.etapa === 3 ? 180 : 420);
+    const ef = this.scene.efeitos;
+    const [x, y] = this.ponto(Phaser.Math.Between(-this.q.largura / 3, this.q.largura / 4), Phaser.Math.Between(14, 34));
+    if (this.etapa === 3 && Math.random() < 0.6) ef.chama(x, y);
+    ef.fumacaSobe(x, y - 6);
+  }
+
+  // Poeira das rodas: partículas saindo de baixo de cada roda e nuvenzinha atrás.
+  poeiraRodas(t, velocidade) {
+    if (t < this.proximaPoeira) return;
+    this.proximaPoeira = t + Math.max(50, 160 - velocidade * 0.7);
+    const ef = this.scene.efeitos;
+    for (const dx of this.q.rodas) {
+      const [px, py] = this.ponto(dx - 6, 1);
+      ef.poeira(px, py, velocidade > 90 ? 3 : 2);
+    }
+    if (Math.random() < 0.5) {
+      const [px, py] = this.ponto(this.q.rodas[0] - 12, 0);
+      ef.poeiraPasso(px, py, this.direcao > 0);
+    }
   }
 
   // Ponto do veículo medido no desenho virado para a direita (dx a partir do centro, dy a partir do chão).
@@ -48,6 +92,20 @@ class Veiculo extends Phaser.Physics.Arcade.Sprite {
     // Peixeira não corta lataria: conta como um golpe forte.
     if (morte === 'facada') dano = 4;
     this.vida -= dano;
+    // Faísca no lado que levou o tiro.
+    const lado = Math.sign((origemX ?? this.x) - this.x) || -this.direcao;
+    this.scene.efeitos.faisca(this.x + lado * Phaser.Math.Between(10, this.q.largura / 2 - 8),
+      this.y - Phaser.Math.Between(10, this.q.altura - 20), 3);
+    const etapa = this.vida <= 0 ? this.etapa : Math.min(3, Math.floor((1 - this.vida / this.vidaMax) * 4));
+    if (etapa > this.etapa) {
+      // A lataria arrebenta mais um pouco: estilhaços de chapa, estalo e a folha da etapa nova.
+      this.etapa = etapa;
+      const [x, y] = this.ponto(Phaser.Math.Between(-this.q.largura / 3, this.q.largura / 3), Phaser.Math.Between(16, 36));
+      this.scene.efeitos.explosao(x, y, 0.6);
+      this.scene.efeitos.detritoEm.explode(10, x, y);
+      this.scene.efeitos.faisca(x, y, 10);
+      this.mostrar(this.base);
+    }
     this.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     this.scene.time.delayedCall(45, () => this.vivo && this.clearTint());
     this.aoDano?.();
@@ -59,14 +117,13 @@ class Veiculo extends Phaser.Physics.Arcade.Sprite {
     this.body.setVelocityX(this.direcao * velocidade);
     if (velocidade === 0) return;
     this.passo += dt;
-    this.setFrame(this.q.andar[Math.floor(this.passo / 90) % 2]);
+    this.mostrar(this.quadroRoda(this.q.andar, velocidade * dt / 1000));
     if (t > this.proximaFumaca) {
       this.proximaFumaca = t + 120;
       const [ex, ey] = this.ponto(-this.q.largura / 2 + 2, 14);
       this.scene.efeitos.fumaca(ex, ey);
-      const [px, py] = this.ponto(-this.q.largura / 2 + 26, 0);
-      this.scene.efeitos.poeira(px, py, 1);
     }
+    this.poeiraRodas(t, velocidade);
     this.esmagar(velocidade);
   }
 
@@ -149,7 +206,7 @@ export class Caminhao extends Veiculo {
         // Freada: derrapa levantando poeira e a carroceria balança.
         this.estado = 'descarregando';
         this.body.setVelocityX(0);
-        this.setFrame(this.q.aberto);
+        this.mostrar(this.q.aberto);
         cena.efeitos.poeira(this.x, this.y, 10);
         cena.tweens.add({ targets: this, angle: this.direcao * 2, duration: 90, yoyo: true });
         this.proximo = t + 500;
@@ -167,7 +224,7 @@ export class Caminhao extends Veiculo {
       if (t < this.proximo) return;
       // Vai embora de ré, para o lado de onde veio.
       this.estado = 'saindo';
-      this.setFrame(this.q.andar[0]);
+      this.mostrar(this.q.andar[0]);
       this.direcao = -this.direcao;
       this.setFlipX(this.direcao < 0);
     } else if (this.estado === 'saindo') {
@@ -261,16 +318,18 @@ export class Blindado extends Veiculo {
       this.proximaVolta = t + Phaser.Math.Between(1600, 2600);
       this.alvoX = this.opcoes.para + Phaser.Utils.Array.GetRandom([-50, 0, 40]);
     }
-    const quadroParado = this.torre ? this.q.andar[0] : this.q.quebrado;
+    const lista = this.torre ? this.q.andar : this.q.quebrado;
+    const quadroParado = lista[0];
     if (!this.avisando && this.alvoX !== undefined && Math.abs(this.alvoX - this.x) > 4) {
       const sentido = Math.sign(this.alvoX - this.x);
       this.body.setVelocityX(sentido * 40);
       this.passo += dt;
-      this.setFrame(this.torre ? this.q.andar[Math.floor(this.passo / 110) % 2] : quadroParado);
+      this.mostrar(this.quadroRoda(lista, 40 * dt / 1000));
+      this.poeiraRodas(t, 40);
       this.esmagar(sentido === this.direcao ? 40 : 0);
     } else {
       this.body.setVelocityX(0);
-      if (Number(this.frame.name) !== this.q.tiro) this.setFrame(quadroParado);
+      if (this.base !== this.q.tiro) this.mostrar(quadroParado);
     }
     if (j.morto) return;
     // Metralhadora: avisa antes (faísca no cano e o carro para), depois uma rajada curta
@@ -302,8 +361,8 @@ export class Blindado extends Veiculo {
     if (this.torre && t > this.proximoCanhao) {
       this.proximoCanhao = t + 4200;
       this.proximoTiro = Math.max(this.proximoTiro, t + 1200); // não atira a metralhadora junto
-      this.setFrame(this.q.tiro);
-      cena.time.delayedCall(160, () => this.vivo && this.torre && this.setFrame(this.q.andar[0]));
+      this.mostrar(this.q.tiro);
+      cena.time.delayedCall(160, () => this.vivo && this.torre && this.mostrar(this.q.andar[0]));
       const [x, y] = this.ponto(this.q.largura / 2 - 8, 58);
       cena.balasInimigas.lancarObus(x, y, this.direcao, Math.abs(j.x - x));
       cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'canhao');

@@ -69,7 +69,7 @@ def roda(t, cx, cy, r, quadro, raios=4):
     t.ponto(cx, cy, "sombra")
 
 
-def caminhao(quadro=0):
+def caminhao(quadro=0, giro=None):
     W, H = 124, 62
     t = Tela(W, H)
     chao = H - 1
@@ -140,7 +140,7 @@ def caminhao(quadro=0):
         pl = t.elipse(cx, 50 + y0, 14, 9) & (t.yy < 50 + y0) & ~t.elipse(cx, 50 + y0, 11, 7)
         t.volume(pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
     # Rodas (com raios girando) e estepe.
-    q = quadro if andando else 0
+    q = giro if giro is not None else (quadro if andando else 0)
     roda(t, 26, chao - 9.5, 9.5, q)
     roda(t, 100, chao - 9.5, 9.5, q)
     t.contorno("sombra")
@@ -156,7 +156,7 @@ def rebites(t, pontos):
         t.ponto(x, y + 1, "caatinga_esc")
 
 
-def blindado(quadro=0):
+def blindado(quadro=0, giro=None):
     # 14 px de folga em cima para o tripulante sair da escotilha sem ficar espremido.
     W, H = 132, 90
     t = Tela(W, H)
@@ -302,7 +302,7 @@ def blindado(quadro=0):
         pl = t.elipse(cx, 62 + y0, 16, 10) & (t.yy < 61 + y0) & ~t.elipse(cx, 62 + y0, 13, 9)
         t.volume(pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
         t.chapado(t.retangulo(cx - 17, 58 + y0, 2, 9), "sombra")  # aba de borracha
-    q = quadro if andando else 0
+    q = giro if giro is not None else (quadro if andando else 0)
     for cx in (28, 102):
         roda(t, cx, chao - 11, 11, q, raios=3)
         for k in range(5):  # porcas do cubo

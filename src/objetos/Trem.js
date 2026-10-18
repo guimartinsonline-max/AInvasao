@@ -145,7 +145,7 @@ export class TremBlindado {
       const vel = Math.max(60, Math.min(220, falta * 1.8));
       this.x -= vel * s;
       this.passo += dt * vel / 120;
-      this.loco.setFrame(Math.floor(this.passo / 90) % 2);
+      this.rodas(-vel * s, t, vel);
       if (falta <= 1) {
         this.x = this.alvoX;
         this.estado = 'lutando';
@@ -168,16 +168,50 @@ export class TremBlindado {
     const amplitude = this.portaAberta ? 70 : 24;
     const alvo = this.base - (Math.sin(t / (this.portaAberta ? 900 : 1600)) * 0.5 + 0.5) * amplitude;
     const dx = alvo - this.x;
-    this.x += Phaser.Math.Clamp(dx, -60 * s, 60 * s);
+    const anda = Phaser.Math.Clamp(dx, -60 * s, 60 * s);
+    this.x += anda;
     if (Math.abs(dx) > 0.5) {
       this.passo += dt;
-      this.loco.setFrame(Math.floor(this.passo / 120) % 2);
+      this.rodas(anda, t, Math.abs(anda / s));
     }
     this.posicionar();
     this.atacar(t);
   }
 
+  // Lataria arrebentando conforme as partes quebram (etapa 0 a 3, mesma conta do dano).
+  get etapa() {
+    return Math.min(3, ['mg', 'chamine', 'torre'].filter((n) => this.partes[n] && !this.partes[n].vivo).length);
+  }
+
+  // Rodas e biela girando no ritmo do trilho (para trás quando recua), faísca e poeira das rodas.
+  rodas(dx, t, vel) {
+    this.giroT = (this.giroT || 0) + dx;
+    const k = ((Math.floor(this.giroT / 1.5) % 4) + 4) % 4;
+    this.loco.setFrame(this.etapa * 4 + k);
+    this.vagao.setFrame(this.etapa * 4 + k);
+    if (t < (this.proximaPoeira || 0)) return;
+    this.proximaPoeira = t + Math.max(60, 200 - vel);
+    const ef = this.cena.efeitos;
+    for (const rx of [22, 74, 108, 142]) ef.poeira(this.x + rx, this.chao, 1);
+    for (const rx of [28, 122]) ef.poeira(this.x + TREM.loco.largura - 4 + rx, this.chao, 1);
+    if (vel > 100) ef.faisca(this.x + 108, this.chao - 2, 2);
+    if (Math.random() < 0.4) ef.poeiraPasso(this.x + TREM.loco.largura + 10, this.chao);
+  }
+
+  // Lataria arrebentada: fumaça saindo dos rasgos e fogo na última etapa.
+  fumegar(t) {
+    const e = this.etapa;
+    if (e < 2 || t < (this.proximoDano || 0)) return;
+    this.proximoDano = t + (e === 3 ? 160 : 380);
+    const naLoco = Math.random() < 0.7;
+    const x = naLoco ? this.x + Phaser.Math.Between(60, 200) : this.x + TREM.loco.largura + Phaser.Math.Between(10, 140);
+    const y = this.chao - Phaser.Math.Between(40, 90);
+    if (e === 3 && Math.random() < 0.5) this.cena.efeitos.chama(x, y);
+    this.cena.efeitos.fumacaSobe(x, y - 6);
+  }
+
   atacar(t) {
+    this.fumegar(t);
     const cena = this.cena;
     const j = cena.jogador;
     if (j.morto) return;
@@ -262,6 +296,13 @@ export class TremBlindado {
     const cena = this.cena;
     parte.vivo = false;
     parte.clearTint().setFrame(parte.nome === 'porta' ? 1 : 2);
+    // A lataria passa para a etapa de dano seguinte, com estilhaços de chapa.
+    if (this.estado !== 'morrendo') {
+      const k = ((Math.floor((this.giroT || 0) / 1.5) % 4) + 4) % 4;
+      this.loco.setFrame(this.etapa * 4 + k);
+      this.vagao.setFrame(this.etapa * 4 + k);
+      cena.efeitos.detritoEm.explode(16, parte.x, parte.y - parte.cfg.altura / 2);
+    }
     cena.pontuar(parte.cfg.pontos, parte.x, parte.y - parte.cfg.altura - 8);
     cena.efeitos.explosao(parte.x, parte.y - parte.cfg.altura / 2, 1);
     cena.efeitos.faisca(parte.x, parte.y - parte.cfg.altura / 2, 14);
@@ -298,8 +339,8 @@ export class TremBlindado {
       });
     }
     cena.time.delayedCall(14 * 170, () => {
-      this.loco.setFrame(2);
-      this.vagao.setFrame(1);
+      this.loco.setFrame(16);
+      this.vagao.setFrame(16);
       for (const p of Object.values(this.partes)) p.setVisible(false);
       cena.efeitos.tremer(0.02, 600);
       cena.cameras.main.flash(200, 255, 230, 180);

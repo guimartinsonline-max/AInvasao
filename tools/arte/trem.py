@@ -51,7 +51,7 @@ def roda(t, cx, cy, r, quadro):
     t.ponto(cx, cy, "amarelo_claro")
 
 
-def locomotiva(quadro=0):
+def locomotiva(quadro=0, giro=None, biela=None):
     """0 e 1: rodas girando; 2: destruída (queimada, chapas arrancadas)."""
     t = Tela(W, H)
     q = quadro if quadro < 2 else 0
@@ -100,11 +100,11 @@ def locomotiva(quadro=0):
         t.linha(x, 90, x - 3, 111, "vermelho_esc")
     # Rodas: dianteiras pequenas e as motrizes grandes, com a biela.
     for cx in (22, 42):
-        roda(t, cx, CHAO - 8, 8, q)
+        roda(t, cx, CHAO - 8, 8, q if giro is None else giro)
     motrizes = (74, 108, 142)
     for cx in motrizes:
-        roda(t, cx, CHAO - 15, 15, q)
-    a = q * math.pi / 2
+        roda(t, cx, CHAO - 15, 15, q if giro is None else giro)
+    a = (q if biela is None else biela) * math.pi / 2
     ox, oy = math.cos(a) * 8, math.sin(a) * 8
     t.volume(t.capsula(motrizes[0] + ox, CHAO - 15 + oy, motrizes[-1] + ox, CHAO - 15 + oy, 2), FERRO, achatado=1, suave=0.3)
     t.volume(t.capsula(43, 79, motrizes[0] + ox, CHAO - 15 + oy, 1.8), FERRO, achatado=1, suave=0.3)
@@ -190,7 +190,7 @@ def porta(quadro=0):
     return t
 
 
-def vagao(quadro=0):
+def vagao(quadro=0, giro=0):
     """Vagão de soldados atrás da locomotiva: chapas, sacos de areia em cima. 1: destruído."""
     t = Tela(150, 92)
     corpo = t.retangulo(4, 30, 144, 50)
@@ -206,7 +206,7 @@ def vagao(quadro=0):
                  suave=0.6, ambiente=0.2, textura=0.2, semente=k)
     t.volume(t.retangulo(0, 80, 150, 5), FERRO, achatado=1.5, suave=0.4)
     for cx in (28, 52, 98, 122):
-        roda(t, cx, 91 - 8, 8, 0)
+        roda(t, cx, 91 - 8, 8, giro)
     t.contorno("sombra")
     if quadro == 1:
         vc.queimar(t, 9)

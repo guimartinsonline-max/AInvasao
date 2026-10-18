@@ -126,8 +126,10 @@ folha([fx.ponte_segmento(fase1.FASE["ponte"][3], semente=2), fx.ponte_segmento(f
       SAIDA / "ponte_seg.png")
 import trem as tr  # noqa: E402
 import blindagem as bl  # noqa: E402
-folha([bl.blindar(tr.locomotiva(q), semente=2, painel=26) for q in range(3)], SAIDA / "trem_loco.png")
-folha([bl.blindar(tr.vagao(q), semente=5, painel=26) for q in range(2)], SAIDA / "trem_vagao.png")
+folha([bl.danificar(bl.blindar(tr.locomotiva(k % 2, giro=k * 0.5, biela=k), semente=2, painel=26), e, 2) for e in range(4) for k in range(4)]
+      + [bl.blindar(tr.locomotiva(2), semente=2, painel=26)], SAIDA / "trem_loco.png")
+folha([bl.danificar(bl.blindar(tr.vagao(0, giro=k * 0.5), semente=5, painel=26), e, 5) for e in range(4) for k in range(4)]
+      + [bl.blindar(tr.vagao(1), semente=5, painel=26)], SAIDA / "trem_vagao.png")
 folha([tr.mg(q) for q in range(3)], SAIDA / "trem_mg.png")
 folha([bl.blindar(tr.chamine(q), semente=6, lama=False) for q in range(3)], SAIDA / "trem_chamine.png")
 folha([bl.blindar(tr.torre(q), semente=7, lama=False) for q in range(3)], SAIDA / "trem_torre.png")
@@ -176,8 +178,13 @@ import objetos as obj  # noqa: E402
 folha([obj.barril(0), obj.barril(1)], SAIDA / "barril.png")
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")
 import veiculos as vc  # noqa: E402
-folha([bl.blindar(vc.caminhao(q), semente=3) for q in range(4)], SAIDA / "caminhao.png")
-folha([bl.blindar(vc.blindado(q), semente=1) for q in range(5)], SAIDA / "blindado.png")
+folha([bl.danificar(bl.blindar(q, semente=3), e, 3) for e in range(4)
+       for q in [vc.caminhao(k % 2, giro=k * 0.5) for k in range(4)] + [vc.caminhao(2)]]
+      + [bl.blindar(vc.caminhao(3), semente=3)], SAIDA / "caminhao.png")
+folha([bl.danificar(bl.blindar(q, semente=1), e, 1) for e in range(4)
+       for q in [vc.blindado(k % 2, giro=k * 0.5) for k in range(4)] + [vc.blindado(2)]
+       + [vc.blindado(3, giro=k * 0.5) for k in range(4)]]
+      + [bl.blindar(vc.blindado(4), semente=1)], SAIDA / "blindado.png")
 
 for nome, tela in {
     "ceu": cn.ceu(),
