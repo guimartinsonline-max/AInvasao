@@ -4,6 +4,9 @@ import { INIMIGOS } from '../quadros.js';
 
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
 const ESCUDO = 6; // tiros que o escudo aguenta
+// Pontos por inimigo (como no Metal Slug, aparecem subindo quando ele cai).
+const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200 };
+const VE_DE = 130; // px: distância em que o soldado distraído percebe o Lampião
 const QUEIMA = 2200; // ms pegando fogo
 const DANO_QUEIMA = 0.5; // dano a cada QUEIMA_TICK ms
 const QUEIMA_TICK = 450;
@@ -26,6 +29,11 @@ const TIPOS = {
   metralhador: {
     vida: 5, velocidade: 18, alcance: 240, distancia: 150, recarga: [2100, 2900], bala: 'volante', rajada: 4,
     gritos: ['OXE!', 'ARRE!', 'AI, MEU BUCHO!'], panico: 0,
+  },
+  // Lança-rojão: atira de longe um rojão em arco que explode no chão.
+  rojao: {
+    vida: 2, velocidade: 22, alcance: 280, distancia: 170, recarga: [2600, 3400], acao: 'rojao',
+    gritos: ['MEU ROJÃO!', 'VIXE!', 'AAAI!'], panico: 30,
   },
   // Corre para cima do Lampião com o facão erguido e golpeia de perto.
   facao: {
@@ -50,6 +58,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.inicioY = y;
     this.grito = cena.add.text(0, 0, '', estiloTexto(hex('branco'))).setOrigin(0.5).setVisible(false).setDepth(30);
     this.temEscudo = !!opcoes.escudo;
+    this.comecaDistraido = !!opcoes.distraido && !!this.q.sentado;
     if (this.temEscudo) this.escudo = cena.add.image(x, y, 'escudo', 0).setOrigin(0.5, 1).setDepth(10);
     this.reiniciar();
   }
@@ -87,6 +96,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.queimaAte = 0;
     this.proximaQueima = 0;
     this.vidaEscudo = this.temEscudo ? ESCUDO : 0;
+    this.distraido = this.comecaDistraido;
+    this.proximoZ = 0;
     if (this.escudo) this.escudo.setVisible(true).setFrame(0).clearTint();
     this.proximaChama = 0;
     this.setRotation(0).setVisible(true).clearTint().setAlpha(1);
@@ -122,9 +133,27 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.queimaAte = agora + QUEIMA;
   }
 
+  // Distraído e cochilando até perceber o Lampião (ou levar um tiro): pula de susto.
+  acordar() {
+    if (!this.distraido) return;
+    const cena = this.scene;
+    this.distraido = false;
+    this.estado = 'susto';
+    this.fimEstado = cena.time.now + 550;
+    this.setFrame(this.q.panico);
+    this.body.setVelocityY(-170);
+    this.virar(cena.jogador.x > this.x ? 1 : -1);
+    this.grito.setText('!?').setPosition(this.x, this.y - 54).setVisible(true).setAlpha(1).setScale(1.5);
+    cena.tweens.killTweensOf(this.grito);
+    cena.tweens.add({ targets: this.grito, alpha: 0, scale: 1, delay: 450, duration: 250 });
+    this.proximoTiro = cena.time.now + 700;
+  }
+
   levarDano(dano, origemX, forte = false, morte = null, queima = false) {
     if (!this.vivo) return;
     const ef = this.scene.efeitos;
+    if (this.distraido) this.acordar();
+    if (this.tipo !== 'xeremita') ef.sangue(this.x, this.y - 22, 6);
     if (queima) this.queimar();
     this.vida -= dano;
     this.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
@@ -141,6 +170,13 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.vivo = false;
     this.clearTint();
     this.queimaAte = 0;
+    this.distraido = false;
+    cena.pontuar(PONTOS[this.tipo] || 100, this.x, this.y - 50);
+    // Sangue nas mortes (menos queimado e derretido); o xeremita espirra gosma.
+    if (morte !== 'fogo' && morte !== 'derrete') {
+      if (this.tipo === 'xeremita') ef.gosma(this.x, this.y - 22, 14);
+      else ef.sangue(this.x, this.y - 22, morte === 'facada' ? 34 : 22);
+    }
     if (this.escudo && this.vidaEscudo > 0) {
       // O escudo cai no chão quando o soldado morre.
       this.vidaEscudo = 0;
@@ -161,6 +197,18 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(false);
         this.body.enable = false;
         this.body.allowGravity = true;
+      });
+      cena.time.delayedCall(2600, () => this.renascer());
+      return;
+    }
+    if (morte === 'facada') {
+      // Facada: grita, recua cambaleando e cai no lugar.
+      this.setFrame(this.q.morte);
+      this.body.setVelocity(lado * 40, -90);
+      this.gritar();
+      cena.time.delayedCall(700, () => {
+        cena.tweens.add({ targets: this, alpha: 0, duration: 120, yoyo: true, repeat: 2,
+          onComplete: () => { this.setVisible(false); this.body.enable = false; this.setAlpha(1); } });
       });
       cena.time.delayedCall(2600, () => this.renascer());
       return;
@@ -262,6 +310,23 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       this.correrQueimando(t, dt);
       return;
     }
+    if (this.distraido) {
+      this.body.setVelocityX(0);
+      this.setFrame(this.q.sentado[Math.floor(t / 700) % 2]);
+      if (t > this.proximoZ) {
+        this.proximoZ = t + 1400;
+        this.grito.setText('Zz').setPosition(this.x + this.direcao * 8, this.y - 34).setVisible(true).setAlpha(0.8).setScale(1);
+        cena.tweens.killTweensOf(this.grito);
+        cena.tweens.add({ targets: this.grito, y: this.y - 50, alpha: 0, duration: 1200 });
+      }
+      const jj = cena.jogador;
+      if (!jj.morto && Math.abs(jj.x - this.x) < VE_DE && Math.abs(jj.pe - this.y) < 50) this.acordar();
+      return;
+    }
+    if (this.estado === 'susto') {
+      if (t < this.fimEstado) return;
+      this.estado = 'andando';
+    }
     const j = cena.jogador;
     const dx = j.x - this.x;
     const dist = Math.abs(dx);
@@ -353,6 +418,11 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const y = this.y - q.cano[1];
     if (cfg.acao === 'dinamite') {
       cena.balasInimigas.lancarDinamite(x, y, this.direcao, Math.abs(j.x - this.x));
+      return;
+    }
+    if (cfg.acao === 'rojao') {
+      cena.balasInimigas.lancarRojao(x, y, this.direcao, Math.abs(j.x - this.x));
+      cena.efeitos.fumaca(this.x - this.direcao * 14, y);
       return;
     }
     if (cfg.acao === 'golpe') {

@@ -12,6 +12,7 @@ export class BalasInimigas {
     this.dinamites = cena.physics.add.group({ defaultKey: 'dinamite', maxSize: 8 });
     cena.physics.add.collider(this.dinamites, solidos, (d) => this.explodirDinamite(d));
     cena.physics.add.overlap(this.dinamites, jogador.corpo, (a, b) => this.explodirDinamite(a === jogador.corpo ? b : a));
+    this.dinamites.maxSize = 10;
     this.grupo = cena.physics.add.group({ defaultKey: 'raio', maxSize: 24, allowGravity: false });
     cena.physics.add.overlap(this.grupo, solidos, (bala) => {
       if (!bala.active) return;
@@ -38,6 +39,20 @@ export class BalasInimigas {
     d.body.setAngularVelocity(direcao * 720);
   }
 
+  // Rojão do soldado: sai inclinado para cima, cai em arco e explode no chão.
+  lancarRojao(x, y, direcao, distancia) {
+    const d = this.dinamites.get(x, y, 'foguete');
+    if (!d) return;
+    d.setTexture('foguete', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
+    d.body.reset(x, y);
+    d.body.setSize(8, 5);
+    d.body.setAngularVelocity(0);
+    d.rojao = true;
+    const vx = Phaser.Math.Clamp(distancia * 0.9, 90, 230);
+    d.body.setVelocity(direcao * vx, -150);
+    d.proximaFumaca = 0;
+  }
+
   explodirDinamite(d) {
     if (!d.active) return;
     const cena = this.cena;
@@ -46,9 +61,12 @@ export class BalasInimigas {
     d.setActive(false).setVisible(false);
     d.body.stop();
     d.body.reset(-100, -100);
-    cena.efeitos.explosao(x, y - 4, 0.6);
+    const forte = d.rojao;
+    d.rojao = false;
+    cena.efeitos.explosao(x, y - 4, forte ? 0.9 : 0.6);
     const j = this.jogador;
-    if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < 20 && Math.abs(j.pe - 14 - y) < 24) j.morrer(j.x - x);
+    const raio = forte ? 28 : 20;
+    if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < raio && Math.abs(j.pe - 14 - y) < 26) j.morrer(j.x - x);
   }
 
   // Mira no peito do alvo, com ângulo limitado pelo tipo (o raio do xeremita sai reto).
@@ -77,6 +95,16 @@ export class BalasInimigas {
 
   atualizar() {
     const v = this.cena.cameras.main.worldView;
+    const agora = this.cena.time.now;
+    for (const d of this.dinamites.getChildren()) {
+      if (!d.active || !d.rojao) continue;
+      // O rojão aponta para onde vai e solta fumaça.
+      d.setRotation(Math.atan2(d.body.velocity.y, d.body.velocity.x));
+      if (agora > d.proximaFumaca) {
+        d.proximaFumaca = agora + 50;
+        this.cena.efeitos.fumaca(d.x - Math.cos(d.rotation) * 10, d.y - Math.sin(d.rotation) * 10);
+      }
+    }
     for (const bala of this.grupo.getChildren()) {
       if (bala.active && (bala.x < v.x - 16 || bala.x > v.right + 16)) this.recolher(bala);
     }

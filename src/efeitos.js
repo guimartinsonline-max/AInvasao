@@ -50,6 +50,11 @@ export class Efeitos {
       gravityY: 220, tint: [P.preto, P.sombra, P.cinza_escuro, P.laranja_escuro],
       x: { min: -6, max: 6 }, y: { min: -16, max: 16 },
     });
+    // Sangue: respingo que espirra e cai (só nos soldados; o xeremita solta gosma verde).
+    this.sangueEm = add('px2', {
+      lifespan: { min: 350, max: 800 }, speed: { min: 60, max: 200 }, angle: { min: 185, max: 355 },
+      gravityY: 640, scale: { start: 1.6, end: 0.8 }, tint: [P.vermelho, P.vermelho_medio, P.vermelho_esc],
+    });
     this.lascasEm = add('px2', {
       lifespan: 600, speed: { min: 40, max: 140 }, angle: { min: 190, max: 350 },
       gravityY: 600, tint: [P.couro_claro, P.couro, P.couro_luz],
@@ -124,17 +129,21 @@ export class Efeitos {
     this.cinzasEm.explode(26, x, y);
   }
 
+  sangue(x, y, n = 8) {
+    this.sangueEm.explode(n, x, y);
+  }
+
   gosma(x, y, n = 24) {
     this.gosmaEm.explode(n, x, y);
   }
 
   // Toca um efeito animado. Pool cheio: reaproveita o mais antigo.
-  animar(chave, x, y, { rotacao = 0, origemX = 0.5, profundidade = 19, espelhar = false, anim = chave } = {}) {
+  animar(chave, x, y, { rotacao = 0, origemX = 0.5, profundidade = 19, espelhar = false, anim = chave, escala = 1 } = {}) {
     let s = this.animados.find((a) => !a.visible);
     if (!s) s = this.animados[this.proximoAnimado++ % this.animados.length];
     this.cena.tweens.killTweensOf(s);
     s.setTexture(chave, 0).setPosition(Math.round(x), Math.round(y)).setOrigin(origemX, 0.5)
-      .setRotation(rotacao).setFlipX(espelhar).setDepth(profundidade).setVisible(true).setAlpha(1);
+      .setRotation(rotacao).setFlipX(espelhar).setDepth(profundidade).setVisible(true).setAlpha(1).setScale(escala);
     s.play(anim);
     return s;
   }

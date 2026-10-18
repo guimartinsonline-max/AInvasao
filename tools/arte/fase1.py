@@ -650,6 +650,47 @@ def cerca_farpada(w=90, semente=0):
     return t
 
 
+def forquilha(altura=90, semente=0):
+    """Árvore seca com um galho comprido na horizontal, onde penduram o refém.
+    O galho fica a 16 px do topo e vai até x = 40."""
+    t = Tela(48, altura)
+    tronco = t.capsula(8, altura - 1, 9, 10, 3.2, 2.2) | t.elipse(8, altura - 1.5, 6, 2)
+    galho = t.capsula(8, 18, 44, 15, 2.0, 1.2)
+    ramos = t.capsula(9, 12, 3, 2, 1.2, 0.6) | t.capsula(10, 13, 16, 3, 1.1, 0.5) | t.capsula(30, 16, 35, 8, 0.9, 0.4)
+    t.volume(tronco | galho | ramos, GALHO_SECO, achatado=2, suave=0.5, ambiente=0.2, textura=0.3, semente=semente)
+    estrias = tronco & ((t.xx.astype(int) % 3) == 0) & (t.yy > 20)
+    t.px[estrias] = IDX["cinza_escuro"]
+    t.contorno("sombra")
+    return t
+
+
+def buraco(w=26):
+    """Buraco cavado no chão (de onde saltam soldados), com terra amontoada em volta."""
+    t = Tela(w + 8, 9)
+    monte = t.elipse(w / 2 + 4, 6, w / 2 + 4, 4) & (t.yy < 7)
+    t.volume(monte, TERRA_ESC, achatado=2, suave=0.6, ambiente=0.3, textura=0.3)
+    t.chapado(t.elipse(w / 2 + 4, 6.5, w / 2, 2.4), "preto")
+    t.chapado(t.elipse(w / 2 + 4, 6, w / 2 - 1, 1.4), "marrom_noite")
+    t.contorno("sombra")
+    return t
+
+
+def fogueira():
+    """Fogueira apagando: lenha cruzada e pedras em volta (o fogo é animado no jogo),
+    com a panela no tripé."""
+    t = Tela(24, 22)
+    for (x0, x1) in ((3, 20), (20, 4)):
+        t.volume(t.capsula(x0, 20, x1, 17, 1.4), MADEIRA, achatado=0.6, suave=0.3, ambiente=0.3)
+    for x in (2, 7, 16, 21):
+        t.volume(t.elipse(x, 20, 2.2, 1.8), PEDRA, achatado=1, suave=0.4, ambiente=0.3)
+    for (x0, x1) in ((4, 12), (20, 12)):
+        t.linha(x0, 21, x1, 2, "cinza_escuro")
+    t.volume(t.elipse(12, 9, 5, 3.6) & (t.yy > 6), METAL, achatado=1.5, suave=0.5, ambiente=0.25)
+    t.chapado(t.elipse(12, 7, 5, 1.2), "sombra")
+    t.contorno("sombra")
+    return t
+
+
 def disco_caido():
     """O disco voador caído, meio enterrado e torto, com a cúpula rachada."""
     t = Tela(130, 64)
@@ -717,30 +758,38 @@ FASE = {
         [1800, CHAO - 18], [1824, CHAO - 18], [2150, 170 - 18], [2560, CHAO - 18], [2584, CHAO - 18],
         [2700, CHAO - 24, "barril"],
     ],
-    "refens": [[330, CHAO], [1300, 138], [1700, CHAO], [2330, 150], [2640, CHAO]],
+    "refens": [[330, CHAO], [1300, 138], [1700, CHAO], [2330, 150], [2640, CHAO],
+               [1048, 166, {"pendurado": 124}], [2448, 166, {"pendurado": 124}]],
     "itens": [[560, CHAO - 20, "madsen"]],
     "bodes": [[1400, CHAO]],
     "discos": [[1360]],
     # Inimigos que já estão no lugar quando o Lampião chega.
     "inimigos": [
-        [600, CHAO, "xeremita"], [960, CHAO, "granadeiro"], [990, CHAO, "volante", {"escudo": True}],
-        [1250, 152, "xeremita"], [1310, 138, "xeremita"], [1660, 158, "granadeiro"], [2160, 170, "metralhador"],
-        [2340, 150, "xeremita"],
+        [600, CHAO, "xeremita"], [940, CHAO, "granadeiro", {"distraido": True}],
+        [968, CHAO, "volante", {"distraido": True}], [995, CHAO, "volante", {"escudo": True}],
+        [1250, 152, "xeremita"], [1312, 138, "rojao"], [1650, 158, "granadeiro", {"distraido": True}],
+        [2160, 170, "metralhador"], [2340, 150, "xeremita"], [2560, CHAO, "rojao", {"distraido": True}],
     ],
     # Ondas: ao passar do gatilho, a câmera trava entre trava[0] e trava[1] até todos caírem.
     # Cada inimigo: [tipo, de onde vem ("dir", "esq" ou "ceu"), atraso em ms, opções].
     "ondas": [
-        {"gatilho": 300, "trava": [140, 524], "inimigos": [["xeremita", "dir", 0], ["xeremita", "dir", 900]]},
-        {"gatilho": 860, "trava": [700, 1084], "inimigos": [["volante", "dir", 0], ["facao", "dir", 700],
-                                                            ["volante", "esq", 1600], ["metralhador", "dir", 2400]]},
+        {"gatilho": 300, "trava": [140, 524], "inimigos": [["xeremita", "dir", 0], ["xeremita", "dir", 900],
+                                                           ["volante", "salta:500", 1700]]},
+        {"gatilho": 860, "trava": [700, 1084], "inimigos": [["volante", "salta:910", 0], ["facao", "dir", 700],
+                                                            ["volante", "esq", 1600], ["metralhador", "dir", 2400],
+                                                            ["rojao", "dir", 3200]]},
         {"gatilho": 1720, "trava": [1560, 1944], "inimigos": [["xeremita", "ceu", 0], ["xeremita", "ceu", 500],
                                                               ["granadeiro", "dir", 1200], ["xeremita", "ceu", 1800],
-                                                              ["facao", "esq", 2400]]},
-        {"gatilho": 2260, "trava": [2100, 2484], "inimigos": [["metralhador", "dir", 0], ["xeremita", "ceu", 400],
+                                                              ["facao", "salta:1862", 2400], ["volante", "salta:1862", 3000]]},
+        {"gatilho": 2260, "trava": [2100, 2484], "inimigos": [["metralhador", "dir", 0], ["volante", "salta:2382", 300],
+                                                              ["xeremita", "ceu", 400], ["rojao", "dir", 2600],
                                                               ["volante", "dir", 1000, {"escudo": True}],
                                                               ["facao", "esq", 1400], ["granadeiro", "dir", 1800],
                                                               ["xeremita", "ceu", 2200]]},
     ],
+    "fogueiras": [[918, CHAO], [2580, CHAO]],
+    "forquilhas": [[1010, 90], [2410, 90]],
+    "buracos": [1862, 2382],
     "fogos": [[2650, CHAO - 2], [2735, CHAO - 2], [2795, 172 - 2], [2880, CHAO - 2], [3040, 150]],
     "fim": 2920,
 }
@@ -769,6 +818,15 @@ def camada_jogo():
         assentar(t, pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=k + 20), x, yc, afundar=2)
     assentar(t, cranio_boi(), 1880, yc)
     assentar(t, cranio_boi(), 2540, yc)
+    # Forquilhas secas (refém pendurado no galho), buracos e fogueiras.
+    for fx, falt in FASE["forquilhas"]:
+        assentar(t, forquilha(falt, semente=fx), fx, yc)
+    for bx_ in FASE["buracos"]:
+        bu = buraco()
+        colar(t, bu, bx_ - bu.w / 2, yc - bu.h + 3)
+    for gx_, _ in FASE["fogueiras"]:
+        fg = fogueira()
+        assentar(t, fg, gx_ - fg.w / 2, yc)
     # Objetos miúdos do sertão espalhados pelo chão.
     for x, peca in ((300, pote_barro(1)), (318, pote_barro(2, 11)), (860 - 40, pilao()), (1545, carroca_quebrada()),
                     (1720, pote_barro(3)), (1910, roda_carroca(8)), (2080, pote_barro(4, 12)), (2450, pilao()),

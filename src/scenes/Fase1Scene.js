@@ -6,6 +6,8 @@ import { estiloTexto } from '../texto.js';
 import { hex } from '../paleta.js';
 
 const CONTAGEM = 9; // segundos do "continuar?"
+const TEMPO = 60; // segundos por trecho, como no fliperama
+const TIQUE = 1300; // ms por segundo do relógio (o do Metal Slug também anda devagar)
 
 // Fase 1: caatinga, primeiro contato e queda do disco.
 // Os dados (chão, plataformas, caixotes, reféns, ondas) vêm de assets/fases/fase1.json,
@@ -53,8 +55,8 @@ export class Fase1Scene extends CenaJogo {
   povoar() {
     const d = this.dados;
     for (const [x, pe, tipo, opcoes] of d.inimigos) this.adicionarInimigo(x, pe, tipo, opcoes || {});
-    this.refens = d.refens.map(([x, pe]) => {
-      const r = new Refem(this, x, pe);
+    this.refens = d.refens.map(([x, pe, opcoes]) => {
+      const r = new Refem(this, x, pe, opcoes || {});
       this.alvos.add(r);
       r.reiniciar();
       return r;
@@ -72,6 +74,13 @@ export class Fase1Scene extends CenaJogo {
       disco.body.allowGravity = false;
     }
     for (const [x, y, arma] of d.itens) this.itens.colocar(x, y, arma);
+    // Fogueira dos soldados distraídos (fogo baixo animado em cima da lenha).
+    this.fogueiras = (d.fogueiras || []).map(([x, pe], k) => this.add.sprite(x, pe - 4, 'chama', 0)
+      .setOrigin(0.5, 1).setDepth(6).setScale(0.55).play({ key: 'chama_viva', startFrame: (k * 2) % 4 }));
+    this.pontos = 0;
+    this.refensSalvos = 0;
+    this.tempo = TEMPO;
+    this.proximoTique = 0;
     // Fogo nos destroços do disco caído.
     if (!this.anims.exists('chama_viva')) {
       this.anims.create({ key: 'chama_viva', frames: this.anims.generateFrameNumbers('chama', { start: 0, end: 3 }),
@@ -122,7 +131,12 @@ export class Fase1Scene extends CenaJogo {
         const v = cam.worldView;
         let x;
         let y;
-        if (lado === 'ceu') {
+        const salta = typeof lado === 'string' && lado.startsWith('salta:');
+        if (salta) {
+          // Sai de um esconderijo (buraco, sacos de areia, atrás do lajedo) num pulo.
+          x = Number(lado.slice(6));
+          y = this.chaoAbaixo(x, 60);
+        } else if (lado === 'ceu') {
           x = Phaser.Math.Between(Math.round(v.x + 60), Math.round(v.right - 40));
           y = -30;
         } else {
@@ -130,7 +144,18 @@ export class Fase1Scene extends CenaJogo {
           y = this.chaoAbaixo(x, 60);
         }
         const inimigo = this.adicionarInimigo(x, y, tipo, opcoes || {});
-        if (lado === 'ceu') inimigo.caindo = true;
+        if (salta) {
+          const dir = this.jogador.x > x ? 1 : -1;
+          inimigo.virar(dir);
+          inimigo.setDepth(4); // começa escondido atrás do cenário
+          inimigo.body.reset(x, y - 2);
+          inimigo.body.setVelocity(dir * 55, -290);
+          inimigo.caindo = true;
+          inimigo.saindo = true;
+          this.efeitos.poeira(x, y, 12);
+          this.efeitos.detritoEm.explode(8, x, y - 4);
+          this.time.delayedCall(260, () => inimigo.setDepth(9));
+        } else if (lado === 'ceu') inimigo.caindo = true;
         else inimigo.virar(lado === 'esq' ? 1 : -1);
         onda.vivos.push(inimigo);
         onda.faltam--;
@@ -144,6 +169,7 @@ export class Fase1Scene extends CenaJogo {
 
   terminarOnda(onda) {
     onda.estado = 'feita';
+    this.tempo = TEMPO;
     this.onda = null;
     this.cameras.main.setBounds(this.minX, 0, this.larguraMundo - this.minX, ALTURA);
     this.seta.setVisible(true);
@@ -184,6 +210,23 @@ export class Fase1Scene extends CenaJogo {
     }
   }
 
+  // Fim da missão: total de pontos e bônus de reféns, contando na tela.
+  contarPontos() {
+    const bonus = this.refensSalvos * 1000;
+    this.mostrar('MISSÃO 1 CUMPRIDA!', '', 0);
+    const linhas = [
+      `PONTOS ${this.pontos}`,
+      `REFÉNS SALVOS ${this.refensSalvos} x 1000`,
+      `TOTAL ${this.pontos + bonus}`,
+    ];
+    linhas.forEach((txt, k) => {
+      const t = this.add.text(LARGURA / 2, 100 + k * 14, txt, estiloTexto(hex(k === 2 ? 'amarelo_fogo' : 'branco')))
+        .setOrigin(0.5).setScrollFactor(0).setDepth(40).setAlpha(0);
+      this.tweens.add({ targets: t, alpha: 1, delay: 600 + k * 700, duration: 150 });
+    });
+    this.time.delayedCall(6500, () => this.scene.start('Menu'));
+  }
+
   // ------------------------------------------------------------ a cada quadro
   atualizarFundo(cam, dt) {
     this.ventoNuvens += dt * 0.004;
@@ -200,6 +243,15 @@ export class Fase1Scene extends CenaJogo {
     const cam = this.cameras.main;
     const j = this.jogador;
 
+    // Relógio: zerou, o Lampião perde uma vida e o tempo recomeça.
+    if (t > this.proximoTique) {
+      this.proximoTique = t + TIQUE;
+      if (!j.morto) this.tempo--;
+      if (this.tempo <= 0) {
+        this.tempo = TEMPO;
+        j.morrer(0);
+      }
+    }
     // A câmera não volta para trás (como no Metal Slug).
     if (!this.onda && cam.scrollX > this.minX) {
       this.minX = Math.floor(cam.scrollX);
@@ -228,8 +280,7 @@ export class Fase1Scene extends CenaJogo {
     if (!this.terminou && j.x >= this.dados.fim && !j.morto && this.ondas.every((o) => o.estado === 'feita')) {
       this.terminou = true;
       this.pausado = 'fim';
-      this.mostrar('MISSÃO 1 CUMPRIDA!', 'CONTINUA...', 0);
-      this.time.delayedCall(4500, () => this.scene.start('Menu'));
+      this.contarPontos();
     }
   }
 }

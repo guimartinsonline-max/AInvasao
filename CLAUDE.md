@@ -41,16 +41,21 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Lampião** e **Maria Bonita**, caricatos no estilo Metal Slug: corpo atarracado, expressões exageradas, animações cômicas.
 - Por enquanto só o **Lampião** é jogável; Maria Bonita fica para depois.
 - Visual em construção: desenhado **pixel a pixel** (`tools/arte/pixel/lampiao.txt`, gerado por `tools/arte/lampiao_px.py`), estilo Metal Slug: base agachada, inclinado para a frente, poucos acessórios. O mais importante é o **rosto expressivo** e as **poses**.
-- Ataque corpo a corpo: peixeira (equivalente à faca do Metal Slug).
+- Ataque corpo a corpo: peixeira, como a faca do Metal Slug: sai sozinha quando o inimigo está colado e **mata na hora** (quadro "facada").
+- Arma inicial: **pistola Mauser semiautomática** (um tiro por toque), numa mão só.
 - **Cada arma tem o jeito próprio de segurar** (quadros em `tools/arte/lampiao_armas.py`, folhas `lampiao_<arma>.png`): Madsen no quadril, Bacamarte baixo na cintura, Papo-amarelo no ombro mirando, Rojão apoiado no ombro, Desintegrador numa mão só, Candeeiro com a lata nas costas, Baladeira puxando a liga, Buscapé no peito. Braços atrás da arma, só as mãos por cima. Armas no tamanho do fuzil (30x12). Boca do cano gerada em `src/maos.js`.
 
 ## Inimigos e refém
 
 - **Caricatos, igual ao Metal Slug, mas no porte do Lampião** (cabeça do tamanho da dele, nada absurdo): olhos e nariz exagerados na medida, poses cômicas. Desenhados em `tools/arte/caricatos.py` (gera os `.txt` em `tools/arte/pixel/`).
 - **Soldado da Volante:** quepe, narigão, bigodão, barriga; pânico com suor; variante com escudo de tábuas que segura tiros de frente (granada e peixeira quebram).
+- **Outros soldados:** granadeiro (dinamite em arco), metralhador (rajada de 4, 5 de vida), sargento do facão (corre e golpeia), soldado de rojão (rojão em arco de longe).
+- **Distraídos:** soldados sentados cochilando (Zz) até ver o Lampião ou levar tiro; pulam de susto com "!?".
+- **Saem de esconderijo:** nas ondas, pulam de buracos, de trás dos sacos de areia e do lajedo (`salta:x` em `fase1.json`).
+- **Sangue** nas mortes dos soldados (o xeremita espirra gosma verde).
 - **Xeremita:** cabeçona verde, olho gigante, tentáculos e pistola de raio. O raio sai reto, sem mirar.
 - **Morte por arma:** fogo vira carvão e cinza (quadro "tostado"), chumbo arremessa longe, Papo-amarelo derruba de costas, desintegrador derrete, explosão manda alto girando.
-- **Refém:** romeiro do mesmo porte do Lampião (chapéu de palha com fitas, barba branca, terço, bornal). Amarrado se debate; solto pula, procura no bornal, entrega o item, bate continência e foge.
+- **Refém:** romeiro do mesmo porte do Lampião (chapéu de palha com fitas, barba branca, terço, bornal). Amarrado se debate; solto pula, procura no bornal, entrega o item, bate continência e foge. Alguns ficam **pendurados** pelas mãos num galho seco: o tiro corta a corda e ele cai.
 - **Disco abdutor:** raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
 
 ## Fases (rascunho aprovado)
@@ -76,6 +81,9 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são letras grandes no estilo Metal Slug.
 - **Armas aprovadas:** M Metralhadora Madsen, B Bacamarte, R Rojão de São João, D Raio Desintegrador, C Candeeiro (lança-chamas; deixa o inimigo pegando fogo), P Papo-amarelo (atravessa a fila), E Baladeira (pedras que quicam), F Fogos Buscapé (perseguem o inimigo). Item G dá granadas. Tabela em `src/armas.js`.
 - Painel de munição no canto (ARMA e GRANADA), como no Metal Slug.
+- **Arma grande:** pegar a mesma arma de novo deixa ela SUPER (tiro 1,5x maior e mais forte, munição somada).
+- **Pontos:** sobem no lugar de cada inimigo (100 a 300), disco 1000, refém 500, caixote 10, barril 50. No fim da missão: pontos, reféns salvos x 1000 e total. Sem ranking.
+- **Tempo:** 60 por trecho (anda devagar, como no fliperama); zerou, perde uma vida. Recomeça a cada onda vencida.
 - Granadas.
 - Reféns que dão itens.
 - Objetos destrutíveis no cenário: caixotes (podem soltar item, refém ou o bode Fubá) e barris de querosene que explodem em cadeia.

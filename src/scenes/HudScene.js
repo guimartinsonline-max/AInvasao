@@ -34,7 +34,7 @@ export class HudScene extends Phaser.Scene {
     this.dedos = new Map(); // id do toque -> 'direcional' ou ação de botão
 
     this.criarPainel();
-    this.fps = this.add.text(LARGURA - 4, 4, '', estiloTexto(hex('branco'))).setOrigin(1, 0).setAlpha(0.6);
+    this.fps = this.add.text(LARGURA - 4, 14, '', estiloTexto(hex('branco'))).setOrigin(1, 0).setAlpha(0.5);
     this.dica = this.add.text(LARGURA / 2, ALTURA - 10, '', estiloTexto(hex('branco'))).setOrigin(0.5);
 
     // Nome da arma "gritado" no meio da tela ao pegar, como no Metal Slug.
@@ -73,6 +73,10 @@ export class HudScene extends Phaser.Scene {
     this.add.text(x + 80, y + 5, 'GRANADA', rotulo);
     this.numGranada = this.add.text(x + 80, y + 15, '', estiloTexto(hex('branco'), 16));
     this.vidas = this.add.text(x, y + 38, '', estiloTexto(hex('branco')));
+    this.super = this.add.text(x + 4, y + 26, 'SUPER', estiloTexto(hex('amarelo_fogo'))).setVisible(false);
+    // Pontos e relógio (o relógio só aparece nas missões).
+    this.pontos = this.add.text(LARGURA - 4, 4, '0', estiloTexto(hex('amarelo_claro'))).setOrigin(1, 0);
+    this.relogio = this.add.text(LARGURA / 2, 4, '', estiloTexto(hex('amarelo_fogo'), 16)).setOrigin(0.5, 0);
   }
 
   criarToque() {
@@ -212,6 +216,12 @@ export class HudScene extends Phaser.Scene {
     this.numArma.setText(padrao ? '' : `${j.municao}`).setColor(pisca ? hex('vermelho') : hex('branco'));
     this.numGranada.setText(`${j.granadas}`).setColor(j.granadas === 0 ? hex('vermelho') : hex('branco'));
     this.vidas.setText(`VIDAS ${j.vidas}`);
+    this.super.setVisible(j.nivel === 2 && Math.floor(this.time.now / 300) % 2 === 0);
+    const cena = this.scene.get(this.chaveCena);
+    this.pontos.setText(`${cena.pontos || 0}`);
+    if (cena.tempo !== undefined) {
+      this.relogio.setText(`${cena.tempo}`).setColor(cena.tempo <= 10 ? hex('vermelho') : hex('amarelo_fogo'));
+    }
     this.fps.setText(`${Math.round(this.game.loop.actualFps)}`);
   }
 }

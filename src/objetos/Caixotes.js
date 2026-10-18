@@ -71,6 +71,7 @@ class Caixote {
     const cy = this.y - this.cfg.altura / 2;
     const topo = this.img.y;
     this.vivo = false;
+    cena.pontuar(this.cfg.explode ? 50 : 10, cx, cy - 10);
     // Se estava caindo de uma pilha, para a queda antes de sair do mapa.
     if (this.queda) this.queda.stop();
     this.img.setVisible(false);

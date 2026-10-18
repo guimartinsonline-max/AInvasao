@@ -31,7 +31,7 @@ OMBRO_FRENTE = (17, 22)
 OMBRO_TRAS = (11, 22)
 
 QUADROS = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4", "corre5", "corre6",
-           "pulo", "agachado", "mira_cima", "susto", "arremesso"]
+           "pulo", "agachado", "mira_cima", "susto", "arremesso", "facada"]
 ROSTO = {"parado": "serio", "agachado": "serio", "susto": "susto"}
 # Braço de trás erguido atirando a granada (por cima do ombro, como no Metal Slug).
 ARREMESSO = {"cotovelo": (4, 15), "mao": (5, 3)}
@@ -161,6 +161,7 @@ def quadro(nome, arma, bocas=None):
         return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
 
     arremesso = nome == "arremesso"
+    facada = nome == "facada"
     gx, gy = pose["punho"]
     gy += dy
     ox, oy = gx - px, gy - py  # canto do desenho da arma no quadro
@@ -180,11 +181,12 @@ def quadro(nome, arma, bocas=None):
             g[20 + dy + k][9 + k] = "s" if k % 3 else "d"
     # Braços primeiro (ficam atrás da arma); as mãos fechadas vêm por cima dela.
     maos = [(gx, gy)]
-    if arremesso:
-        # Arremessando: a mão da frente segura a arma sozinha e a de trás está lá em cima.
+    if arremesso or facada:
+        # A mão da frente segura a arma sozinha; a de trás arremessa ou dá a facada.
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (pose.get("cot_frente", (20, 27))[0],
               pose.get("cot_frente", (20, 27))[1] + dy), (gx, gy))
-        maos.append((ARREMESSO["mao"][0], ARREMESSO["mao"][1] + dy))
+        if arremesso:
+            maos.append((ARREMESSO["mao"][0], ARREMESSO["mao"][1] + dy))
     elif not pose.get("um_braco"):
         braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (pose["cot_tras"][0], pose["cot_tras"][1] + dy), (gx, gy),
               escurecer=1)
@@ -193,14 +195,26 @@ def quadro(nome, arma, bocas=None):
         maos.append((ox + ax, oy + ay))
     else:
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (pose["cot_frente"][0], pose["cot_frente"][1] + dy), (gx, gy))
-        if pose.get("puxa") and not arremesso:
+        if pose.get("puxa") and not arremesso and not facada:
             pxa, pya = pose["puxa"]
             braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (13, 26 + dy), (pxa, pya + dy), escurecer=1)
             maos.append((pxa, pya + dy))
     linhas = linhas_da_arma(tela, recorte=pose.get("recorte"))
     for k, l in enumerate(linhas):
         lp.pintar(g, oy + k, ox, l)
-    if pose.get("puxa") and not arremesso:
+    if facada:
+        # Facada: o braço de trás vem por cima de tudo, esticado, com a peixeira na mão.
+        fx, fy = 28, 21 + dy
+        braco(g, (OMBRO_TRAS[0] + 2, OMBRO_TRAS[1] + dy), (21, 27 + dy), (fx, fy))
+        for k in range(10):
+            x = fx + 2 + k
+            y = fy - k // 4
+            g[y][x] = "V" if k < 7 else "v"
+            g[y + 1][x] = "c" if k < 8 else "O"
+            g[y - 1][x] = "O"
+        g[fy][fx + 12] = "O"
+        maos.append((fx, fy))
+    if pose.get("puxa") and not arremesso and not facada:
         # Baladeira: liga de borracha da forquilha até a mão que puxa.
         pxa, pya = pose["puxa"]
         for tx, ty in ((ox + 9, oy + 1), (ox + 15, oy + 1)):

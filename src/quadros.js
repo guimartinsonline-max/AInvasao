@@ -2,7 +2,7 @@
 
 // Lampião pixel a pixel (tools/arte/pixel/lampiao.txt), ordem de tools/arte/exportar.py.
 const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6',
-  'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso'];
+  'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada'];
 
 export const LAMPIAO = { largura: 44, altura: 46, peX: 14, peY: 45 };
 QUADROS_LAMPIAO.forEach((nome, i) => { LAMPIAO[nome] = i; });
@@ -27,11 +27,16 @@ export const INIMIGOS = {
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 16] },
   facao: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [24, 20] },
+  // Soldado do lança-rojão (o tubo no ombro, rente ao olho).
+  rojao: { largura: 44, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [38, 31] },
 };
+// Soldados da Volante sentados cochilando (distraídos): quadros 9 e 10.
+for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao']) INIMIGOS[tipo].sentado = [9, 10];
 
 // Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).
 export const REFEM = { largura: 44, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,
-  entrega: 5, continencia: 6, corrida: [7, 8, 9, 10] };
+  entrega: 5, continencia: 6, corrida: [7, 8, 9, 10], pendurado: [11, 12], maosY: 43.5, maosX: 2 };
 export const DISCO = { largura: 48, altura: 24 };
 export const FEIXE = { largura: 14, altura: 120 };
 export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };

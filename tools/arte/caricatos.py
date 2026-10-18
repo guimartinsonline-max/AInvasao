@@ -99,7 +99,7 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
         perna(t, (12, 35 + pulo), (12 + ciclo[1] * 0.5, 40), (11 + ciclo[1], CHAO), FARDA, atras=True)
     elif pose == "panico":
         perna(t, (12, 35), (9, 39), (6, CHAO), FARDA, atras=True)
-    else:
+    elif pose != "sem_pernas":
         perna(t, (12, 35), (11, 40), (9, CHAO), FARDA, atras=True)
 
     # Braço de trás (segura o fuzil por baixo ou balança no pânico).
@@ -132,8 +132,20 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
         perna(t, (17, 35 + pulo), (18 + ciclo[0] * 0.5, 40), (17 + ciclo[0], CHAO), FARDA)
     elif pose == "panico":
         perna(t, (17, 35), (21, 38), (22, CHAO - 2), FARDA)
-    else:
+    elif pose != "sem_pernas":
         perna(t, (17, 35), (19, 40), (19, CHAO), FARDA)
+
+    # Lança-rojão no ombro: o tubo passa por trás da cabeça, rente ao olho.
+    if tipo == "rojao" and pose not in ("panico",):
+        ty = 14.5 + pulo
+        tubo = t.capsula(3, ty + 1, 35, ty, 2.3)
+        t.cel(tubo, ["sombra", "caatinga_esc", "caatinga_media", "caatinga"], sombra=1)
+        for bx_ in (9, 30):
+            t.chapado(t.retangulo(bx_, ty - 2, 1.5, 4.5) & tubo, "sombra")
+        t.chapado(t.elipse(35, ty, 1.2, 2.2), "sombra")
+        if rosto != "grito":
+            # Rojão carregado aparecendo na boca do tubo.
+            t.cel(t.poligono([(35, ty - 1.8), (39.5, ty), (35, ty + 1.8)]), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
 
     # Cabeça no tamanho da do Lampião (caricata, sem exagero).
     hy = 17 + pulo
@@ -147,7 +159,7 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     t.chapado(t.elipse(20.5, hy + 2.5, 1.3, 0.9), "rosa_poeira")
 
     q = -2 if pose == "panico" else 0
-    if tipo in ("granadeiro", "metralhador"):
+    if tipo in ("granadeiro", "metralhador", "rojao"):
         # Capacete Adrian (usado pelo Exército nos anos 30): cúpula com crista e aba em volta.
         t.cel(t.elipse(17, hy - 3.5 + q, 10.5, 1.8), FARDA_ESC, sombra=1)
         t.cel(t.elipse(17, hy - 5 + q, 8, 5.5) & (t.yy < hy - 3.5 + q), FARDA_ESC, sombra=1)
@@ -171,6 +183,10 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     elif rosto == "morto":
         t.linha(ox - 1.5, oy - 1.5, ox + 1.5, oy + 1.5, "preto")
         t.linha(ox - 1.5, oy + 1.5, ox + 1.5, oy - 1.5, "preto")
+    elif rosto in ("dorme", "ronca"):
+        # Olho fechado, sobrancelha caída.
+        t.linha(ox - 2, oy + 0.5, ox + 1.5, oy + 0.5, "preto")
+        t.linha(19, hy - 2.5, 24, hy - 2, "couro_profundo")
     else:
         bravo = rosto in ("bravo", "grito")
         t.chapado(t.elipse(ox, oy, 2, 1.8), "preto")
@@ -194,6 +210,8 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     elif rosto == "morto":
         t.chapado(t.elipse(23.5, hy + 7, 1.6, 1.1), "preto")
         t.chapado(t.elipse(24.5, hy + 8.3, 1, 1.2), "vermelho")
+    elif rosto == "ronca":
+        t.chapado(t.elipse(23.5, hy + 7, 1.4, 1.4), "preto")
     else:
         t.linha(22, hy + 6.5, 24, hy + 6.5, "couro_profundo")
 
@@ -202,6 +220,15 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     if pose == "panico":
         membro(t, (18, 24), (22, 18), (24, 11), 2.2, 2.0, FARDA)
         t.cel(t.elipse(24.5, 10, 2.2, 2.2), PELE, sombra=1)
+    elif tipo == "rojao":
+        # Mão da frente segurando o punho do tubo, logo abaixo dele.
+        membro(t, (18, 25), (26, 27), (31, 18 + pulo), 2.3, 2.0, FARDA)
+        t.cel(t.elipse(31.5, 17.5 + pulo, 2, 1.8), PELE, sombra=1)
+        if rosto == "grito":
+            # Disparo: fumaça saindo por trás do tubo.
+            for k, (dx, r) in enumerate(((0, 3.5), (-3, 2.8), (-5, 2))):
+                t.volume(t.elipse(3 + dx, 15.5 - k, r, r * 0.9), ["cinza_escuro", "cinza", "cinza_luz", "cinza_claro"],
+                         achatado=1.5, suave=0.4, ambiente=0.35, linha=False)
     elif tipo == "metralhador":
         # Metralhadora pesada no quadril: camisa do cano furada e carregador em cima.
         t.cel(t.poligono([(9 + recuo, 27.5), (17 + recuo, 27.5), (17 + recuo, 31.5), (11 + recuo, 32)]), MADEIRA, sombra=1)
@@ -253,8 +280,28 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     t.contorno("sombra")
     if rosto == "grito" and tipo == "fuzil":
         t.pontos([(43, 28), (42, 27), (42, 29)], "amarelo_fogo")
+    if rosto == "grito" and tipo == "rojao":
+        t.pontos([(38, 14), (39, 15), (38, 16)], "amarelo_fogo")
     if rosto == "grito" and tipo == "metralhador":
         t.pontos([(43, 28), (42, 27), (42, 29), (43, 29)], "amarelo_fogo")
+    return t
+
+
+def sentado(tipo, k=0):
+    """Soldado sentado no chão cochilando (k=1: cabeça mais baixa, roncando)."""
+    cima = volante("ronca" if k else "dorme", "sem_pernas", tipo=tipo)
+    t = Tela(W, H)
+    perna(t, (12, 42), (19, 40), (25, CHAO), FARDA, atras=True)
+    perna(t, (16, 42), (23, 39), (30, CHAO), FARDA)
+    desce = 8 + k
+    for y in range(H - 1, -1, -1):
+        yy = y + desce
+        if yy >= H:
+            continue
+        linha = cima.px[y]
+        m = linha != VAZIO
+        t.px[yy][m] = linha[m]
+    t.contorno("sombra")
     return t
 
 
@@ -269,24 +316,18 @@ def variante(tipo):
         "anda3": lambda: volante("bravo" if tipo == "facao" else "serio", "anda", 2, tipo=tipo),
         "anda4": lambda: volante("bravo" if tipo == "facao" else "serio", "anda", 3, tipo=tipo),
         "morte": lambda: volante("morto", "panico", tipo=tipo),
+        "sentado1": lambda: sentado(tipo, 0),
+        "sentado2": lambda: sentado(tipo, 1),
     }
 
 
 GRANADEIRO = variante("granadeiro")
 METRALHADOR = variante("metralhador")
 FACAO = variante("facao")
+ROJAO = variante("rojao")
+VOLANTE = variante("fuzil")
 
 
-VOLANTE = {
-    "parado": lambda: volante("serio"),
-    "atira": lambda: volante("grito"),
-    "panico": lambda: volante("panico", "panico"),
-    "anda1": lambda: volante("serio", "anda", 0),
-    "anda2": lambda: volante("serio", "anda", 1),
-    "anda3": lambda: volante("serio", "anda", 2),
-    "anda4": lambda: volante("serio", "anda", 3),
-    "morte": lambda: volante("morto", "panico"),
-}
 
 
 # ================================================================ Xeremita
@@ -576,6 +617,32 @@ def romeiro_em_pe(pose="parado", passo=0, rosto="feliz"):
     return t
 
 
+def romeiro_pendurado(balanco=0, rosto="chorando"):
+    """Romeiro pendurado pelas mãos amarradas (a corda é desenhada no jogo),
+    pernas balançando."""
+    t = Tela(W, H)
+    bx = 17
+    b = balanco
+    # Pernas soltas no ar.
+    membro(t, (bx - 1, 34), (bx - 2 - b, 39), (bx - 3 - b * 2, 43), 2, 1.8, CRU, -1)
+    t.cel(t.elipse(bx - 2 - b * 2, 43.5, 2.2, 1.2), COURO, sombra=0, deslocar=-1)
+    tronco = t.elipse(bx, 29, 6.5, 7) | t.retangulo(bx - 5, 29, 11, 5)
+    t.cel(tronco, CAMISA, sombra=2)
+    t.chapado(t.capsula(bx - 5, 23, bx + 5, 34, 0.8) & tronco, "couro")
+    t.chapado(t.retangulo(bx - 5, 34, 11, 1.2), "barro")
+    membro(t, (bx + 2, 34), (bx + 3 + b, 39), (bx + 4 + b * 2, 43), 2, 1.8, CRU)
+    t.cel(t.elipse(bx + 5 + b * 2, 43.5, 2.2, 1.2), COURO, sombra=0)
+    # Braços esticados para cima, por trás da cabeça (aparecem os cotovelos e as mãos amarradas lá em cima).
+    membro(t, (bx - 4, 24), (bx - 7, 13), (bx + 1, 1.5), 1.8, 1.6, CAMISA, -1)
+    membro(t, (bx + 4, 24), (bx + 9, 13), (bx + 3, 1.5), 1.8, 1.6, CAMISA)
+    cabeca_romeiro(t, bx + 1, 18, rosto, chapeu=1)
+    terco(t, bx, 25)
+    t.cel(t.elipse(bx + 2, 1.5, 2.6, 1.6), PELE, sombra=1)
+    t.cel(t.retangulo(bx, 2, 4.5, 1.4), CORDA, sombra=0)
+    t.contorno("sombra")
+    return t
+
+
 REFEM = {
     "amarrado1": lambda: romeiro_amarrado(0, 0, "triste"),
     "amarrado2": lambda: romeiro_amarrado(-1, 1, "chorando"),
@@ -588,6 +655,8 @@ REFEM = {
     "corre2": lambda: romeiro_em_pe("corre", 1, "feliz"),
     "corre3": lambda: romeiro_em_pe("corre", 2, "feliz"),
     "corre4": lambda: romeiro_em_pe("corre", 3, "feliz"),
+    "pendurado1": lambda: romeiro_pendurado(-1, "chorando"),
+    "pendurado2": lambda: romeiro_pendurado(1, "triste"),
 }
 
 
@@ -602,4 +671,5 @@ if __name__ == "__main__":
     gravar("granadeiro.txt", GRANADEIRO)
     gravar("metralhador.txt", METRALHADOR)
     gravar("facao.txt", FACAO)
+    gravar("rojao.txt", ROJAO)
     print("volante.txt, xeremita.txt e refem.txt atualizados")

@@ -39,6 +39,7 @@ export class Jogador {
     this.invulneravel = false;
     this.vidas = VIDAS;
     this.arma = 'padrao';
+    this.nivel = 1;
     this.municao = Infinity;
     this.granadas = GRANADAS;
     this.desdeGranada = 1000;
@@ -97,7 +98,9 @@ export class Jogador {
     this.desdeTiro += dt;
     const apertou = c.apertou('atirar');
     const arma = ARMAS[this.arma];
-    if ((apertou && this.desdeTiro >= arma.toque) || (c.estado.atirar && this.desdeTiro >= arma.cadencia)) {
+    // Semiautomática (pistola): só atira ao apertar, um tiro por toque.
+    const segurando = !arma.semi && c.estado.atirar && this.desdeTiro >= arma.cadencia;
+    if ((apertou && this.desdeTiro >= arma.toque) || segurando) {
       this.desdeTiro = 0;
       this.atirar(c);
     }
@@ -119,9 +122,21 @@ export class Jogador {
     this.animar(dt);
   }
 
+  // Pegar a mesma arma de novo deixa ela grande (mais forte, tiro maior) e soma a munição.
   trocarArma(nome) {
+    if (nome !== 'padrao' && nome === this.arma) {
+      this.nivel = 2;
+      this.municao += ARMAS[nome].municao;
+      return true;
+    }
     this.arma = nome;
+    this.nivel = 1;
     this.municao = ARMAS[nome].municao;
+    return false;
+  }
+
+  get forca() {
+    return this.nivel === 2 ? 1.5 : 1;
   }
 
   // Um tiro mata, como no Metal Slug: careta de susto, voa para trás e renasce piscando.
@@ -175,7 +190,9 @@ export class Jogador {
     if (mira === 'frente') {
       const alvo = cena.alvoProximo(this.x, this.pe - 18, d, ALCANCE_PEIXEIRA);
       if (alvo) {
-        cena.peixeirada(this.x + d * 16, this.pe - 20, d, alvo);
+        // Facada como no Metal Slug: mata na hora quem está colado.
+        this.facada = 180;
+        cena.peixeirada(this.x + d * 22, this.pe - 22, d, alvo);
         return;
       }
     }
@@ -192,12 +209,12 @@ export class Jogador {
       ang = mira === 'cima' ? -Math.PI / 2 : d > 0 ? 0 : Math.PI;
     }
     const arma = ARMAS[this.arma];
-    if (arma.rajada) cena.rajada(x, y, ang, arma.rajada, d);
+    if (arma.rajada) cena.rajada(x, y, ang, arma.rajada, d, this.forca);
     for (let k = 0; k < arma.tiros; k++) {
       let a = ang;
       if (arma.leque) a += (k / (arma.tiros - 1) - 0.5) * arma.leque;
       if (arma.espalha) a += Phaser.Math.FloatBetween(-arma.espalha, arma.espalha);
-      cena.balas.disparar(x, y, a, arma.bala);
+      cena.balas.disparar(x, y, a, arma.bala, this.forca);
     }
     ef.disparo(x, y, ang, arma.clarao);
     if (arma.capsula) ef.capsula(this.x + d * 10, this.pe - 17, d);
@@ -231,7 +248,9 @@ export class Jogador {
     const corpo = this.corpo.body;
     let quadro;
     this.arremesso = (this.arremesso || 0) - dt;
-    if (this.arremesso > 0 && !this.agachado) quadro = 'arremesso';
+    this.facada = (this.facada || 0) - dt;
+    if (this.facada > 0 && !this.agachado) quadro = 'facada';
+    else if (this.arremesso > 0 && !this.agachado) quadro = 'arremesso';
     else if (this.agachado) quadro = 'agachado';
     else if (this.miraCima) quadro = 'mira_cima';
     else if (!this.noChao) quadro = 'pulo';

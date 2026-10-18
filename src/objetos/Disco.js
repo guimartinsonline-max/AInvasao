@@ -52,6 +52,7 @@ export class Disco extends Phaser.Physics.Arcade.Sprite {
     const cena = this.scene;
     this.vivo = false;
     this.caindo = true;
+    cena.pontuar(1000, this.x, this.y - 10);
     this.soltarVitima();
     this.feixe.setVisible(false);
     this.body.enable = false;

@@ -4,7 +4,8 @@
 // capsula: solta cápsula de bala. tranco: px que o Lampião recua no chão.
 export const ARMAS = {
   // Pistola Mauser, infinita (a "handgun" do Metal Slug).
-  padrao: { nome: 'PISTOLA', municao: Infinity, cadencia: 150, toque: 70, bala: 'comum', tiros: 1, clarao: 'normal', capsula: true },
+  padrao: { nome: 'PISTOLA', municao: Infinity, cadencia: 150, toque: 90, bala: 'comum', tiros: 1, clarao: 'normal',
+    capsula: true, semi: true },
   madsen: {
     nome: 'METRALHADORA MADSEN', municao: 200, cadencia: 60, toque: 50, bala: 'comum', tiros: 1,
     espalha: 0.06, clarao: 'normal', capsula: true,

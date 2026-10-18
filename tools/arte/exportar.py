@@ -63,12 +63,15 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
                     "granadeiro": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "metralhador": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "facao": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
+                    "rojao": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "xeremita": ["parado", "atira", "grito", "anda1", "anda2", "anda3", "anda4", "morte"]}.items():
     d = pixel.ler(f"{nome}.txt")
-    folha([d[n] for n in ordem] + [tostar(d["morte"])], SAIDA / f"{nome}.png")
+    # Soldados da Volante também têm os quadros sentados (distraídos) depois do tostado.
+    extra = [d["sentado1"], d["sentado2"]] if "sentado1" in d else []
+    folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra, SAIDA / f"{nome}.png")
 d = pixel.ler("refem.txt")
 folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
-                      "corre1", "corre2", "corre3", "corre4"]], SAIDA / "refem.png")
+                      "corre1", "corre2", "corre3", "corre4", "pendurado1", "pendurado2"]], SAIDA / "refem.png")
 import inimigos as ini  # noqa: E402
 folha([ini.disco(0), ini.disco(1)], SAIDA / "disco.png")
 folha([ini.feixe(0, h=120), ini.feixe(1, h=120)], SAIDA / "feixe.png")

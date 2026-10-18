@@ -51,7 +51,7 @@ export class CenaJogo extends Phaser.Scene {
         if (tipo.atravessa) this.balas.recolher(bala);
         return;
       }
-      alvo.levarDano(tipo.dano, bala.x, false, tipo.morte, tipo.queima);
+      alvo.levarDano(tipo.dano * (bala.forca || 1), bala.x, false, tipo.morte, tipo.queima);
       if (tipo.impacto) this.efeitos.impacto(bala.x, bala.y, tipo.impacto);
       if (tipo.pausa) this.efeitos.parar(tipo.pausa);
     }, (caixote, bala) => caixote.levarDano(bala.tipo.dano || 1));
@@ -121,9 +121,11 @@ export class CenaJogo extends Phaser.Scene {
     this.corte.setPosition(x, y).setFlipX(direcao < 0).setVisible(true).setAlpha(1);
     this.tweens.killTweensOf(this.corte);
     this.tweens.add({ targets: this.corte, alpha: 0, duration: 120, onComplete: () => this.corte.setVisible(false) });
-    // A peixeirada racha o escudo de uma vez.
+    // A peixeirada mata na hora (como a faca do Metal Slug) e racha o escudo de uma vez.
     if (alvo.vidaEscudo > 0) alvo.danoEscudo(alvo.vidaEscudo, alvo.x, alvo.y - 20);
-    else alvo.levarDano(5, this.jogador.x, true);
+    if (alvo.zona) alvo.levarDano(99); // caixote ou barril
+    else alvo.levarDano(999, this.jogador.x, true, 'facada');
+    this.efeitos.parar(70);
     this.efeitos.faisca(alvo.x, alvo.y - 20, 6);
     this.efeitos.tremer(0.004, 80);
   }
@@ -151,8 +153,10 @@ export class CenaJogo extends Phaser.Scene {
   }
 
   // Rajada do bacamarte: cone curto e largo; acerta tudo dentro dele de uma vez.
-  rajada(x, y, ang, cfg, direcao) {
-    this.efeitos.animar('rajada', x, y, { rotacao: ang, origemX: 0.02, profundidade: 20 });
+  rajada(x, y, ang, cfg0, direcao, forca = 1) {
+    // Arma grande: rajada maior, mais longa e mais forte.
+    const cfg = { ...cfg0, alcance: cfg0.alcance * (forca > 1 ? 1.3 : 1), dano: cfg0.dano * forca };
+    this.efeitos.animar('rajada', x, y, { rotacao: ang, origemX: 0.02, profundidade: 20, escala: forca > 1 ? 1.3 : 1 });
     this.efeitos.parar(40);
     const c = Math.cos(ang);
     const s = Math.sin(ang);
@@ -188,8 +192,27 @@ export class CenaJogo extends Phaser.Scene {
       this.events.emit('arma', 'GRANADAS +5');
       return;
     }
-    this.jogador.trocarArma(arma);
-    this.events.emit('arma', ARMAS[arma].nome);
+    const grande = this.jogador.trocarArma(arma);
+    this.events.emit('arma', (grande ? 'SUPER ' : '') + ARMAS[arma].nome);
+  }
+
+  // ------------------------------------------------------------ pontos
+  // Pontos ganhos aparecem subindo no lugar (como no Metal Slug).
+  pontuar(pontos, x, y) {
+    if (!pontos) return;
+    this.pontos = (this.pontos || 0) + pontos;
+    if (!this.textosPontos) {
+      this.textosPontos = [];
+      for (let k = 0; k < 8; k++) {
+        this.textosPontos.push(this.add.text(0, 0, '', estiloTexto(hex('amarelo_claro'))).setOrigin(0.5).setDepth(31)
+          .setVisible(false));
+      }
+      this.proximoTexto = 0;
+    }
+    const t = this.textosPontos[this.proximoTexto++ % this.textosPontos.length];
+    this.tweens.killTweensOf(t);
+    t.setText(`${pontos}`).setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(1);
+    this.tweens.add({ targets: t, y: y - 18, alpha: 0, delay: 350, duration: 500, onComplete: () => t.setVisible(false) });
   }
 
   // Item que sai saltando de um caixote quebrado ou de um refém solto.

@@ -45,16 +45,18 @@ export class Balas {
     });
   }
 
-  disparar(x, y, ang, tipo = 'comum') {
+  // forca > 1: arma em versão grande (tiro maior e mais forte).
+  disparar(x, y, ang, tipo = 'comum', forca = 1) {
     const cfg = BALAS[tipo];
     const bala = this.grupo.get(x, y, cfg.textura);
     if (!bala) return;
     bala.tipo = cfg;
+    bala.forca = forca;
     bala.nasceu = this.cena.time.now;
     bala.atingidos = [];
     bala.quiques = 0;
     bala.fase = Math.random() * Math.PI * 2;
-    bala.setTexture(cfg.textura, 0).setActive(true).setVisible(true).setDepth(14).setScale(1);
+    bala.setTexture(cfg.textura, 0).setActive(true).setVisible(true).setDepth(14).setScale(forca > 1 ? 1.5 : 1);
     bala.body.reset(x, y);
     bala.body.allowGravity = !!cfg.gravidade;
     bala.body.setGravityY(cfg.gravidade ? cfg.gravidade - this.cena.physics.world.gravity.y : 0);
@@ -76,7 +78,8 @@ export class Balas {
 
   explodir(bala) {
     const e = bala.tipo.explode;
-    this.cena.explodir(bala.x, bala.y, e.raio, e.dano, e.tamanho);
+    const f = bala.forca || 1;
+    this.cena.explodir(bala.x, bala.y, e.raio * (f > 1 ? 1.4 : 1), e.dano * f, e.tamanho * (f > 1 ? 1.4 : 1));
   }
 
   recolher(bala) {
