@@ -27,6 +27,7 @@ export class Jogador {
     this.visual = cena.add.sprite(x, y, 'lampiao', LAMPIAO.parado).setDepth(10);
     // Poça de sangue debaixo do corpo quando ele morre.
     this.poca = cena.add.image(0, 0, 'poca').setOrigin(0.5, 0.5).setDepth(7).setVisible(false);
+    this.chapeu = cena.add.image(0, 0, 'chapeu').setOrigin(0.5, 1).setDepth(11).setVisible(false);
 
 
     this.direcao = 1;
@@ -57,16 +58,22 @@ export class Jogador {
       // a perna treme duas vezes e ele pisca antes de renascer.
       this.desdeMorte += dt;
       const v = this.visual;
-      if (corpo.blocked.down) {
-        corpo.setVelocityX(corpo.velocity.x * 0.85);
-        if (!this.caiuEm && this.desdeMorte > 150 && corpo.velocity.y >= 0) {
+      if (corpo.blocked.down && this.desdeMorte > 150 && corpo.velocity.y >= 0) {
+        corpo.setVelocityX(corpo.velocity.x * 0.8);
+        if (!this.bateu) {
+          // Bate de costas no chão e dá um quique curto.
+          this.bateu = true;
+          corpo.setVelocityY(-75);
+          this.cena.efeitos.poeira(this.x, this.pe, 10);
+          this.cena.efeitos.tremer(0.005, 90);
+        } else if (!this.caiuEm) {
           this.caiuEm = this.desdeMorte;
-          this.cena.efeitos.poeira(this.x, this.pe, 8);
-          this.cena.efeitos.tremer(0.004, 80);
+          this.cena.efeitos.poeira(this.x, this.pe, 5);
         }
       }
+      this.voarChapeu(dt);
       // No ar: voando para trás. No chão: deitado morto, parado, com a poça crescendo.
-      const quadro = this.caiuEm ? 'morte2' : 'morte1';
+      const quadro = this.bateu ? 'morte2' : 'morte1';
       if (this.caiuEm && !this.poca.visible) {
         this.poca.setPosition(Math.round(this.x), Math.round(this.pe) - 1).setVisible(true).setScale(0.2, 0.5);
         this.cena.tweens.add({ targets: this.poca, scaleX: 1, scaleY: 1, duration: 700, ease: 'Quad.easeOut' });
@@ -77,7 +84,7 @@ export class Jogador {
       const d = this.direcaoMorte;
       v.setFlipX(d < 0);
       // Deitado, o corpo fica centrado onde ele caiu (a poça vai embaixo do meio do corpo).
-      const ox = this.caiuEm ? LAMPIAO.largura / 2 : (d > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX);
+      const ox = this.bateu ? LAMPIAO.largura / 2 : (d > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX);
       v.setOrigin(ox / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
       if (this.desdeMorte > MORTE - 450) v.setVisible(Math.floor(this.desdeMorte / 60) % 2 === 0);
       v.setPosition(Math.round(this.x), Math.round(this.pe));
@@ -183,12 +190,38 @@ export class Jogador {
     cena.efeitos.sangue(this.x, this.pe - 24, 28);
     this.desdeMorte = 0;
     this.caiuEm = 0;
+    this.bateu = false;
+    // O chapéu voa da cabeça girando e cai do lado.
+    this.chapeu.setPosition(this.x, this.pe - 44).setVisible(true).setAlpha(1).setRotation(0);
+    this.chapeuVel = { x: lado * Phaser.Math.Between(40, 70), y: -260, giro: lado * 9 };
     // Voa para trás: vira de frente para quem atirou (a cabeça cai do lado de lá).
     this.direcaoMorte = -lado;
     cena.efeitos.parar(120);
     cena.efeitos.tremer(0.01, 220);
     cena.efeitos.faisca(this.x, this.pe - 24, 10);
     cena.time.delayedCall(MORTE, () => this.renascer());
+  }
+
+  // Chapéu solto: sobe girando, cai e assenta no chão (fica lá até ele renascer).
+  voarChapeu(dt) {
+    const v = this.chapeuVel;
+    if (!v || !this.chapeu.visible) return;
+    const s = dt / 1000;
+    const c = this.chapeu;
+    v.y = Math.min(v.y + 900 * s, 400);
+    const chao = this.cena.chaoAbaixo(c.x, c.y - 4);
+    if (c.y + v.y * s >= chao) {
+      // Assentou: de boca para cima, como caiu.
+      c.y = chao;
+      c.setRotation(Math.PI);
+      c.setOrigin(0.5, 0);
+      this.chapeuVel = null;
+      this.cena.efeitos.poeira(c.x, chao, 3);
+      return;
+    }
+    c.x += v.x * s;
+    c.y += v.y * s;
+    c.rotation += v.giro * s;
   }
 
   // Depois do "continuar?": vidas cheias e volta ao jogo.
@@ -199,6 +232,7 @@ export class Jogador {
 
   renascer() {
     const corpo = this.corpo.body;
+    this.chapeu.setVisible(false).setOrigin(0.5, 1);
     // A poça seca e some devagar depois que ele renasce.
     this.cena.tweens.killTweensOf(this.poca);
     if (this.poca.visible) {

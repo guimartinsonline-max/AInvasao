@@ -145,7 +145,7 @@ def cabeca(g, dy, rosto, baixa=0):
 
 def quadro_morte(nome):
     """Morte do Lampião, sem arma (ela cai da mão), como no Metal Slug:
-    morte1: levou o tiro, voa para trás de braços para cima, careta de dor e o chapéu saltando;
+    morte1: levou o tiro, voa para trás de braços para cima com careta de dor (o chapéu voa à parte);
     morte2 e morte3: estatelado de costas no chão, olhos em X (no 3 com a língua de fora)."""
     if nome == "morte1":
         g, dy, _ = base("pulo")
@@ -154,40 +154,43 @@ def quadro_morte(nome):
             lp.pintar(g, y + dy, x, txt)
         for k, txt in enumerate(lp.ROSTOS["dor"]):
             lp.pintar(g, 8 + k + dy, 7, txt)
-        for k, txt in enumerate(lp.CHAPEU):  # chapéu pulando da cabeça
-            lp.pintar(g, 1 + k + dy - 4, 6, txt)
         braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (25, 15 + dy), (29, 9 + dy))
         punho_fechado(g, 5, 8 + dy)
         punho_fechado(g, 29, 9 + dy)
         return pixel.de_texto("\n".join("".join(l) for l in g), w=lp.W, h=lp.H)
-    # Deitado: desenha em pé com os braços largados e gira 90 graus (cabeça para trás).
-    if nome == "morte3":
-        # Perna da frente esticada para cima, tremendo (cômico).
-        g = [["."] * lp.W for _ in range(lp.H)]
-        tras, _f, dy = lp.POSES_PERNAS["parado"]
-        dy += lp.MARGEM
-        qy = lp.QUADRIL_Y + dy
-        lp.perna(g, (11, qy), *tras, atras=True)
-        lp.perna(g, (16, qy), (7, 1), (13, 0), atras=False)
-    else:
-        g, dy, _ = base("parado")
-    # Braços largados ao longo do corpo.
-    braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (8, 27 + dy), (7, 32 + dy), escurecer=1)
-    cabeca(g, dy, "morto" if nome == "morte2" else "morto2")
-    braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (19, 27 + dy), (20, 32 + dy))
-    punho_fechado(g, 20, 32 + dy)
+    # Deitado de costas, estatelado: desenhado "em pé" com as pernas esticadas e os
+    # braços jogados para trás da cabeça, sem o chapéu (ele cai à parte), e girado
+    # 90 graus. Assim as costas ficam retas no chão e as alpercatas apontam para o céu.
+    g = [["."] * lp.W for _ in range(lp.H)]
+    dy = lp.MARGEM
+    qy = lp.QUADRIL_Y + dy
+    lp.perna(g, (11, qy), (-1, 5), (-1, 9), atras=True)
+    lp.perna(g, (16, qy), (1, 5), (2, 9) if nome == "morte2" else (5, 4), atras=False)
+    braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (8, 14 + dy), (7, 6 + dy), escurecer=1)
+    for y, x, txt in lp.TRONCO:
+        lp.pintar(g, y + dy, x, txt)
+    for k, txt in enumerate(lp.ROSTOS["morto" if nome == "morte2" else "morto2"]):
+        lp.pintar(g, 8 + k + dy, 7, txt)
+    braco(g, (OMBRO_FRENTE[0], OMBRO_FRENTE[1] + dy), (21, 14 + dy), (23, 6 + dy))
+    punho_fechado(g, 7, 6 + dy)
+    punho_fechado(g, 23, 6 + dy)
     arr = np.array(g)
-    rot = np.rot90(arr, 1)  # anti-horário: o topo (cabeça) vai para a esquerda
+    rot = np.rot90(arr, 1)  # anti-horário: a cabeça vai para a esquerda, as costas para baixo
     cheio = rot != "."
     linhas, colunas = np.where(cheio)
     saida = np.full((lp.H, lp.W), ".", dtype=rot.dtype)
     desce = (lp.H - 1) - linhas.max()
-    esq = 1 - colunas.min()
+    esq = (lp.W - (colunas.max() - colunas.min() + 1)) // 2 - colunas.min()
     for y, x in zip(linhas, colunas):
         ny, nx = y + desce, x + esq
         if 0 <= ny < lp.H and 0 <= nx < lp.W:
             saida[ny, nx] = rot[y, x]
     return pixel.de_texto("\n".join("".join(l) for l in saida), w=lp.W, h=lp.H)
+
+
+def chapeu():
+    """Chapéu de couro do Lampião sozinho (voa da cabeça quando ele morre)."""
+    return pixel.de_texto("\n".join(lp.CHAPEU), w=len(lp.CHAPEU[0]), h=len(lp.CHAPEU))
 
 
 def puxa_baladeira(nome, pose):
