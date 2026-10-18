@@ -44,7 +44,9 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - Ataque corpo a corpo: peixeira, como a faca do Metal Slug: sai sozinha quando o inimigo está colado e **mata na hora**. Golpe em dois tempos (quadros "facada1" levantando e "facada" descendo) com arco de corte largo (`corte_arco`).
 - **No pulo apertando para baixo:** curva a cabeça olhando o chão e aponta a arma para baixo (quadro "mira_baixo", boca `baixo` em `src/maos.js`), como no Metal Slug.
 - **Baladeira** anima a cada tiro: solta a liga ("atirando") e puxa a próxima pedra até o rosto ("recarga"). **Madsen** gira a mira aos poucos entre frente e cima, varrendo na diagonal (como a HMG).
-- **Morte do Lampião:** espirra sangue, voa para trás de braços para cima com careta de dor e o chapéu saltando ("morte1"), cai deitado morto de costas com olhos em X ("morte2") e fica parado com a poça de sangue crescendo embaixo; pisca e renasce (a poça some devagar). O quadro "morte3" (perna para cima) existe mas não é usado.
+- **Morte do Lampião:** espirra sangue, voa para trás de braços para cima com careta de dor ("morte1") enquanto o chapéu voa girando à parte (`chapeu.png`) e cai do lado; bate de costas no chão com um quique e poeira e fica deitado reto, olhos em X ("morte2", desenhado com as costas no chão e as alpercatas para cima), com a poça de sangue crescendo; pisca e renasce.
+- **Gordo:** comer 6 comidas seguidas deixa o Lampião gordo (folhas `*_gordo.png`, esticadas 5 px no meio do corpo): mais lento, pula menos, tiro maior. Emagrece depois de 25 s sem comer ou ao morrer.
+- **Jumento blindado** (`tools/arte/jumento.py`, `src/objetos/Jumento.js`): o "tanque" do Lampião. Espera com a placa SUBA!; monta pulando em cima ou apertando para baixo encostado. Metralhadora giratória (frente, diagonal, cima, baixo no ar), canhão no botão de granada (10 bombas no painel), blindagem de 6 tiros (barra JUMENTO no painel). Estourou: o Lampião é jogado para cima e o jumento foge zurrando. Desce com baixo + pulo. Na fase 1 espera no fim da caatinga (x 2680).
 - **Mirando para cima** inclina a cabeça para trás e olha para o alto (rosto "cima"); no pulo para baixo, curva a cabeça olhando o chão.
 - Arma inicial: **pistola Mauser semiautomática** (um tiro por toque), numa mão só.
 - **Cada arma tem o jeito próprio de segurar** (quadros em `tools/arte/lampiao_armas.py`, folhas `lampiao_<arma>.png`): Madsen no quadril, Bacamarte baixo na cintura, Papo-amarelo no ombro mirando, Rojão apoiado no ombro, Desintegrador numa mão só, Candeeiro com a lata nas costas, Baladeira puxando a liga, Buscapé no peito. Braços atrás da arma, só as mãos por cima. Armas no tamanho do fuzil (30x12). Boca do cano gerada em `src/maos.js`.
@@ -64,12 +66,18 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Ninguém surge do nada:** soldados entram pela borda da tela, pulam de esconderijos (`salta:x`), saem de portas de casas, capela e barracas (`porta:x`) ou descem de caminhão. No campo de treino, quem renasce entra andando pela borda.
 - **Veículos da Volante** (`tools/arte/veiculos.py`, `src/objetos/Veiculos.js`): **caminhão** (chega, freia, abre a lona e despeja soldados, depois vai embora; dá para explodir) e **carro blindado** (detalhado: tripulante na escotilha, antena com flâmula, estepe, pá, galão, farol, rebites e lama; vai e vem, metralhadora em torreta de bola que **avisa antes** (faísca, "!" e o carro para meio segundo) e solta rajada curta de bala grossa na altura da cabeça (agachado escapa, dá para pular por cima), canhão com obus de latão em arco, clarão grande e explosão maior; com metade da vida a torre quebra e perde o canhão; explosão em cadeia). Andando, atropelam o Lampião e esmagam caixotes. Acompanham o terreno.
 - **Inteligência dos soldados:** obstáculo baixo (até 26 px) eles pulam, alto (até 74 px) escalam agarrados na borda; na beirada, descem pulando se o Lampião estiver embaixo. Nunca ficam presos (pulo tem tempo limite).
+- **Rendição:** chegando perto com arma pesada, soldado às vezes se rende ("NÃO ATIRA!"), treme e foge da tela.
+- **Refém de escudo** (`refem: true`): soldado segura um romeiro na frente; tiro de frente não passa (o romeiro grita). Peixeira, granada ou tiro por trás matam o soldado e soltam o romeiro.
+- **Oficial** (`oficial`): quepe dourado, medalhas, espada erguida gritando ordens ("AVANÇAR!"), atira de pistola; levou tiro ou o Lampião chegou perto, foge chorando. 500 pontos.
 - **Alienígenas só a partir da fase 2** (a fase 1 é só contra a Volante). Campo de treino mantém xeremita e disco.
 - **Disco abdutor:** 123x56 (redesenhado 1,4x quando a tela subiu para 548x308), com o piloto xeremita visível na cúpula de vidro; raio estreito (dá para atirar de lado sem ser puxado); derrubado, cai girando, explode e deixa o item D.
 
 ## Fases (rascunho aprovado)
 
-1. Caatinga: só contra a Volante, **sem alienígenas**. **Em construção** (`src/scenes/Fase1Scene.js`; arte e dados em `tools/arte/fase1.py`, que gera as camadas `f1_*.png` e `assets/fases/fase1.json`): 5.800 px em 4 trechos: caatinga (casa de taipa com a Volante entrincheirada, lajedo em degraus, curral com cata-vento, barranco), **vila de taipa** (casas, capela e cruzeiro; soldados saem pelas portas e chega um caminhão), **leito de rio seco** (barrancos, ponte de tábuas por cima, carnaúbas, canoa encalhada) e **acampamento da Volante** (barracas, trincheiras, torre de vigia, mastro, caminhão e o **carro blindado** no fim). 8 ondas que travam a câmera, câmera que não volta, "CONTINUAR?" no lugar (sem checkpoint, como no Metal Slug). Caixotes e reféns não soltam o desintegrador nesta fase. **Final:** um disco voador passa pegando fogo pelo céu e cai atrás dos morros com explosão ao longe e coluna de fumaça (gancho para a fase 2), depois a contagem de pontos.
+1. Caatinga: só contra a Volante, **sem alienígenas**. **Em construção** (`src/scenes/Fase1Scene.js`; arte e dados em `tools/arte/fase1.py`, que gera as camadas `f1_*.png` e `assets/fases/fase1.json`): 5.800 px em 4 trechos: caatinga (casa de taipa com a Volante entrincheirada, lajedo em degraus, curral com cata-vento, barranco), **vila de taipa** (casas, capela e cruzeiro; soldados saem pelas portas e chega um caminhão), **leito de rio seco** (barrancos, ponte de tábuas por cima, carnaúbas, canoa encalhada) e **acampamento da Volante** (barracas, trincheiras, torre de vigia, mastro, caminhão e o **carro blindado** no fim). **Arena do chefe** no fim com trilhos (fase com 6.500 px). 9 ondas que travam a câmera, câmera que não volta, "CONTINUAR?" no lugar (sem checkpoint, como no Metal Slug). Caixotes e reféns não soltam o desintegrador nesta fase. **Final:** um disco voador passa pegando fogo pelo céu e cai atrás dos morros com explosão ao longe e coluna de fumaça (gancho para a fase 2), depois a contagem de pontos.
+   - **Chefe: trem blindado "A JARARACA"** (`tools/arte/trem.py`, `src/objetos/Trem.js`): locomotiva da Great Western blindada com vagão de soldados; entra pelos trilhos e apita. Partes que quebram separadas: metralhadoras do limpa-trilhos (avisam e atiram ALTO, agacha, ou BAIXO, pula), chaminé (cospe carvão em brasa em arco), torre do canhão (obus). Sem metralhadoras e chaminé, a porta da fornalha abre (ponto fraco) e o trem avança e recua; porta arrebentada explode a caldeira em cadeia.
+   - **Cenário vivo** (`src/objetos/Ambiente.js`): urubus que voam quando o Lampião chega, galinhas que fogem do tiro e viram galinha assada no fogo (800), varal que a explosão arrebenta, casas da vila que perdem o telhado, ponte que a granada quebra por pedaços.
+   - **Comidas** (`tools/arte/comidas.py`): cajá 100, rapadura 300, queijo coalho 500, galinha assada 800, cuscuz 1000, buchada 2000. Saem de caixotes e reféns.
 2. Cidade do interior em dia de feira: invasão e chegada da Volante.
 3. Trem da Great Western: fase em movimento.
 4. Açude e casa-grande: chefe coronel.
@@ -87,7 +95,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 ## Mecânicas
 
 - Correr, pular, agachar, atirar para frente, para cima e para baixo no ar.
-- Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são **caixas quadradas de chapa com a letra da arma** no meio, no estilo Metal Slug. Drop de armas reduzido: caixote solta arma em ~17% das vezes; refém dá arma (30%), granadas (25%) ou só 1000 pontos (45%).
+- Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são **caixas quadradas de chapa com a letra da arma** no meio, no estilo Metal Slug. Drop de armas reduzido: caixote solta arma em ~17% das vezes (e comida em ~25%); refém dá arma (30%), granadas (25%) ou comida (45%).
 - **Armas aprovadas:** M Metralhadora Madsen, B Bacamarte, R Rojão de São João, D Raio Desintegrador, C Candeeiro (lança-chamas; deixa o inimigo pegando fogo), P Papo-amarelo (atravessa a fila), E Baladeira (pedras que quicam), F Fogos Buscapé (perseguem o inimigo). Item G dá granadas. Tabela em `src/armas.js`.
 - Painel de munição no canto (ARMA e GRANADA), como no Metal Slug.
 - **Arma grande:** pegar a mesma arma de novo deixa ela SUPER (tiro 1,5x maior e mais forte, munição somada).
@@ -105,7 +113,9 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 - No jeito do Metal Slug (`src/scenes/MenuScene.js`): cena pintada em pixel art no pôr do sol (Lampião grande atirando, disco puxando o bode, blindado e soldados, explosões ao fundo), coluna da direita com o logo e placas penduradas em correntes, caixa de baixo explicando o item escolhido.
 - Menu: MISSÃO 1, CAMPO DE TREINO, COOP ONLINE (apagado, em breve), OPÇÕES.
 - Opções no mesmo layout: volume dos efeitos e da música (0 a 10), tremida de tela (sim/não), troca das teclas do teclado (some no toque), restaurar padrão. Guardado no aparelho (`src/ajustes.js`, localStorage).
-- Som em código (`src/som.js`, Web Audio): bipes do menu e tema de baião chiptune (sanfona em escala mixolídia, zabumba e triângulo) na tela de início. Efeitos do jogo e outras músicas ficam para a etapa de som.
+- **Pausa** (ESC, Back do controle ou botão II no toque): continuar, volumes, tremida, sair para o menu.
+- **Painel:** retrato do Lampião com as vidas, mudando de cara (atirando, susto, dor, morto, gordo).
+- **Fim da missão:** pontos, reféns, precisão dos tiros, vidas perdidas e **medalha de bronze, prata ou ouro do cangaço**.
 
 ## Técnica
 
@@ -152,9 +162,10 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 ## Som
 
-- Efeitos gerados por script, no estilo sfxr.
-- Música chiptune composta em código.
-- Voz anunciando a arma ao pegar, gerada em código.
+Tudo em `src/som.js` (Web Audio, nada de arquivo de áudio):
+- **Efeitos** sintetizados no estilo sfxr: um som para cada arma, tiro inimigo, explosão (pelo tamanho), impacto, peixeira, grito de soldado, madeira, item, comer, pulo, morte, refém, zurro do jumento, apito do trem, alerta, galinha.
+- **Músicas** compostas em notas: tema de baião (tela de início), xaxado em ré dório (fase 1), galope em lá menor harmônico (chefe), fanfarra de vitória e lamento do "continuar?".
+- **Locutor:** voz do próprio aparelho em português, grave ("Madsen!", "Missão um. Começar!", "Missão cumprida!", "Jumento blindado!").
 
 ## Publicação
 
@@ -190,6 +201,6 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 9. **Acabamento:** tela de título, seleção de personagem, pausa, game over com "continuar?", progresso salvo no celular.
 10. **Mais conteúdo:** fases 2 a 6, repetindo as etapas 4 a 6.
 
-**Próximo passo:** etapa 4 (fase 1) em construção. Falta o trecho de veículo (jumento blindado) e ajustar a fase com o teste do Guilherme. Campo de treino continua no menu.
+**Próximo passo:** fase 1 com chefe, veículo e som prontos; ajustar com o teste do Guilherme antes da fase 2. Campo de treino continua no menu.
 
 

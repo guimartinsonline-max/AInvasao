@@ -1,6 +1,7 @@
 import { hex, P } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { LAMPIAO } from '../quadros.js';
+import { som, falar } from '../som.js';
 
 // Jumento blindado: o "tanque" do Lampião, como o Metal Slug do Metal Slug.
 // Parado esperando com a placa SUBA!; o Lampião monta pulando em cima (ou
@@ -81,6 +82,8 @@ export class Jumento {
     b.reset(this.s.x, fundo - CORPO.a / 2);
     this.direcao = j.direcao;
     cena.events.emit('arma', 'JUMENTO BLINDADO!');
+    falar('Jumento blindado!');
+    som('zurro');
     cena.efeitos.poeira(this.s.x, this.s.y, 10);
   }
 
@@ -141,6 +144,7 @@ export class Jumento {
       const [bx, by] = this.boca();
       const espalha = Phaser.Math.FloatBetween(-0.05, 0.05);
       cena.balas.disparar(bx, by, a + espalha, 'comum', 1);
+      som('metralha_jumento');
       cena.efeitos.disparo(bx, by, a, 'normal');
       cena.efeitos.capsula(this.mg.x, this.mg.y, -this.direcao);
       this.recuo = 40;
@@ -153,6 +157,7 @@ export class Jumento {
       const x = j.x + this.direcao * 30;
       const y = j.pe - 30;
       cena.balas.disparar(x, y, this.direcao > 0 ? -0.08 : Math.PI + 0.08, 'rojao', 1.3);
+      som('bacamarte');
       cena.efeitos.disparo(x, y, this.direcao > 0 ? 0 : Math.PI, 'grande');
       cena.efeitos.fumaca(x - this.direcao * 6, y);
       cena.efeitos.tremer(0.004, 80);
@@ -223,6 +228,7 @@ export class Jumento {
     this.mg.setVisible(false);
     this.direcao = -this.direcao;
     this.passo = 0;
+    som('zurro');
     this.texto = cena.add.text(x, y - 70, 'IÓÓÓ!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(30);
     cena.tweens.add({ targets: this.texto, alpha: 0, y: y - 90, delay: 600, duration: 500 });
   }

@@ -1,3 +1,4 @@
+import { som } from '../som.js';
 // Tiros dos inimigos, em pool. 'volante' é bala rápida; 'raio' é o tiro verde lento do xeremita.
 // mira: ângulo máximo (rad) que o tiro pode apontar para o Lampião; 0 = sai reto.
 const TIPOS = {
@@ -31,6 +32,7 @@ export class BalasInimigas {
 
   // Dinamite do granadeiro: voa em arco girando e explode ao tocar o chão ou o Lampião.
   lancarDinamite(x, y, direcao, distancia) {
+    som('arremesso');
     const d = this.dinamites.get(x, y, 'dinamite');
     if (!d) return;
     d.setActive(true).setVisible(true).setDepth(14);
@@ -57,6 +59,7 @@ export class BalasInimigas {
 
   // Obus do canhão do blindado: arco mais alto, gira a cinta, rastro de fumaça e explosão maior.
   lancarObus(x, y, direcao, distancia) {
+    som('bacamarte');
     const d = this.dinamites.get(x, y, 'obus');
     if (!d) return;
     d.setTexture('obus', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
@@ -122,6 +125,7 @@ export class BalasInimigas {
       if (direcao < 0) ang = Math.PI - ang;
     }
     bala.quadros = cfg.quadros || 1;
+    som('tiro_inimigo');
     bala.setFlipX(false).setRotation(ang);
     bala.body.setVelocity(Math.cos(ang) * cfg.velocidade, Math.sin(ang) * cfg.velocidade);
   }

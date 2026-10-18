@@ -1,6 +1,7 @@
 import { hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { REFEM } from '../quadros.js';
+import { som } from '../som.js';
 
 // Quanto tempo (ms) dura cada etapa depois de solto, como os prisioneiros do Metal Slug:
 // pula de alegria, procura no bornal, entrega o item, bate continência e sai correndo.
@@ -82,6 +83,7 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
     const cena = this.scene;
     this.vivo = false;
     cena.refensSalvos = (cena.refensSalvos || 0) + 1;
+    som('refem');
     cena.pontuar(500, this.x, this.y - 56);
     this.mudar('solto');
     this.body.setVelocityY(-120);

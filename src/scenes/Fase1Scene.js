@@ -8,6 +8,7 @@ import { PREMIOS } from '../armas.js';
 import { PEDACO, PEDACOS } from '../fase1_pedacos.js';
 import { Urubus, Galinha, Varal, CasaVila, Ponte } from '../objetos/Ambiente.js';
 import { Jumento } from '../objetos/Jumento.js';
+import { tocarMusica, falar } from '../som.js';
 
 // Fase 1 é só contra a Volante: nada de arma alienígena.
 const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
@@ -127,6 +128,8 @@ export class Fase1Scene extends CenaJogo {
     this.seta = this.add.text(LARGURA - 8, 90 + DY / 2, 'VAI! >>', estiloTexto(hex('amarelo_fogo'), 8)).setOrigin(1, 0.5)
       .setScrollFactor(0).setDepth(40).setVisible(false);
     this.mostrar('MISSÃO 1', 'CAATINGA, 1936', 2200);
+    tocarMusica('caatinga');
+    this.time.delayedCall(300, () => falar('Missão um. Começar!'));
   }
 
   mostrar(texto, sub = '', ms = 1800) {
@@ -152,6 +155,7 @@ export class Fase1Scene extends CenaJogo {
         const v = cam.worldView;
         let x;
         let y;
+        if (tipo === 'trem') tocarMusica('chefe');
         if (tipo === 'caminhao' || tipo === 'blindado' || tipo === 'trem') {
           this.chegarVeiculo(tipo, lado, opcoes || {}, onda);
           onda.faltam--;
@@ -224,6 +228,8 @@ export class Fase1Scene extends CenaJogo {
     this.contagem = CONTAGEM;
     this.proximoSegundo = this.time.now + 1000;
     this.mostrar('CONTINUAR?', `${CONTAGEM}`, 0);
+    tocarMusica('derrota');
+    falar('Continuar?');
     return true;
   }
 
@@ -234,6 +240,7 @@ export class Fase1Scene extends CenaJogo {
       this.aviso.setVisible(false);
       this.subaviso.setVisible(false);
       this.jogador.continuar();
+      tocarMusica(this.onda && this.onda.inimigos.some((i) => i[0] === 'trem') ? 'chefe' : 'caatinga');
       return;
     }
     if (t > this.proximoSegundo) {
@@ -252,6 +259,8 @@ export class Fase1Scene extends CenaJogo {
   contarPontos() {
     const bonus = this.refensSalvos * 1000;
     this.mostrar('MISSÃO 1 CUMPRIDA!', '', 0);
+    tocarMusica('vitoria');
+    falar('Missão cumprida!');
     // Faixa escura atrás do placar para ler bem sobre o cenário.
     const faixa = this.add.rectangle(LARGURA / 2, ALTURA / 2 + 10, 340, 250, 0x0e0d14, 0.7).setScrollFactor(0).setDepth(39)
       .setStrokeStyle(1, 0xd8c8a0, 0.6).setAlpha(0);

@@ -1,6 +1,7 @@
 import { ajustes } from './ajustes.js';
 import { P } from './paleta.js';
 import { EFEITOS } from './quadros.js';
+import { som } from './som.js';
 
 // Velocidade (quadros por segundo) de cada efeito animado.
 const FPS = { clarao: 50, clarao_g: 40, impacto: 30, impacto_verde: 30, explosao: 20, explosao_p: 24, fumaca: 14, chama: 14, rajada: 20, corte_arco: 26, clarao_canhao: 36 };
@@ -132,6 +133,7 @@ export class Efeitos {
   }
 
   tabuas(x, y) {
+    som('madeira');
     this.tabuasEm.explode(7, x, y);
     this.lascasEm.explode(10, x, y);
   }
@@ -178,6 +180,7 @@ export class Efeitos {
   }
 
   impacto(x, y, tipo = 'comum') {
+    som('impacto');
     if (tipo === 'verde') this.animar('impacto_verde', x, y);
     else if (tipo) this.animar('impacto', x, y);
     this.faiscaEm.explode(2, x, y);
@@ -213,6 +216,7 @@ export class Efeitos {
 
   // Explosão desenhada em 8 quadros (grande ou pequena), com estilhaços e faíscas.
   explosao(x, y, tamanho = 1) {
+    som('explosao', tamanho);
     const grande = tamanho >= 0.9;
     this.animar(grande ? 'explosao' : 'explosao_p', x, y - (grande ? 8 : 4), { profundidade: 18 });
     if (tamanho > 1.1) {

@@ -1,6 +1,7 @@
 import { hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { VEICULOS } from '../quadros.js';
+import { som } from '../som.js';
 
 // Veículos da Volante. Os dois são alvos (levam tiro, granada e explosão) e,
 // andando, atropelam o Lampião e esmagam caixotes no caminho.
@@ -276,6 +277,7 @@ export class Blindado extends Veiculo {
     // reta na altura da cabeça. Agachado escapa; dá para pular por cima com tempo.
     if (t > this.proximoTiro && !this.avisando) {
       this.avisando = true;
+      som('alerta');
       const [ax, ay] = this.ponto(this.q.largura / 2 + 2, 37);
       cena.efeitos.faisca(ax, ay, 5);
       this.texto.setText('!').setPosition(ax, ay - 12).setVisible(true).setAlpha(1);

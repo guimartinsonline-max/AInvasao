@@ -1,5 +1,6 @@
 import { hex, P } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
+import { som } from '../som.js';
 
 // Chefe da fase 1: o trem blindado da Volante ("A JARARACA"). Entra pelos
 // trilhos, apita e para de frente para o Lampião. Partes que quebram separadas:
@@ -143,6 +144,7 @@ export class TremBlindado {
         this.estado = 'lutando';
         this.lutando = true;
         this.base = this.alvoX;
+        som('apito');
         this.falar('PIIUÍÍ!', this.partes.chamine.x, this.partes.chamine.y - 50, 900);
         for (let k = 0; k < 6; k++) cena.efeitos.fumacaSobe(this.x + 20 + k * 14, this.chao - 70);
         cena.efeitos.tremer(0.006, 300);
@@ -180,6 +182,7 @@ export class TremBlindado {
       const baixa = Math.random() < 0.5;
       const [ax, ay] = this.bocaMg(baixa ? 1 : 0);
       this.falar(baixa ? 'PULA!' : '!', ax - 6, ay - 12, 400);
+      som('alerta');
       cena.efeitos.faisca(ax, ay, 4);
       p.mg.setFrame(1);
       cena.time.delayedCall(520, () => {
@@ -271,6 +274,7 @@ export class TremBlindado {
     this.estado = 'morrendo';
     // Os soldados que pularam do vagão vão pelos ares junto.
     for (const s of this.soldados) if (s.vivo) s.levarDano(999, this.x, true, 'arremessa');
+    som('apito');
     this.falar('PIIIIIIUUUÍ...!', this.x + 60, this.chao - TREM.loco.altura - 14, 1500);
     for (let k = 0; k < 14; k++) {
       cena.time.delayedCall(k * 170, () => {

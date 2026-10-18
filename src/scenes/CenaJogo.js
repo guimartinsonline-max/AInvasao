@@ -12,6 +12,7 @@ import { Caminhao, Blindado } from '../objetos/Veiculos.js';
 import { TremBlindado } from '../objetos/Trem.js';
 import { estiloTexto } from '../texto.js';
 import { hex } from '../paleta.js';
+import { som, falar, pararMusica } from '../som.js';
 
 export const CHAO_Y = 192;
 const RAIO_GRANADA = 44;
@@ -20,6 +21,12 @@ const RAIO_GRANADA = 44;
 // inimigos, reféns, itens, caixotes, efeitos e câmera.
 // A cena filha define: configurar() -> { largura, inicio }, criarFundo(), montarCenario(),
 // povoar(), e pode usar atualizarFundo(cam, dt) e atualizarFase(t, dt).
+// O que o locutor grita ao pegar cada arma.
+const VOZ = {
+  madsen: 'Madsen!', bacamarte: 'Bacamarte!', rojao: 'Rojão!', desintegrador: 'Desintegrador!', candeeiro: 'Candeeiro!',
+  papo_amarelo: 'Papo-amarelo!', estilingue: 'Baladeira!', buscape: 'Buscapé!', granadas: 'Granada!',
+};
+
 export class CenaJogo extends Phaser.Scene {
   create() {
     this.controles = this.game.controles;
@@ -76,6 +83,7 @@ export class CenaJogo extends Phaser.Scene {
       if (!g.active || !g.body.blocked.down || this.time.now - g.ultimoQuique < 150) return;
       g.ultimoQuique = this.time.now;
       g.quiques++;
+      som('quique');
       this.efeitos.poeira(g.x, g.y + 4, 3);
       if (g.quiques >= 2) this.explodirGranada(g);
     });
@@ -98,7 +106,10 @@ export class CenaJogo extends Phaser.Scene {
     this.povoar();
 
     this.scene.launch('Hud', { jogador: this.jogador, cena: this.scene.key });
-    this.events.once('shutdown', () => this.scene.stop('Hud'));
+    this.events.once('shutdown', () => {
+      this.scene.stop('Hud');
+      pararMusica();
+    });
   }
 
   solido(x, y, w, h, umLado = false) {
@@ -239,6 +250,8 @@ export class CenaJogo extends Phaser.Scene {
       return;
     }
     this.efeitos.faisca(item.x, item.y - 8, 12);
+    som('item');
+    falar(VOZ[arma] || '');
     if (arma === 'granadas') {
       this.jogador.granadas = Math.min(this.jogador.granadas + 5, 20);
       this.events.emit('arma', 'GRANADAS +5');

@@ -1,6 +1,7 @@
 import { P, hex } from '../paleta.js';
 import { estiloTexto } from '../texto.js';
 import { INIMIGOS } from '../quadros.js';
+import { som } from '../som.js';
 
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
 const ESCUDO = 6; // tiros que o escudo aguenta
@@ -207,6 +208,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     if (this.estado === 'escalando') this.body.allowGravity = true;
     this.estado = 'morto';
     cena.pontuar(PONTOS[this.tipo] || 100, this.x, this.y - 50);
+    som('grito');
     // Sangue nas mortes (menos queimado e derretido); o xeremita espirra gosma.
     if (morte !== 'fogo' && morte !== 'derrete') {
       if (this.tipo === 'xeremita') ef.gosma(this.x, this.y - 22, 14);

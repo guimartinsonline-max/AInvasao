@@ -1,4 +1,5 @@
 import { P } from '../paleta.js';
+import { som } from '../som.js';
 
 // Cenário vivo: urubus que levantam voo, galinhas (assam no fogo), varal que a
 // explosão arrebenta, casas que perdem o telhado e a ponte que a granada quebra.
@@ -82,6 +83,7 @@ export class Galinha extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     // Tiro: penas voando e ela dispara a correr.
+    som('galinha');
     cena.efeitos.penasEm.explode(8, this.x, this.y - 6);
     this.fugir(origemX);
     this.body.setVelocityY(-120);

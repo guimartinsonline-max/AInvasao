@@ -1,6 +1,7 @@
 import { LAMPIAO, LAMPIAO_GORDO, COMIDAS } from '../quadros.js';
 import { BOCAS } from '../maos.js';
 import { ARMAS } from '../armas.js';
+import { som } from '../som.js';
 
 // Lampião. A física usa um corpo invisível; o sprite visível só acompanha,
 // para poder esticar e amassar sem mexer na colisão.
@@ -133,6 +134,7 @@ export class Jogador {
         this.ajustarAltura(ALTURA_EM_PE);
       }
       corpo.setVelocityY(VEL_PULO * (this.gordo ? 0.86 : 1));
+      som('pulo');
       this.cena.efeitos.poeira(this.x, this.pe, 6);
       this.esticar(0.75, 1.3);
     }
@@ -158,6 +160,7 @@ export class Jogador {
       this.granadas--;
       // Quadro de arremesso: o braço de trás sobe e a granada sai da mão lá em cima.
       this.arremesso = 220;
+      som('arremesso');
       const [gx, gy] = LAMPIAO.maoGranada;
       this.cena.lancarGranada(this.x + this.direcao * gx, this.pe - gy, this.direcao, corpo.velocity.x);
     }
@@ -207,6 +210,7 @@ export class Jogador {
     const cena = this.cena;
     this.morto = true;
     cena.mortes = (cena.mortes || 0) + 1;
+    som('morte');
     this.vidas--;
     const lado = Math.sign(vxBala) || -this.direcao;
     this.corpo.body.setVelocity(lado * 90, -240);
@@ -231,6 +235,7 @@ export class Jogador {
   comer(nome, item) {
     const cena = this.cena;
     cena.pontuar(COMIDAS[nome] || 100, item.x, item.y - 16);
+    som('comer');
     cena.efeitos.faisca(item.x, item.y - 8, 6);
     this.barriga = (this.barriga || 0) + 1;
     this.digereEm = cena.time.now + DIGERE;
@@ -238,6 +243,7 @@ export class Jogador {
       this.gordo = true;
       this.gordoAte = cena.time.now + TEMPO_GORDO;
       cena.events.emit('arma', 'GORDO!');
+      som('engordar');
       cena.efeitos.poeira(this.x, this.pe, 12);
       cena.efeitos.tremer(0.004, 120);
     } else if (this.gordo) {
@@ -325,6 +331,7 @@ export class Jogador {
       if (alvo) {
         // Facada como no Metal Slug: mata na hora quem está colado.
         this.facada = 230;
+        som('faca');
         cena.peixeirada(this.x + d * 22, this.pe - 22, d, alvo);
         return;
       }
@@ -353,6 +360,7 @@ export class Jogador {
       ang = mira === 'cima' ? -Math.PI / 2 : d > 0 ? 0 : Math.PI;
     }
     const arma = ARMAS[this.arma];
+    som(this.arma === 'padrao' ? 'pistola' : this.arma);
     if (arma.rajada) cena.rajada(x, y, ang, arma.rajada, d, this.forca);
     for (let k = 0; k < arma.tiros; k++) {
       let a = ang;
