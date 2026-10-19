@@ -701,7 +701,9 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const v = cena.cameras.main.worldView;
     const foraDaTela = this.x < v.x + 14 || this.x > v.right - 14;
     if (foraDaTela && !j.morto) this.virar(this.x < v.x + 14 ? 1 : -1);
-    const anda = foraDaTela || (dist > cfg.distancia && dist < cfg.alcance * 1.4 && !j.morto);
+    // Com a câmera travada numa onda, todo mundo da tela vem para cima do Lampião (antes,
+    // quem ficava longe do alcance parava no canto e a onda nunca acabava).
+    const anda = foraDaTela || (dist > cfg.distancia && (dist < cfg.alcance * 1.4 || cena.onda) && !j.morto);
     const vel = cfg.velocidade * (this.vidaEscudo > 0 || this.refemAtivo ? 0.6 : 1) * (foraDaTela ? 1.5 : 1);
     if (anda && this.abrirCaminho(vel, j, foraDaTela)) {
       this.body.setVelocityX(this.direcao * vel);

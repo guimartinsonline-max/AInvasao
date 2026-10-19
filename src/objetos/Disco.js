@@ -208,6 +208,7 @@ export class Bode extends Phaser.Physics.Arcade.Sprite {
     const anda = Math.floor(t / 900) % 3 !== 0;
     this.body.setVelocityX(anda ? this.direcao * 14 : 0);
     this.setFlipX(this.direcao < 0);
-    this.setFrame(anda ? BODE.parado : (Math.floor(t / 200) % 2 ? BODE.mastiga : BODE.parado));
+    // Andando, as pernas trotam (4 quadros); parado, mastiga.
+    this.setFrame(anda ? BODE.andar[Math.floor(t / 150) % 4] : (Math.floor(t / 200) % 2 ? BODE.mastiga : BODE.parado));
   }
 }

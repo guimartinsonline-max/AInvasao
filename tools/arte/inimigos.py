@@ -149,18 +149,28 @@ def feixe(quadro=0, w=14, h=110):
 
 # ---------------------------------------------------------------- Bode Fubá
 def bode(quadro="parado"):
+    """Bode Fubá: parado, mastiga, abduzido e anda1-4 (passo trotado: as pernas em
+    diagonal vão juntas, a que avança sobe do chão)."""
     t = Tela(32, 26)
     base = 25
     ergue = quadro == "abduzido"
+    passo = int(quadro[-1]) - 1 if quadro.startswith("anda") else None
     pernas = [(9, 0), (12, 0), (20, 0), (23, 0)]
     for k, (x, _) in enumerate(pernas):
         d = -1 if k % 2 == 0 else 0
         fim = base - 1 - (4 if ergue and k % 2 else 0) - (2 if ergue else 0)
         dx = (2 if ergue and k % 2 == 0 else 0)
+        if passo is not None:
+            # Pares em diagonal (trás-longe com frente-perto, trás-perto com frente-longe).
+            par = 0 if k in (0, 3) else 1
+            fase = (passo + par * 2) % 4  # 0 atrás, 1 subindo, 2 na frente, 3 apoiando
+            dx = (-2, 0, 2, 0)[fase]
+            fim -= 2 if fase == 1 else 0
         t.cel(t.capsula(x, 16, x + dx, fim - 1, 1.3, 1.0), BRANCO, deslocar=d, sombra=1, luz=0)
         t.chapado(t.retangulo(x + dx - 1, fim - 1, 2, 2), "preto")
     # Corpo e rabinho.
-    t.cel(t.elipse(16, 14, 10, 5.5), BRANCO, sombra=2)
+    sobe = 1 if passo in (1, 3) else 0  # o corpo sobe um tiquinho a cada passada
+    t.cel(t.elipse(16, 14 - sobe, 10, 5.5), BRANCO, sombra=2)
     t.cel(t.elipse(6, 10, 1.6, 2.4, ang=-0.6), BRANCO, sombra=1)
     # Manchas.
     t.cel(t.elipse(13, 12, 3, 2), ["terra", "terra", "barro", "barro"], sombra=1, luz=0)

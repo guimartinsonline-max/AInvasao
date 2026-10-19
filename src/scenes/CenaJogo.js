@@ -299,7 +299,10 @@ export class CenaJogo extends Phaser.Scene {
   // O bode Fubá estava dentro do caixote: sai correndo e berrando.
   surpresaBode(x, pe) {
     const lado = this.jogador.x < x ? 1 : -1;
-    const b = this.add.sprite(x, pe, 'bode', 0).setOrigin(0.5, 1).setDepth(8).setFlipX(lado < 0);
+    if (!this.anims.exists('bode_anda')) {
+      this.anims.create({ key: 'bode_anda', frames: this.anims.generateFrameNumbers('bode', { start: 3, end: 6 }), frameRate: 14, repeat: -1 });
+    }
+    const b = this.add.sprite(x, pe, 'bode', 0).setOrigin(0.5, 1).setDepth(8).setFlipX(lado < 0).play('bode_anda');
     const grito = this.add.text(x, pe - 34, 'BÉÉÉÉ!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(30);
     this.tweens.add({ targets: grito, y: pe - 48, alpha: 0, duration: 900, onComplete: () => grito.destroy() });
     this.tweens.add({ targets: b, y: pe - 10, duration: 140, yoyo: true, repeat: 5 });

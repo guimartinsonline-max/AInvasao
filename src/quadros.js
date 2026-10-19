@@ -101,7 +101,7 @@ export const VEICULOS = {
   caminhao: { largura: 124, altura: 62, n: 5, andar: [0, 1, 2, 3], aberto: 4, destruido: 20, rodas: [-36, 38] },
   blindado: { largura: 132, altura: 90, n: 9, andar: [0, 1, 2, 3], tiro: 4, quebrado: [5, 6, 7, 8], destruido: 36, rodas: [-38, 36] },
 };
-export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2 };
+export const BODE = { largura: 32, altura: 26, peX: 16, peY: 25, parado: 0, mastiga: 1, abduzido: 2, andar: [3, 4, 5, 6] };
 
 export const ALIEN = { largura: 40, altura: 44, peX: 20, peY: 42, aberto: 0, fechado: 1 };
 

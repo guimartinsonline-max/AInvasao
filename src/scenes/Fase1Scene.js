@@ -465,7 +465,10 @@ export class Fase1Scene extends CenaJogo {
     }
     // O bode Fubá atravessa a tela berrando.
     this.time.delayedCall(1200, () => {
-      const b = this.add.sprite(cam.worldView.right + 20, j.pe, 'bode', 0).setOrigin(0.5, 1).setDepth(8).setFlipX(true);
+      if (!this.anims.exists('bode_anda')) {
+        this.anims.create({ key: 'bode_anda', frames: this.anims.generateFrameNumbers('bode', { start: 3, end: 6 }), frameRate: 14, repeat: -1 });
+      }
+      const b = this.add.sprite(cam.worldView.right + 20, j.pe, 'bode', 0).setOrigin(0.5, 1).setDepth(8).setFlipX(true).play('bode_anda');
       const berro = this.add.text(b.x, j.pe - 34, 'BÉÉÉ!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(30);
       this.tweens.add({ targets: b, x: cam.worldView.x - 30, duration: 2600, onComplete: () => b.destroy() });
       this.tweens.add({ targets: berro, x: cam.worldView.x - 30, alpha: 0, duration: 2600, onComplete: () => berro.destroy() });

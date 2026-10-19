@@ -366,14 +366,16 @@ def urubu(quadro=0):
 
 
 def galinha(quadro=0):
-    """Galinha caipira: 0 parada, 1 bicando o chão, 2 e 3 correndo de asa aberta."""
+    """Galinha caipira: 0 parada, 1 bicando o chão, 2 e 3 correndo de asa aberta,
+    4 e 5 andando (pernas alternando e a cabeça indo e voltando no passo)."""
     t = Tela(16, 15)
     bica = quadro == 1
+    anda = quadro in (4, 5)
     corre = quadro in (2, 3)
     corpo = t.elipse(7, 9, 5.5, 4)
     t.volume(corpo, PENA_RUIVA, achatado=2, suave=0.6, ambiente=0.3, textura=0.15, semente=quadro)
     t.volume(t.poligono([(2, 8), (0, 3), (3, 6)]), PENA_RUIVA, achatado=1, suave=0.3, deslocar=-0.2)  # rabo
-    hx, hy = (12, 10) if bica else (11, 4)
+    hx, hy = (12, 10) if bica else (12, 5) if quadro == 4 else (11, 4)
     t.volume(t.elipse(hx, hy, 2.6, 2.6), PENA_RUIVA, achatado=1, suave=0.3, ambiente=0.4)
     t.chapado(t.retangulo(hx - 1, hy - 4, 3, 2), "vermelho")  # crista
     t.ponto(hx + 1, hy + 2, "vermelho")  # barbela
@@ -382,9 +384,16 @@ def galinha(quadro=0):
     if corre:
         asa = t.poligono([(6, 8), (2 if quadro == 2 else 4, 3 if quadro == 2 else 12), (10, 9)])
         t.volume(asa, PENA_RUIVA, achatado=1, suave=0.3, ambiente=0.45)
-    pe = (4, 9) if quadro == 2 else (6, 8) if quadro == 3 else (6, 8)
-    for x in pe:
-        t.linha(x, 12, x - (1 if corre else 0), 14, "amarelo_fogo")
+    if anda:
+        # Uma perna no chão puxando para trás, a outra levantada dando o passo.
+        a, b = (5, 8) if quadro == 4 else (8, 5)
+        t.linha(6, 12, a, 14, "amarelo_fogo")
+        t.linha(7, 12, b + 1, 13, "amarelo_fogo")
+        t.ponto(b + 2, 13, "amarelo_fogo")
+    else:
+        pe = (4, 9) if quadro == 2 else (6, 8) if quadro == 3 else (6, 8)
+        for x in pe:
+            t.linha(x, 12, x - (1 if corre else 0), 14, "amarelo_fogo")
     t.contorno("sombra")
     return t
 

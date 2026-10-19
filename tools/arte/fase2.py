@@ -1562,7 +1562,9 @@ def dados_fase():
     """Dados do trecho 1 (assets/fases/fase2.json), lidos por src/scenes/Fase2Scene.js."""
     solidos = [[0, CHAO, LARGURA, 200]]
     for (x, w_, h_, _s) in ROCHEDOS:
-        solidos.append([x + 5, CHAO - h_ + 5, w_ - 10, h_ - 5])
+        # Topo de um lado só: dá para passar na frente andando e subir pulando (um
+        # rochedo sólido de 39 px travava quem pulava só com um toque curto).
+        solidos.append([x + 5, CHAO - h_ + 5, w_ - 10, 8, 1])
     return {
         "largura": LARGURA,
         "inicio": [40, CHAO - 20],

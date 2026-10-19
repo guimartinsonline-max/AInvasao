@@ -112,7 +112,8 @@ export class Galinha extends Phaser.Physics.Arcade.Sprite {
         this.anda = Math.random() < 0.5;
       }
       this.body.setVelocityX(this.anda ? this.direcao * 18 : 0);
-      this.setFrame(this.anda ? 0 : (Math.floor(t / 260) % 3 === 0 ? 1 : 0));
+      // Andando, as perninhas alternam e a cabeça vai e volta; parada, cisca.
+      this.setFrame(this.anda ? 4 + (Math.floor(t / 170) % 2) : (Math.floor(t / 260) % 3 === 0 ? 1 : 0));
     }
     this.setFlipX(this.direcao < 0);
   }
