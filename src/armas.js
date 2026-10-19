@@ -19,9 +19,11 @@ export const ARMAS = {
     nome: 'ROJÃO DE SÃO JOÃO', municao: 15, cadencia: 450, toque: 350, bala: 'rojao', tiros: 1,
     tranco: 2, clarao: 'normal', fumaca: 2,
   },
+  // Pistola de raio de latão: semiautomática (um tiro por toque) e o raio para no
+  // primeiro que acerta (inimigo, caixote ou parede).
   desintegrador: {
-    nome: 'RAIO DESINTEGRADOR', municao: 60, cadencia: 120, toque: 100, bala: 'desintegra', tiros: 1,
-    clarao: 'verde',
+    nome: 'RAIO DESINTEGRADOR', municao: 40, cadencia: 260, toque: 200, bala: 'desintegra', tiros: 1,
+    clarao: 'verde', semi: true,
   },
   // Como o Flame Shot do Metal Slug: labareda grande que sobe num arco raso.
   candeeiro: {
@@ -52,7 +54,7 @@ export const BALAS = {
   chumbo: { textura: 'chumbo', velocidade: 330, dano: 1, vida: 230, impacto: 'comum', morte: 'arremessa' },
   rojao: { textura: 'foguete', velocidade: 140, acelera: 900, maxima: 420, dano: 0, rastro: 'fumaca',
     explode: { raio: 36, dano: 4, tamanho: 1 } },
-  desintegra: { textura: 'anel', velocidade: 460, dano: 2, atravessa: true, morte: 'derrete', impacto: 'verde' },
+  desintegra: { textura: 'anel', velocidade: 460, dano: 2, morte: 'derrete', impacto: 'verde' },
   // Bola de fogo que cresce, perde força e sobe; deixa o inimigo pegando fogo.
   chama: { textura: 'labareda', velocidade: 330, freio: 0.975, sobe: 70, levanta: 25, vida: 640, dano: 0.7,
     atravessa: true, queima: true, morte: 'fogo', corpo: 18, porIdade: true },

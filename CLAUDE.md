@@ -150,7 +150,7 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 - Correr, pular, agachar, atirar para frente, para cima e para baixo no ar.
 - Armas pickup com munição limitada, além da arma padrão infinita. Itens no chão são **caixas quadradas de chapa com a letra da arma** no meio, no estilo Metal Slug. Drop de armas reduzido: caixote solta arma em ~17% das vezes (e comida em ~25%); refém dá arma (30%), granadas (25%) ou comida (45%).
-- **Armas aprovadas:** M Metralhadora Madsen, B Bacamarte, R Rojão de São João, D Raio Desintegrador, C Candeeiro (lança-chamas; deixa o inimigo pegando fogo), P Papo-amarelo (atravessa a fila), E Baladeira (pedras que quicam), F Fogos Buscapé (perseguem o inimigo). Item G dá granadas. Tabela em `src/armas.js`.
+- **Armas aprovadas:** M Metralhadora Madsen, B Bacamarte, R Rojão de São João, D Raio Desintegrador (pistola de raio de latão dos anos 30: bobina estriada atrás, corpo com fendas e alça, cone de vidro estriado com a haste aparecendo, cabo preto e argola do gatilho; semiautomática, 40 tiros, o raio para no primeiro que acerta), C Candeeiro (lança-chamas; deixa o inimigo pegando fogo), P Papo-amarelo (atravessa a fila), E Baladeira (pedras que quicam), F Fogos Buscapé (perseguem o inimigo). Item G dá granadas. Tabela em `src/armas.js`.
 - Painel de munição no canto (ARMA e GRANADA), como no Metal Slug.
 - Caixas de arma no chão dão um clarão leve de tempos em tempos (não ficam brancas).
 - **Arma grande:** pegar a mesma arma de novo deixa ela SUPER (tiro 1,5x maior e mais forte, munição somada).
