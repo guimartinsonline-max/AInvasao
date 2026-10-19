@@ -129,6 +129,13 @@ folha([ct.contaminado("parado"), ct.contaminado("vomita"), ct.contaminado("grito
       + [ct.contaminado("morte"), tostar(ct.contaminado("morte")), ajoelhar(sem[0]), deitar(sem[0]),
          deitar(ct.contaminado("grito")), ct.contaminado("morde")] + sem, SAIDA / "contaminado.png")
 ct.cabeca_solta().salvar(SAIDA / "cabeca_contaminado.png")
+# Soldado de máscara contra gás (tools/arte/mascarado.py): mesmos quadros da Volante comum
+# (sem as cenas cômicas), com a máscara posta antes de gerar tostado, joelhos, caído e de bruços.
+import mascarado as mc  # noqa: E402
+d = {k: mc.mascarar(rp.repintar_tela(v)) for k, v in pixel.ler("volante.txt").items()}
+folha([d[n] for n in ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"]] + [tostar(d["morte"])]
+      + [d["sentado1"], d["sentado2"], ajoelhar(d["morte"]), deitar(d["morte"]), deitar(d["panico"])],
+      SAIDA / "mascarado.png")
 # Lampião zumbi (tools/arte/lampiao_zumbi.py): folha, golfada grande (tiro dele) e o
 # vômito pequeno do contaminado, todos animados.
 import lampiao_zumbi as lz  # noqa: E402
@@ -243,6 +250,8 @@ for nome, quadros in {
 
 import fase1  # noqa: E402
 fase1.exportar(SAIDA, RAIZ)
+import fase2  # noqa: E402
+fase2.exportar(SAIDA, RAIZ)
 import objetos as obj  # noqa: E402
 folha([obj.barril(0), obj.barril(1)], SAIDA / "barril.png")
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")

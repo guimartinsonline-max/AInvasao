@@ -24,8 +24,12 @@ const TIQUE = 1300; // ms por segundo do relógio (o do Metal Slug também anda 
 // Os dados (chão, plataformas, caixotes, reféns, ondas) vêm de assets/fases/fase1.json,
 // gerado junto com a arte por tools/arte/fase1.py.
 export class Fase1Scene extends CenaJogo {
-  constructor() {
-    super('Fase1');
+  constructor(chave = 'Fase1') {
+    super(chave);
+  }
+
+  get missao() {
+    return 'MISSÃO 1';
   }
 
   get premios() {
@@ -362,7 +366,7 @@ export class Fase1Scene extends CenaJogo {
   // Fim da missão: total de pontos e bônus de reféns, contando na tela.
   contarPontos() {
     const bonus = this.refensSalvos * 1000;
-    this.mostrar('MISSÃO 1 CUMPRIDA!', '', 0);
+    this.mostrar(`${this.missao} CUMPRIDA!`, '', 0);
     tocarMusica('vitoria');
     // Faixa escura atrás do placar para ler bem sobre o cenário.
     const faixa = this.add.rectangle(LARGURA / 2, ALTURA / 2 + 10, 340, 250, 0x0e0d14, 0.7).setScrollFactor(0).setDepth(39)

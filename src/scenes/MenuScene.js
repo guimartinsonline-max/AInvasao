@@ -136,6 +136,7 @@ export class MenuScene extends Phaser.Scene {
     if (this.modo === 'principal') {
       return [
         { texto: 'MISSÃO 1', desc: 'Caatinga, 1936. Lampião contra a Volante, da vila de taipa ao acampamento.', id: 'Fase1' },
+        { texto: 'MISSÃO 2', desc: 'A base da cratera. Em construção: só a borda da cratera por enquanto.', id: 'Fase2' },
         { texto: 'CAMPO DE TREINO', desc: 'Todas as armas, inimigos e veículos para treinar. Tudo volta.', id: 'Campo' },
         { texto: 'COOP ONLINE', desc: 'Lampião e Maria Bonita em dois aparelhos. Em breve.', id: 'coop', apagado: true },
         { texto: 'OPÇÕES', desc: 'Volume dos efeitos e da música, tremida de tela e teclas.', id: 'opcoes' },
@@ -218,7 +219,7 @@ export class MenuScene extends Phaser.Scene {
       this.trocarTecla(it.acao);
       return;
     }
-    if (it.id === 'Fase1' || it.id === 'Campo') {
+    if (it.id === 'Fase1' || it.id === 'Fase2' || it.id === 'Campo') {
       this.saindo = true;
       bip('confirmar');
       pedirTelaCheia(this.game);

@@ -28,6 +28,7 @@ export function carregarSprites(cena) {
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.image('chapeu', s('chapeu'));
   cena.load.image('cabeca_contaminado', s('cabeca_contaminado'));
+  for (const c of ['f2_jogo', 'f2_perto', 'f2_meio', 'f2_longe', 'f2_frente', 'ceu_fumaca']) cena.load.image(c, s(c));
   cena.load.spritesheet('lampiao_zumbi', s('lampiao_zumbi'), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
   cena.load.spritesheet('jumento', s('jumento'), { frameWidth: 72, frameHeight: 60 });
   cena.load.spritesheet('retrato', s('retrato'), { frameWidth: 26, frameHeight: 21 });

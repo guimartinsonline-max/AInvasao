@@ -6,15 +6,15 @@ import { som } from '../som.js';
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
 const ESCUDO = 6; // tiros que o escudo aguenta
 // Pontos por inimigo (como no Metal Slug, aparecem subindo quando ele cai).
-const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200, oficial: 500, cerebrao: 400, olheiro: 300, contaminado: 200 };
+const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200, oficial: 500, cerebrao: 400, olheiro: 300, contaminado: 200, mascarado: 150 };
 // Quem pode se render quando o Lampião chega perto com arma pesada.
-const RENDE = new Set(['volante', 'granadeiro', 'rojao', 'metralhador']);
+const RENDE = new Set(['volante', 'granadeiro', 'rojao', 'metralhador', 'mascarado']);
 const VE_DE = 130; // px: distância em que o soldado distraído percebe o Lampião
 const QUEIMA = 2200; // ms pegando fogo
 const DANO_QUEIMA = 0.5; // dano a cada QUEIMA_TICK ms
 const QUEIMA_TICK = 450;
 // Quem tem medo de granada (deita de bruços ou foge) e quem foge quando o colega cai.
-const MEDROSOS = new Set(['volante', 'granadeiro', 'rojao', 'oficial']);
+const MEDROSOS = new Set(['volante', 'granadeiro', 'rojao', 'oficial', 'mascarado']);
 // Falas das cenas cômicas, antes de ver o Lampião.
 const FALAS_CENA = {
   truco: ['TRUCO!', 'SEIS!', 'ZAP!', 'TÔ COM O PAUS!', 'NOVE!'],
@@ -36,6 +36,11 @@ const TIPOS = {
   cerebrao: {
     vida: 6, velocidade: 14, alcance: 240, distancia: 140, recarga: [1700, 2600],
     bala: 'raio', gritos: ['BLORP!', 'SKRIII!', 'GLU-GLU!'], panico: 0, alien: true,
+  },
+  // Guarda de máscara contra gás (fase 2): como o soldado comum, mais firme, grita abafado.
+  mascarado: {
+    vida: 3, velocidade: 30, alcance: 240, distancia: 120, recarga: [1200, 2000],
+    bala: 'volante', gritos: ['MMMPH!', 'HNNF!', 'UMMF!', 'MÃMMF!'], panico: 30,
   },
   // Soldado contaminado (fase 2): anda cambaleando para cima do Lampião, vomita gosma em
   // arco de longe e morde de perto. Morre de bala sem cabeça (anda uns passos e cai).

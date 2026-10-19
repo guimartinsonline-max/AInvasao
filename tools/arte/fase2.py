@@ -160,6 +160,78 @@ def chao_vidro(w, h=26, semente=0):
     return t
 
 
+# ------------------------------------------------------------------ madeira e metal detalhados
+
+MADEIRA_V = ["preto", "couro_profundo", "couro_escuro", "couro", "couro_medio", "couro_claro"]
+MADEIRA_Q = ["preto", "preto", "marrom_noite", "couro_profundo", "couro_escuro", "couro"]
+FERRO = ["preto", "sombra", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz"]
+
+
+def madeira(t, m, vertical=True, semente=0, rampa=MADEIRA_V, queima=0.0):
+    """Madeira rústica: volume roliço, veios compridos no sentido da peça, nós escuros com
+    anel claro, rachas e, com queima>0, a parte de baixo virando carvão com brasa."""
+    if not m.any():
+        return
+    H = np.minimum(ndimage.distance_transform_edt(np.pad(m, 1))[1:-1, 1:-1], 3)
+    relevo(t, m, H, rampa, ambiente=0.05, contraste=1.1, brilho=0.4, linha=False)
+    rng = np.random.default_rng(semente)
+    eixo = t.xx if vertical else t.yy
+    ao_longo = t.yy if vertical else t.xx
+    veio = (np.sin(eixo * 2.6 + np.sin(ao_longo * 0.35 + semente) * 1.2) > 0.82)
+    interior = ndimage.binary_erosion(m)
+    t.px[interior & veio] = IDX[rampa[2]]
+    ys, xs = np.where(interior)
+    for _ in range(len(ys) // 90 if len(ys) else 0):
+        i = int(rng.integers(len(ys)))
+        x, y = xs[i], ys[i]
+        t.ponto(x, y, rampa[0])
+        t.ponto(x + (0 if vertical else 1), y + (1 if vertical else 0), rampa[0])
+        t.ponto(x - 1, y, rampa[4])
+    if queima > 0:
+        ys2, xs2 = np.where(m)
+        y0, y1 = ys2.min(), ys2.max()
+        frac = (t.yy - y0) / max(1, y1 - y0)
+        q = m & (frac + ruido(t.h, t.w, 1.0, semente) * 0.12 > 1 - queima)
+        t.px[q] = IDX["preto"]
+        t.px[q & (lim(t.h, t.w) < 0.2)] = IDX["marrom_noite"]
+        borda = q & ~ndimage.binary_erosion(q) & interior
+        t.px[borda & (lim(t.h, t.w) < 0.4)] = IDX["laranja_escuro"]
+
+
+def mourao(t, x, base, alto, inc=0.0, r=1.8, semente=0, queima=0.0):
+    """Mourão de cerca: tora torta com casca, topo rachado em lasca."""
+    m = t.capsula(x, base, x + inc, base - alto, r, r * 0.85)
+    madeira(t, m, True, semente, queima=queima)
+    t.ponto(x + inc, base - alto - r * 0.6, "couro_claro")
+    t.ponto(x + inc + 0.6, base - alto + 1, "preto")
+    return m
+
+
+def farpa(t, x, y):
+    """Farpa do arame: nozinho com quatro pontas."""
+    t.ponto(x, y, "cinza_luz")
+    for dx, dy in ((-1, -1), (1, 1), (1, -1), (-1, 1)):
+        t.ponto(x + dx, y + dy, "cinza_escuro")
+
+
+def fio(t, x0, y0, x1, y1, flecha=2.0, farpas=5, cor="cinza_escuro", luz="cinza"):
+    """Arame esticado entre dois pontos, cedendo no meio (catenária), com farpas."""
+    n = int(abs(x1 - x0) * 1.5) + 2
+    for k in range(n):
+        s_ = k / (n - 1)
+        x = x0 + (x1 - x0) * s_
+        y = y0 + (y1 - y0) * s_ + flecha * 4 * s_ * (1 - s_)
+        t.ponto(x, y, cor)
+        if k % 3 == 0:
+            t.ponto(x, y - 1, luz) if False else None
+    if farpas:
+        for k in range(1, farpas + 1):
+            s_ = k / (farpas + 1)
+            x = x0 + (x1 - x0) * s_
+            y = y0 + (y1 - y0) * s_ + flecha * 4 * s_ * (1 - s_)
+            farpa(t, x, y)
+
+
 # ------------------------------------------------------------------ peças
 
 def vidro_liso(t, m, w, h, semente=0):
@@ -323,25 +395,67 @@ def arvore_queimada(altura=80, semente=0, vento=-1, forca=0.25):
 
 
 def mandacaru_queimado(altura=48, semente=0):
-    """Mandacaru cozido pelo calor: gomos murchos de carvão com a aresta de cada gomo
-    ainda marrom, espinhos cinza, topo preto torrado, brasas e o corpo amolecido
-    tombando para longe da cratera."""
-    t = f1.mandacaru(altura, semente=semente, bracos=2)
-    troca = {"mandacaru_luz": "couro_escuro", "mandacaru": "couro_profundo", "caatinga": "marrom_noite",
-             "caatinga_media": "marrom_noite", "caatinga_esc": "preto", "areia_luz": "cinza_escuro",
-             "areia_clara": "cinza_medio", "sombra": "preto"}
-    px = t.px.copy()
-    for a_, b_ in troca.items():
-        px[t.px == IDX[a_]] = IDX[b_]
-    t.px = px
-    m = t.px != VAZIO
-    topo = m & (t.yy < altura * 0.22)
-    t.px[topo & (lim(t.h, t.w) < 0.7)] = IDX["preto"]
+    """Mandacaru cozido pelo calor: a coluna amoleceu e entortou para longe da cratera,
+    um braço quebrou e pende de ponta-cabeça preso pela casca, os gomos murcharam
+    (vão fundo preto, aresta marrom chamuscada), a casca rachou mostrando a polpa
+    amarelada cozida, espinhos cinza e a ponta virou carvão com brasa."""
+    W = 40
+    t = Tela(W, altura)
     rng = np.random.default_rng(semente)
-    ys, xs = np.where(m & (t.yy > altura * 0.3))
-    for i in rng.choice(len(ys), size=min(len(ys), 4), replace=False):
-        t.px[ys[i], xs[i]] = IDX["laranja_escuro"]
-    return entortar(t, 0.1, -1)
+    cx = W / 2 + 4
+    partes = []
+    # Coluna mole: vários segmentos, cada um curvando mais para a esquerda.
+    pts = [(cx, altura - 1)]
+    for k in range(6):
+        x, y = pts[-1]
+        pts.append((x - k * 0.55, y - altura * 0.15))
+    col = np.zeros((altura, W), bool)
+    for (a_, b_) in zip(pts, pts[1:]):
+        col |= t.capsula(a_[0], a_[1], b_[0], b_[1], 4.6, 4.2)
+    partes.append((col, cx))
+    # Braço inteiro de um lado e braço quebrado pendurado do outro.
+    y0 = altura * 0.55
+    bx = cx + 10
+    braco = t.capsula(cx, y0, bx, y0 - 2, 3, 3) | t.capsula(bx, y0 - 2, bx - 1.5, y0 - altura * 0.33, 3.2, 2.8)
+    partes.append((braco, bx))
+    y1 = altura * 0.42
+    qx = cx - 8
+    quebrado = t.capsula(cx - 2, y1, qx, y1 + 1, 2.8, 2.8) | t.capsula(qx, y1 + 1, qx - 1, y1 + altura * 0.3, 3.0, 2.6)
+    partes.append((quebrado, qx))
+    xs = t.xx.astype(int)
+    QUEIMADO = ["preto", "marrom_noite", "couro_profundo", "couro_escuro", "couro"]
+    for m, px_ in partes:
+        H = np.minimum(ndimage.distance_transform_edt(np.pad(m, 1))[1:-1, 1:-1], 3)
+        relevo(t, m, H, QUEIMADO, ambiente=0.05, contraste=1.2, brilho=0.4)
+        fase = int(px_) % 3
+        t.px[m & ((xs - fase) % 3 == 0)] = IDX["preto"]
+        aresta = m & ((xs - fase) % 3 == 2) & (t.xx < px_ + 1)
+        t.px[aresta] = IDX["couro_medio"]
+    tudo = np.zeros((altura, W), bool)
+    for m, _ in partes:
+        tudo |= m
+    # Racha da casca mostrando a polpa cozida.
+    for (x, y, L_) in ((cx - 1, altura * 0.7, 6), (bx, y0 - 8, 4)):
+        for k in range(L_):
+            yy = y + k
+            if tudo[int(yy), int(x)]:
+                t.ponto(x, yy, "areia_media" if k % 2 else "barro")
+                t.ponto(x + 1, yy, "preto")
+    # Fiapo de casca segurando o braço quebrado.
+    t.linha(cx - 3, y1 - 1, qx + 2, y1 - 1, "couro_escuro")
+    # Espinhos cinza nas arestas.
+    esp = tudo & ((xs % 3) == 1) & (t.yy.astype(int) % 4 == 1)
+    t.px[esp] = IDX["cinza_medio"]
+    # Topo em carvão com brasa.
+    topo = tudo & (t.yy < altura * 0.2)
+    t.px[topo & (lim(altura, W) < 0.75)] = IDX["preto"]
+    for _ in range(4):
+        ys, xs_ = np.where(topo | (tudo & (t.yy > altura * 0.6)))
+        if len(ys):
+            i = int(rng.integers(len(ys)))
+            t.ponto(xs_[i], ys[i], "laranja_escuro")
+    t.contorno("preto")
+    return f1.cortar(t)
 
 
 class TelaDesloc(Tela):
@@ -387,21 +501,43 @@ def boi_morto(semente=0):
         t.chapado(t.elipse(x - 0.6, y - 0.6, r * 0.8, r * 0.55) & (corpo | anca), "areia")
     t.px[(corpo | anca) & (ruido(t.h, t.w, 1.1, semente + 3) > 1.15)] = IDX["marrom_noite"]
     # Rasgo na barriga: borda de couro virado, carne, costelas curvas e gosma acesa.
-    rasgo = t.elipse(25, 18.5, 7.5, 3.2) & corpo
+    # Barriga estufada para cima, brilhando de esticada.
+    barriga = t.elipse(23, 9.5, 11, 3.5) & corpo
+    t.px[barriga & (t.yy < 8.5) & (lim(t.h, t.w + 0) < 0.6)] = IDX["couro_claro"]
+    t.px[barriga & t.elipse(19, 7.5, 4, 1)] = IDX["areia_media"]
+    # Pelo riscado: tracinhos escuros curtos seguindo o corpo.
+    rng = np.random.default_rng(semente)
+    ys, xs = np.where(ndimage.binary_erosion(corpo | anca, iterations=2))
+    for i in rng.choice(len(ys), size=min(len(ys), 40), replace=False):
+        t.ponto(xs[i], ys[i] - 10, "couro_escuro")
+        t.ponto(xs[i] + 1, ys[i] - 10, "couro_profundo")
+    # Rabo caído em curva com o tufo.
+    for k in range(8):
+        t.ponto(7 - k * 0.6, 17 + k * 0.7 + math.sin(k * 0.7) * 0.6, "couro_escuro")
+    t.chapado(t.elipse(2.5, 23, 1.6, 1.2), "marrom_noite")
+    # Poça escura de sangue seco embaixo.
+    poca = t.elipse(28, 23.5, 16, 1.3) & (t.px == VAZIO)
+    t.px[poca] = IDX["vermelho_esc"]
+    t.px[poca & (lim(t.h, t.w) < 0.4)] = IDX["marrom_noite"]
+    rasgo = t.elipse(24, 11.5, 6.5, 2.8) & corpo
     t.chapado(rasgo, "vermelho_esc")
-    t.chapado(rasgo & t.elipse(25, 19, 5.5, 2.0), "roxo_escuro")
+    t.chapado(rasgo & t.elipse(24, 12, 4.8, 1.8), "roxo_escuro")
     for x in (20, 23, 26, 29):
         for k in range(4):
-            yy = 16.5 + k
+            yy = 9.5 + k
             xx = x + math.sin(k * 0.8) * 0.8
             if rasgo[int(yy), int(xx)]:
                 t.ponto(xx, yy, "cinza_claro" if k < 2 else "cinza_luz")
     borda = rasgo & ~ndimage.binary_erosion(rasgo)
-    t.px[borda & (t.yy < 18.5)] = IDX["couro_claro"]
-    for (x, y) in ((22, 20), (27, 19.5)):
+    t.px[borda & (t.yy < 11.5)] = IDX["couro_claro"]
+    for (x, y) in ((21, 12.5), (26, 12)):
         t.ponto(x, y, "alien_brilho")
-    t.chapado(t.elipse(26, 21.6, 3.5, 0.7), "alien")
-    t.ponto(25, 21.6, "alien_brilho")
+    # Gosma verde transbordando do rasgo e escorrendo pelo lado.
+    t.chapado(t.elipse(25, 13.6, 3.2, 0.8), "alien")
+    t.ponto(24, 13.6, "alien_brilho")
+    for k in range(5):
+        t.ponto(30 + k * 0.3, 13 + k * 1.4, "alien_medio")
+    t.ponto(31.5, 20, "alien_luz")
     # Cabeça: chifre curvo claro, orelha, olho revirado branco, ventas e língua.
     t.linha(47, 15, 49.5, 12, "cinza_claro")
     t.linha(49.5, 12, 49, 10, "cinza_luz")
@@ -413,6 +549,55 @@ def boi_morto(semente=0):
     t.linha(54, 22, 56, 23.4, "rosa_poeira")
     t.ponto(56, 23, "vermelho_medio")
     t.contorno("preto")
+    return t
+
+
+def cerca_volante(w=110, semente=0, queima=0.4):
+    """Cerca da Volante: mourões tortos de pau com casca e topo lascado, três fios de
+    arame farpado cedendo entre os mourões e enrolados em volta deles, um fio arrebentado
+    pendurado, um trapo preso nas farpas e latas de alarme penduradas; o lado da cratera
+    chamuscado."""
+    t = Tela(w, 30)
+    rng = np.random.default_rng(semente)
+    base = 29
+    xs = [3 + k * 22 + rng.uniform(-2, 2) for k in range(int((w - 6) / 22) + 1)]
+    topos = []
+    pau = Tela(w, 30)
+    for k, x in enumerate(xs):
+        alto = rng.uniform(22, 26)
+        inc = rng.uniform(-1.5, 1.5)
+        mourao(pau, x, base, alto, inc, semente=semente * 10 + k, queima=queima * (k / max(1, len(xs) - 1)))
+        topos.append((x + inc * 0.5, base))
+    pau.contorno("preto")
+    t.colar(pau, 0, 0)
+    for j, y0 in enumerate((8, 15, 22)):
+        for k in range(len(xs) - 1):
+            if j == 0 and k == len(xs) // 2:
+                # Fio de cima arrebentado: as duas pontas pendem enroladas.
+                xa, xb = xs[k], xs[k + 1]
+                for s_ in range(9):
+                    t.ponto(xa + s_ * 0.9, y0 + s_ * 0.8 + math.sin(s_) * 0.5, "cinza_escuro")
+                    t.ponto(xb - s_ * 0.9, y0 + s_ * 1.1, "cinza_escuro")
+                farpa(t, xa + 3, y0 + 3)
+                continue
+            fio(t, xs[k] + 1.5, y0, xs[k + 1] - 1.5, y0 + rng.uniform(-0.6, 0.6), flecha=1.6, farpas=4)
+        for x in xs:
+            # Arame enrolado no mourão.
+            t.ponto(x - 1, y0, "cinza_luz")
+            t.ponto(x + 1, y0 + 1, "cinza")
+    # Trapo preso nas farpas e latas de alarme.
+    xt = xs[1] + 9
+    trapo = t.poligono([(xt, 14), (xt + 5, 15), (xt + 4, 20), (xt + 1, 22), (xt - 1, 18)])
+    relevo(t, trapo, np.ones(trapo.shape), ["vermelho_esc", "vermelho_medio", "vermelho"], ambiente=0.2)
+    t.px[trapo & (lim(30, w) < 0.3)] = IDX["vermelho_esc"]
+    t.px[trapo & ~ndimage.binary_erosion(trapo)] = IDX["vermelho_esc"]
+    for x in (xs[0] + 11, xs[-2] + 12):
+        t.linha(x, 16, x, 19, "cinza_escuro")
+        lata = t.retangulo(x - 1.5, 19, 3, 4)
+        t.chapado(lata, "cinza_medio")
+        t.ponto(x - 1, 19, "cinza_luz")
+        t.ponto(x + 1, 22, "terra")
+        t.px[(t.xx >= x - 2.5) & (t.xx < x + 2.5) & (t.yy >= 18) & (t.yy < 24) & (t.px == VAZIO)] = VAZIO
     return t
 
 
@@ -431,8 +616,25 @@ def boi_vidro(semente=0):
     t.linha(44, 8, 47, 4, "alien_luz")
     t.linha(41, 8, 40, 4, "alien_luz")
     rng = np.random.default_rng(semente)
+    # O esqueleto do boi aparece por dentro do vidro, como num raio X.
+    osso_c = "alien_medio"
+    t.linha(11, 12, 34, 12, osso_c)                      # espinha
+    for x in range(12, 34, 4):
+        t.ponto(x, 12, "alien_luz")
+    for x in range(15, 31, 3):                           # costelas
+        for k in range(4):
+            t.ponto(x + k * 0.25, 13 + k, osso_c)
+    t.linha(34, 12, 40, 10, osso_c)                       # pescoço
+    t.chapado(t.elipse(43, 10.5, 2.5, 1.6), "alien_medio")  # crânio
+    t.ponto(44, 10, "preto")
+    for (x0, x1) in ((14, 13), (19, 21)):
+        t.linha(x0, 18, x1, 30, osso_c)                   # ossos das pernas
+    t.linha(31, 18, 30, 26, osso_c)
+    # Bolhas presas no vidro.
+    for (x, y) in ((17, 9), (27, 16), (36, 13), (22, 20)):
+        t.ponto(x, y, "branco")
     # Olho de vidro leitoso.
-    t.ponto(44, 10, "cinza_claro")
+    t.ponto(45, 9.5, "cinza_claro")
     # Perna quebrada caída e o toco.
     t.px[pernas & (t.xx > 28) & (t.yy > 26)] = VAZIO
     caida = t.capsula(34, 34, 42, 33, 1.8, 1.5)
@@ -443,57 +645,106 @@ def boi_vidro(semente=0):
 
 
 def poste_telegrafo(altura=74, tomba=0.0, semente=0):
-    """Poste de telégrafo de madeira com travessa e isoladores de vidro; tomba: ângulo
-    (rad) para a esquerda, empurrado pela explosão, com o fio arrebentado pendurado."""
-    w = int(altura * (0.6 + abs(math.sin(tomba)) * 0.9))
+    """Poste de telégrafo de pau roliço com veios, nós e degraus de cravo, cinta de ferro,
+    travessa com mão-francesa e quatro isoladores de vidro verde com brilho; tombado
+    (tomba em rad, para a esquerda) pela explosão, chamuscado de baixo para cima, com o
+    fio arrebentado pendurado em curva até o chão."""
+    w = int(altura * (0.5 + abs(math.sin(tomba)) * 0.95)) + 12
     t = Tela(w, altura + 2)
-    bx, by = w - 6 if tomba > 0 else w / 2, altura
-    tx, ty = bx - math.sin(tomba) * altura * 0.95, by - math.cos(tomba) * altura * 0.95
-    poste = t.capsula(bx, by, tx, ty, 2.2, 1.7)
-    H = ndimage.distance_transform_edt(np.pad(poste, 1))[1:-1, 1:-1]
-    relevo(t, poste, np.minimum(H, 3), CARVAO[1:] if tomba > 0.3 else f1.MADEIRA, ambiente=0.1, brilho=0.5)
-    # Travessa e isoladores.
+    bx, by = (w - 8 if tomba > 0.05 else w / 2), altura
+    c, s_ = math.cos(tomba), math.sin(tomba)
+    tx, ty = bx - s_ * altura * 0.95, by - c * altura * 0.95
+    pau = Tela(w, altura + 2)
+    poste = pau.capsula(bx, by, tx, ty, 2.4, 1.8)
+    madeira(pau, poste, True, semente, queima=0.15 + tomba * 0.3)
+    # Cravos-degrau alternados e cinta de ferro perto do topo.
+    for k in range(4, 12):
+        f = k / 13
+        x, y = bx + (tx - bx) * f, by + (ty - by) * f
+        lado = 1 if k % 2 else -1
+        pau.ponto(x + c * 3 * lado, y + s_ * 3 * lado, "cinza_medio")
+    for f in (0.78, 0.8):
+        x, y = bx + (tx - bx) * f, by + (ty - by) * f
+        pau.ponto(x - c * 2, y - s_ * 2, "cinza_escuro")
+        pau.ponto(x, y, "cinza")
+        pau.ponto(x + c * 2, y + s_ * 2, "cinza_escuro")
+    # Travessa com mão-francesa.
     px_, py_ = bx + (tx - bx) * 0.9, by + (ty - by) * 0.9
-    c, s = math.cos(tomba), math.sin(tomba)
-    trav = t.capsula(px_ - c * 9, py_ + s * 9, px_ + c * 9, py_ - s * 9, 1.2)
-    relevo(t, trav, np.minimum(ndimage.distance_transform_edt(np.pad(trav, 1))[1:-1, 1:-1], 2), f1.MADEIRA, ambiente=0.1)
-    for d in (-7, 7):
-        ix, iy = px_ + c * d - s * 2, py_ - s * d - c * 2
-        t.chapado(t.elipse(ix, iy, 1.2, 1.4), "alien_esc")
-        t.ponto(ix - 0.4, iy - 0.6, "alien_luz")
-    # Fio arrebentado pendurado em curva.
-    for k in range(14):
-        x = px_ + c * 7 + k * 0.6
-        y = py_ - s * 7 + k * 1.1 + math.sin(k * 0.5) * 0.6
-        t.ponto(x, y, "sombra")
-    t.contorno("preto")
+    trav = pau.capsula(px_ - c * 11, py_ + s_ * 11, px_ + c * 11, py_ - s_ * 11, 1.3)
+    madeira(pau, trav, False, semente + 1)
+    for d in (-6, 6):
+        mx, my = px_ + c * d * 0.6 + s_ * 5, py_ - s_ * d * 0.6 + c * 5
+        pau.linha(px_ + c * d - s_ * 0.5, py_ - s_ * d, mx, my, "cinza_escuro")
+    pau.contorno("preto")
+    t.colar(pau, 0, 0)
+    # Isoladores de vidro (sino verde com brilho e pino de ferro).
+    for d in (-9, -4, 4, 9):
+        ix, iy = px_ + c * d - s_ * 2.5, py_ - s_ * d - c * 2.5
+        t.ponto(ix, iy + 1.5, "cinza_escuro")
+        iso = t.elipse(ix, iy, 1.4, 1.6)
+        t.chapado(iso, "alien_esc")
+        t.ponto(ix - 0.5, iy - 0.6, "alien_luz")
+        t.ponto(ix + 0.6, iy + 0.6, "alien_profundo")
+    # Fio arrebentado pendurado até perto do chão.
+    x0, y0 = px_ + c * 9 - s_ * 2.5, py_ - s_ * 9 - c * 2.5
+    for k in range(40):
+        f = k / 39
+        x = x0 + f * 10 + math.sin(f * 6) * 1.2
+        y = y0 + f * (altura - y0 - 6) * 0.9
+        if 0 <= y < t.h:
+            t.ponto(x, y, "sombra")
     return t
 
 
-def placa(texto="PERIGO", w=38, h=26, semente=0):
-    """Placa de madeira da Volante pregada em estaca: tábuas, pregos, letras pintadas de
-    vermelho escorrendo, caveira desenhada, buracos de bala e canto queimado."""
+def placa(texto="PERIGO", w=40, h=26, semente=0):
+    """Placa da Volante: tábuas pregadas em estaca, letras vermelhas grossas pintadas à
+    mão com sombra e tinta escorrendo, caveira com ossos cruzados, pregos enferrujados
+    escorrendo ferrugem, buracos de bala com lasca clara e o canto queimado em brasa."""
     t = Tela(w, h + 14)
     tab = f1.tabuas(w, h, vertical=False, semente=semente)
     t.colar(tab, 0, 0)
-    est = t.retangulo(w / 2 - 2, h - 1, 4, 15)
-    relevo(t, est, np.minimum(ndimage.distance_transform_edt(np.pad(est, 1))[1:-1, 1:-1], 2), f1.MADEIRA, ambiente=0.1)
-    escrever(t, texto, 3, 3, "vermelho")
-    # Caveira simples pintada.
+    est = t.retangulo(w / 2 - 2.5, h - 1, 5, 15)
+    madeira(t, est, True, semente + 3)
+    # Letras com sombra escura e escorridos.
+    x0 = int((w - len(texto) * 5 + 1) // 2)
+    escrever(t, texto, x0, 3, "vermelho", grossa=True)
+    rng = np.random.default_rng(semente)
+    for k in range(len(texto)):
+        if rng.random() < 0.35:
+            xx = x0 + k * 5 + int(rng.integers(0, 3))
+            L_ = int(rng.integers(1, 4))
+            t.linha(xx, 8, xx, 8 + L_, "vermelho_medio")
+            t.ponto(xx, 9 + L_, "vermelho")
+    # Caveira com ossos cruzados.
     cx, cy = w / 2, h * 0.68
-    t.chapado(t.elipse(cx, cy, 3.2, 2.8), "branco")
-    t.chapado(t.retangulo(cx - 2, cy + 2, 4, 2), "branco")
-    t.ponto(cx - 1.2, cy - 0.2, "preto")
-    t.ponto(cx + 1.2, cy - 0.2, "preto")
-    t.ponto(cx, cy + 2.6, "preto")
-    for (x, y) in ((2, 1), (w - 3, 1), (2, h - 3), (w - 3, h - 3)):
+    for d in (-1, 1):
+        t.linha(cx - 5, cy + 4 * d * -1 + 1, cx + 5, cy - 4 * d * -1 + 1, "cinza_claro")
+        t.ponto(cx - 5.5, cy + 4 * d * -1 + 1, "branco")
+        t.ponto(cx + 5.5, cy - 4 * d * -1 + 1, "branco")
+    t.chapado(t.elipse(cx, cy - 0.5, 3.4, 3.0), "branco")
+    t.chapado(t.retangulo(cx - 2, cy + 1.5, 4, 2.4), "cinza_claro")
+    t.chapado(t.elipse(cx - 1.3, cy - 0.5, 0.9, 1.0), "preto")
+    t.chapado(t.elipse(cx + 1.3, cy - 0.5, 0.9, 1.0), "preto")
+    t.ponto(cx, cy + 1.2, "preto")
+    for x in (cx - 1, cx + 0.5):
+        t.ponto(x, cy + 3, "sombra")
+    # Pregos enferrujados com escorrido.
+    for (x, y) in ((2, 1), (w - 3, 1), (2, h - 4), (w - 3, h - 4)):
         t.ponto(x, y, "cinza_claro")
-    for (x, y) in ((w * 0.75, h * 0.35), (w * 0.2, h * 0.6)):
-        t.chapado(t.elipse(x, y, 0.9, 0.9), "preto")
-        t.ponto(x + 1, y + 1, "couro_medio")
-    canto = t.elipse(w, 0, 7, 6) & (t.px != VAZIO)
+        t.ponto(x, y + 1, "laranja_escuro")
+        t.ponto(x, y + 2, "couro")
+    # Buracos de bala com lasca clara em volta.
+    for (x, y) in ((w * 0.8, h * 0.4), (w * 0.17, h * 0.62), (w * 0.62, h * 0.85)):
+        t.chapado(t.elipse(x, y, 1.0, 1.0), "preto")
+        t.ponto(x + 1.2, y - 1, "couro_claro")
+        t.ponto(x - 1.2, y + 1, "couro_claro")
+        t.ponto(x + 1.4, y + 0.8, "couro_luz")
+    # Canto queimado com brasa na borda.
+    canto = t.elipse(w + 1, -1, 8, 7) & (t.px != VAZIO)
     t.px[canto] = IDX["preto"]
-    t.px[canto & ~ndimage.binary_erosion(canto) & (lim(t.h, t.w) < 0.5)] = IDX["laranja_escuro"]
+    borda = canto & ~ndimage.binary_erosion(canto)
+    t.px[borda & (lim(t.h, t.w) < 0.5)] = IDX["laranja_escuro"]
+    t.px[borda & (lim(t.h, t.w) >= 0.5)] = IDX["vermelho_esc"]
     t.contorno("preto")
     return t
 
@@ -510,38 +761,74 @@ FONTE = {  # 3x5
 }
 
 
-def escrever(t, texto, x, y, cor):
+def escrever(t, texto, x, y, cor, grossa=False):
+    """Letras 3x5 (grossa: cada coluna dobrada, 4x5 com espaço de 5)."""
     for ch in texto:
         g = FONTE.get(ch, FONTE[" "])
         for j, l in enumerate(g):
             for i, b in enumerate(l):
                 if b == "1":
                     t.ponto(x + i, y + j, cor)
-                    if j == 4 and (x + i) % 3 == 0:
-                        t.ponto(x + i, y + j + 1, "vermelho_esc")
-        x += 4
+                    if grossa:
+                        t.ponto(x + i + 1, y + j, cor)
+        x += 5 if grossa else 4
 
 
 def cancela(w=70):
-    """Cancela da Volante: dois mourões listrados, barra listrada vermelha e branca
-    abaixada, lampião pendurado, placa ÁREA DO GOVERNO e sacos de areia na base."""
-    t = Tela(w + 10, 46)
-    for x in (4, w):
-        mo = t.retangulo(x - 2, 14, 5, 32)
-        relevo(t, mo, np.minimum(ndimage.distance_transform_edt(np.pad(mo, 1))[1:-1, 1:-1], 2), f1.MADEIRA, ambiente=0.1)
-    barra = t.capsula(4, 18, w, 19.5, 1.6)
-    listra = ((t.xx // 6) % 2 == 0)
-    relevo(t, barra & listra, np.ones(barra.shape) * 0, ["vermelho_esc", "vermelho", "vermelho"], ambiente=0.4)
-    relevo(t, barra & ~listra, np.ones(barra.shape) * 0, ["cinza_luz", "cinza_claro", "branco"], ambiente=0.4)
-    t.px[barra & (t.yy > 20)] = IDX["sombra"]
-    # Contrapeso e lampião pendurado.
-    t.chapado(t.retangulo(0, 15, 4, 6), "cinza_escuro")
-    t.linha(w * 0.55, 20, w * 0.55, 24, "sombra")
-    t.chapado(t.retangulo(w * 0.55 - 1.5, 24, 3, 4), "ouro_escuro")
-    t.ponto(w * 0.55, 25, "amarelo_claro")
+    """Cancela da Volante: mourões grossos de pau com capa, barra roliça listrada de
+    vermelho e branco com brilho e a tinta lascada, contrapeso de pedras amarrado,
+    placa ALTO pendurada, lampião de lata com vidro aceso, sacos de areia empilhados e
+    um rolo de arame farpado por cima."""
+    t = Tela(w + 10, 48)
+    pau = Tela(w + 10, 48)
+    for x in (5, w):
+        mo = pau.retangulo(x - 2.5, 7, 6, 41)
+        madeira(pau, mo, True, x)
+        pau.chapado(pau.retangulo(x - 3, 6, 7, 2), "couro_escuro")
+        pau.ponto(x - 2, 6, "couro_claro")
+    pau.contorno("preto")
+    t.colar(pau, 0, 0)
+    # Barra listrada roliça.
+    barra = t.capsula(5, 12, w, 13.5, 1.8)
+    listra = ((t.xx + t.yy * 0.2) // 6) % 2 == 0
+    yb = 12 + (t.xx - 5) / (w - 5) * 1.5
+    tom = np.clip(1 - np.abs(t.yy - yb + 0.6) / 2.2, 0, 1)
+    pintar_niveis(t, barra & listra, 0.2 + tom * 0.75, ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_escuro"], dither=False)
+    pintar_niveis(t, barra & ~listra, 0.2 + tom * 0.75, ["cinza_medio", "cinza_luz", "cinza_claro", "branco"], dither=False)
+    lasca = barra & (ruido(48, w + 10, 0.7, 3) > 1.3)
+    t.px[lasca] = IDX["couro_escuro"]
+    t.px[barra & ~ndimage.binary_erosion(barra)] = IDX["preto"]
+    # Contrapeso: pedras amarradas na ponta de trás.
+    for (x, y, r) in ((1.5, 12, 2.2), (3, 9.5, 1.8), (0.5, 15, 1.6)):
+        pm = t.elipse(x, y, r, r * 0.85)
+        relevo(t, pm, domo(t, x, y, r, r * 0.85) * 2, FERRO, ambiente=0.1, linha=False)
+    t.linha(0, 11, 4, 11, "terra")
+    # Placa ALTO pendurada na barra.
+    px0 = w * 0.32
+    t.linha(px0 + 1, 14, px0 + 1, 16, "sombra")
+    t.linha(px0 + 9, 14, px0 + 9, 16, "sombra")
+    pl = t.retangulo(px0 - 1, 16, 19, 7)
+    t.chapado(pl, "areia_luz")
+    t.px[pl & ~ndimage.binary_erosion(pl)] = IDX["preto"]
+    escrever(t, "ALTO", px0 + 1, 17, "vermelho")
+    # Lampião de lata com vidro aceso.
+    lx_ = w * 0.62
+    t.linha(lx_, 14, lx_, 17, "sombra")
+    t.chapado(t.retangulo(lx_ - 2, 17, 5, 1), "cinza_escuro")
+    t.chapado(t.retangulo(lx_ - 1.5, 18, 4, 4), "amarelo_fogo")
+    t.ponto(lx_ - 1, 19, "amarelo_claro")
+    t.ponto(lx_ + 1.5, 20, "ouro_escuro")
+    t.chapado(t.retangulo(lx_ - 2, 22, 5, 1), "cinza_escuro")
+    # Sacos de areia e rolo de arame farpado por cima.
     sa = f1.sacos_detalhados(3, 2, 7)
-    t.colar(sa, 0, 46 - sa.h)
-    t.contorno("preto")
+    t.colar(sa, 9, 48 - sa.h)
+    yr = 48 - sa.h + int(np.where((sa.px != VAZIO).any(1))[0].min()) + 1
+    for k in range(int(sa.w / 3.2)):
+        xc = 10 + k * 3.2
+        anel = t.elipse(xc, yr, 2.6, 2.4) & ~t.elipse(xc, yr, 1.7, 1.5)
+        t.px[anel & (t.px == VAZIO)] = IDX["cinza_escuro"]
+        t.ponto(xc - 1, yr - 2, "cinza_luz")
+        farpa(t, xc + 1.5, yr + 1.5)
     return t
 
 
@@ -578,6 +865,26 @@ def destroco_disco(semente=0, w=40, h=34):
             if 0 <= int(y) < h and 0 <= int(x) < w and m[int(y), int(x)]:
                 t.ponto(x, y, "lilas")
                 t.ponto(x + 0.6, y + 0.6, "roxo_escuro")
+    # Runas estranhas gravadas na faixa do meio (marcas que ninguém sabe ler).
+    rr = R2 + (R1 - R2) * 0.5
+    for k, a_ in enumerate(np.linspace(-1.6, -0.95, 7)):
+        x, y = cx + math.cos(a_) * rr, cy + math.sin(a_) * rr
+        if 0 <= int(y) < h and 0 <= int(x) < w and m[int(y), int(x)]:
+            forma = k % 3
+            if forma == 0:
+                t.ponto(x, y, "roxo"); t.ponto(x + 1, y + 1, "roxo"); t.ponto(x - 1, y + 1, "roxo")
+            elif forma == 1:
+                t.ponto(x, y - 1, "roxo"); t.ponto(x, y, "roxo"); t.ponto(x + 1, y, "roxo")
+            else:
+                t.ponto(x - 1, y, "roxo"); t.ponto(x + 1, y, "roxo"); t.ponto(x, y + 1, "roxo")
+    # Rasgo da ponta: espessura da chapa à mostra em favo escuro, com a borda ainda quente.
+    rasgo_b = m & ndimage.binary_dilation(dentes & ~m, iterations=2)
+    t.px[rasgo_b] = IDX["sombra"]
+    favo = rasgo_b & (((t.xx.astype(int) + t.yy.astype(int)) % 3) == 0)
+    t.px[favo] = IDX["cinza_escuro"]
+    quente = m & ndimage.binary_dilation(dentes & ~m, iterations=1)
+    t.px[quente] = IDX["laranja_escuro"]
+    t.px[quente & (lim(h, w) < 0.4)] = IDX["amarelo_fogo"]
     # Escotilha com luz verde.
     a_ = -1.2
     ex, ey = cx + math.cos(a_) * (R2 + (R1 - R2) * 0.5), cy + math.sin(a_) * (R2 + (R1 - R2) * 0.5)
@@ -654,7 +961,7 @@ def camada_jogo():
     # B) Terra arrasada: boi morto, ossada, cerca farpada da Volante, placa, toco fumegando.
     f1.assentar(t, boi_morto(1), 640, yc + 2)
     f1.assentar(t, f1.cranio_boi(), 905, yc)
-    f1.assentar(t, f1.cerca_farpada(110, 4), 760, yc)
+    f1.assentar(t, cerca_volante(110, 4), 760, yc)
     f1.assentar(t, placa("PERIGO", semente=2), 985, yc)
     f1.assentar(t, boi_morto(2), 1060, yc + 2)
     # C) Vidro: rochedos derretidos (sólidos), destroço do disco cravado, cancela no fim.
@@ -788,7 +1095,7 @@ def camada_longe():
         coluna_fumaca(t, wx * fator + 120, alt - 50, h_, l_ * 1.6, FUMACA_CINZA, semente=sem, vento=-0.5)
     # Coluna de fumaça do disco, enorme, subindo de trás da borda e saindo pelo alto da
     # tela: preta e grossa, deitando para a esquerda, com a barriga iluminada de verde.
-    cx = 1560 * fator + 140
+    cx = 1560 * fator + 300
     coluna_fumaca(t, cx + 10, alt - 62, alt - 40, 58, FUMACA_ESCURA, semente=7, vento=-0.4, abre=1.25)
     fum = t.px != VAZIO
     # Luz verde vinda de baixo: borda de baixo de cada rolo e o miolo perto da base.
@@ -797,49 +1104,70 @@ def camada_longe():
     t.px[baixo & (perto_base > lim(alt, W) * 0.9)] = IDX["alien_esc"]
     miolo = fum & t.elipse(cx + 6, alt - 74, 34, 22) & (t.px != IDX["preto"])
     t.px[miolo & (lim(alt, W) < 0.45)] = IDX["alien_profundo"]
-    # Borda da cratera (C): crista de terra arrancada e pedra, recortada e escura,
-    # contornada de verde pelo brilho que vem de dentro.
-    n = ruido(1, W, 7, 9)[0] * 5 + ruido(1, W, 2, 10)[0] * 1.5
+    # Borda da cratera (C): encosta de terra arrancada com blocos de pedra, a parte de
+    # cima queimada preta pelo calor, veios de vidro escorrendo da crista, lajes
+    # levantadas tortas na crista e o contorno verde do brilho que vem de dentro.
+    n = ruido(1, W, 7, 9)[0] * 5 + ruido(1, W, 2, 10)[0] * 1.2
     crista = alt - 74 + ((x - cx) / 150) ** 2 * 46 + n
     borda = (t.yy > crista[None, :]) & (np.abs(x[None, :] - cx) < 250)
-    H = np.minimum(ndimage.distance_transform_edt(np.pad(borda, 1))[1:-1, 1:-1], 8) * 0.6 + ruido(alt, W, (3, 9), 11) * 0.6
-    relevo(t, borda, H, ["sombra", "azul_sombra", "marrom_noite", "couro_profundo", "terra_escura", "terra"],
-           ambiente=-0.15, contraste=1.0, brilho=0.1, linha=False)
-    # Lajes de pedra arrancadas e levantadas pela queda, espetadas na crista.
-    rng_l = np.random.default_rng(14)
-    for k in range(9):
-        lx_ = cx + (k - 4) * 44 + rng_l.uniform(-10, 10)
-        ly_ = crista[int(np.clip(lx_, 0, W - 1))] + 6
-        inc = (lx_ - cx) / 260
-        hh, ww = rng_l.uniform(12, 24), rng_l.uniform(10, 18)
-        pts = [(lx_ - ww / 2, ly_ + 4), (lx_ - ww * 0.3 + inc * hh, ly_ - hh), (lx_ + ww * 0.3 + inc * hh, ly_ - hh * 0.8),
-               (lx_ + ww / 2, ly_ + 4)]
+    prof = t.yy - crista[None, :]
+    v = 0.55 - np.clip(prof, 0, 60) / 60 * 0.1 + ruido(alt, W, (2, 7), 11) * 0.06 - (x[None, :] - cx) / 900
+    pintar_niveis(t, borda, v, ["sombra", "marrom_noite", "couro_profundo", "terra_escura", "terra", "terra_media"])
+    # Estratos deitados acompanhando a crista.
+    camada_ = ((prof + ruido(alt, W, (1, 10), 13) * 1.6) % 8) < 1
+    t.px[borda & camada_ & (prof > 4)] = IDX["marrom_noite"]
+    # Parte de cima torrada preta.
+    torra = borda & (prof < 6 + ruido(alt, W, (1, 4), 15) * 2)
+    t.px[torra] = IDX["sombra"]
+    t.px[torra & (lim(alt, W) < 0.3)] = IDX["preto"]
+    rng = np.random.default_rng(12)
+    # Blocos de pedra encravados na encosta, com volume e contorno.
+    for k in range(16):
+        bx_ = cx + rng.uniform(-210, 210)
+        by_ = crista[int(np.clip(bx_, 0, W - 1))] + rng.uniform(8, 50)
+        rw, rh = rng.uniform(4, 9), rng.uniform(3, 6)
+        pm = t.elipse(bx_, by_, rw, rh) & borda
+        if pm.any():
+            relevo(t, pm, domo(t, bx_, by_, rw, rh) * 3, ["preto", "sombra", "azul_sombra", "cinza_escuro", "cinza_medio"],
+                   ambiente=0.05, linha=False)
+            t.px[pm & ~ndimage.binary_erosion(pm)] = IDX["preto"]
+    # Veios de vidro derretido escorrendo da crista para baixo.
+    for k in range(12):
+        vx = cx + rng.uniform(-200, 200)
+        y = crista[int(np.clip(vx, 0, W - 1))] + 1
+        for j in range(int(rng.integers(8, 26))):
+            vx += rng.uniform(-0.6, 0.6)
+            y += 1
+            if 0 <= int(y) < alt and 0 <= int(vx) < W - 1 and borda[int(y), int(vx)]:
+                t.ponto(vx, y, "alien_profundo")
+                t.ponto(vx + 1, y, "alien_esc" if j % 3 else "alien_medio")
+        t.ponto(vx, y + 1, "alien_luz")
+    # Foguinhos pela encosta.
+    for k in range(6):
+        fx = cx + rng.uniform(-180, 180)
+        fy = crista[int(np.clip(fx, 0, W - 1))] + rng.uniform(10, 40)
+        for j in range(3):
+            t.chapado(t.elipse(fx + j * 0.5, fy - j * 1.3, 1.6 - j * 0.4, 1.1), BRASA[j + 1])
+    # Lajes de pedra levantadas pela queda, tortas, de tamanhos diferentes.
+    for k, (off, hh, ww, inc) in enumerate(((-170, 14, 12, -0.5), (-95, 22, 16, -0.25), (-40, 10, 9, 0.1),
+                                            (30, 26, 18, 0.3), (120, 16, 13, 0.6), (185, 9, 8, 0.9))):
+        lx_ = cx + off + rng.uniform(-6, 6)
+        ly_ = crista[int(np.clip(lx_, 0, W - 1))] + 5
+        pts = [(lx_ - ww / 2, ly_ + 4), (lx_ - ww * 0.35 + inc * hh, ly_ - hh), (lx_ + ww * 0.1 + inc * hh, ly_ - hh * 1.08),
+               (lx_ + ww * 0.4 + inc * hh * 0.8, ly_ - hh * 0.7), (lx_ + ww / 2, ly_ + 4)]
         laje = t.poligono(pts)
         lado = t.xx < (lx_ + inc * (ly_ - t.yy))
         t.px[laje & lado] = IDX["cinza_escuro"]
         t.px[laje & ~lado] = IDX["sombra"]
+        # Estrias da pedra e a ponta quebrada clara.
+        t.px[laje & lado & (((t.yy + t.xx * 0.3) % 4) < 0.8)] = IDX["azul_sombra"]
         t.px[laje & ~ndimage.binary_erosion(laje)] = IDX["preto"]
         topo_l = laje & ~np.roll(laje, 1, 0)
         t.px[topo_l] = IDX["alien_esc"]
         borda |= laje
-    # Estratos de rocha arrancada: faixas escuras deitadas acompanhando a crista.
-    camada_ = ((t.yy - crista[None, :] + ruido(alt, W, (1, 8), 13) * 1.5) % 7) < 1
-    t.px[borda & camada_ & (t.yy > crista[None, :] + 3)] = IDX["sombra"]
     topo_b = borda & ~np.roll(borda, 1, 0)
     t.px[topo_b] = IDX["alien_medio"]
     t.px[ndimage.binary_dilation(topo_b) & ~borda & (t.px != VAZIO) & (lim(alt, W) < 0.5)] = IDX["alien_esc"]
-    # Pedras soltas na encosta e vidro brilhando.
-    rng = np.random.default_rng(12)
-    for k in range(30):
-        xx = cx + rng.uniform(-220, 220)
-        yy = crista[int(np.clip(xx, 0, W - 1))] + rng.uniform(4, 30)
-        if 0 <= int(xx) < W - 2 and int(yy) < alt and borda[int(yy), int(xx)]:
-            if k % 3 == 0:
-                t.ponto(xx, yy, "alien_medio")
-                t.ponto(xx + 1, yy, "alien_luz")
-            else:
-                t.chapado(t.elipse(xx, yy, 2, 1.2), "cinza_escuro")
-                t.ponto(xx - 1, yy - 1, "cinza")
     return t, fator
 
 
@@ -903,6 +1231,96 @@ def camada_meio():
         xx = int(wx * fator)
         f1.colar(t, b, xx, alto[min(W - 1, xx)] - b.h + 3)
     return t, fator
+
+
+def camada_frente():
+    """Na frente do Lampião (1,1): tocos queimados, capim torrado e cacos de vidro
+    escuros, poucos e espalhados."""
+    fator = 1.1
+    W = int(LARGURA * fator + 548)
+    alt = 24
+    t = Tela(W, alt)
+    rng = np.random.default_rng(41)
+    x = 160
+    while x < W - 40:
+        wx = x / fator
+        if wx < 1150 and rng.random() < 0.5:
+            c = f1.capim(22, semente=int(x))
+            c.px[c.px != VAZIO] = IDX["preto"]
+            f1.colar(t, c, x, alt - c.h)
+        elif wx < 1150:
+            toco = Tela(10, 18)
+            m = toco.capsula(5, 17, 5.5, 4, 2.6, 2.0)
+            toco.chapado(m, "preto")
+            toco.ponto(5, 4, "vermelho_esc")
+            toco.ponto(6, 9, "laranja_escuro")
+            f1.colar(t, toco, x, alt - 18)
+        else:
+            caco = Tela(16, 10)
+            m = caco.poligono([(1, 9), (5, 2), (9, 4), (14, 9)])
+            caco.chapado(m, "sombra")
+            caco.chapado(m & (caco.xx < 6), "alien_profundo")
+            caco.ponto(5, 3, "alien_esc")
+            f1.colar(t, caco, x, alt - 10)
+        x += int(rng.integers(220, 460))
+    return t, fator
+
+
+def dados_fase():
+    """Dados do trecho 1 (assets/fases/fase2.json), lidos por src/scenes/Fase2Scene.js."""
+    solidos = [[0, CHAO, LARGURA, 200]]
+    for (x, w_, h_, _s) in ROCHEDOS:
+        solidos.append([x + 5, CHAO - h_ + 5, w_ - 10, h_ - 5])
+    return {
+        "largura": LARGURA,
+        "inicio": [40, CHAO - 20],
+        "solidos": solidos,
+        "caixotes": [[220, CHAO - 18], [244, CHAO - 18], [232, CHAO - 36], [930, CHAO - 24, "barril"],
+                     [948, CHAO - 24, "barril"], [1480, CHAO - 18]],
+        "refens": [[470, CHAO], [1365, CHAO - 44 + 5]],
+        "itens": [],
+        "bodes": [[160, CHAO]],
+        "discos": [],
+        # Guardas de máscara já no posto (cerca, placa, rochedo e cancela).
+        "inimigos": [
+            [820, CHAO, "mascarado"], [1000, CHAO, "mascarado", {"distraido": True}],
+            [1360, CHAO - 44 + 5, "mascarado"], [1640, CHAO, "mascarado", {"escudo": True}],
+        ],
+        # Ondas: contaminados pulam de trás dos bois mortos; os mascarados vêm da cancela.
+        "ondas": [
+            {"gatilho": 420, "trava": [260, 808], "inimigos": [["contaminado", "salta:662", 0], ["contaminado", "dir", 900],
+                                                               ["contaminado", "salta:662", 1900], ["mascarado", "dir", 2600]]},
+            {"gatilho": 960, "trava": [820, 1368], "inimigos": [["contaminado", "salta:1082", 0], ["mascarado", "dir", 700],
+                                                                ["contaminado", "esq", 1500], ["mascarado", "dir", 2200, {"refem": True}],
+                                                                ["contaminado", "salta:1082", 3000]]},
+            {"gatilho": 1440, "trava": [1152, 1700], "inimigos": [["mascarado", "dir", 0], ["mascarado", "salta:1620", 600],
+                                                                  ["contaminado", "esq", 1400], ["mascarado", "dir", 2200],
+                                                                  ["contaminado", "dir", 3000]]},
+        ],
+        "fogueiras": [], "forquilhas": [], "buracos": [], "fim": 1660,
+        "casas": [], "varais": [], "jumentos": [], "urubus": [[650, CHAO], [1060, CHAO]], "galinhas": [],
+        "biplanos": [], "segredos": [],
+    }
+
+
+def exportar(saida, raiz):
+    """Grava as camadas do trecho em assets/sprites (f2_*.png) e assets/fases/fase2.json."""
+    import json
+    jogo, topo = camada_jogo()
+    perto, fp = camada_perto()
+    meio, fm = camada_meio()
+    longe, fl = camada_longe()
+    frente, ff = camada_frente()
+    for nome, c in (("f2_jogo", jogo), ("f2_perto", perto), ("f2_meio", meio), ("f2_longe", longe), ("f2_frente", frente)):
+        c.imagem().save(saida / f"{nome}.png", optimize=True)
+    ceu_fumaca().imagem().save(saida / "ceu_fumaca.png", optimize=True)
+    d = dados_fase()
+    d["camadas"] = {"jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp}, "meio": {"base": 192, "fator": fm},
+                    "longe": {"base": 160, "fator": fl}, "frente": {"base": 216, "fator": ff},
+                    "fumaca": {"de": 300, "ate": 1100}}
+    pasta = raiz / "assets/fases"
+    pasta.mkdir(parents=True, exist_ok=True)
+    (pasta / "fase2.json").write_text(json.dumps(d, ensure_ascii=False, separators=(",", ":")))
 
 
 def previa(saida, cams=(0, 560, 1150)):

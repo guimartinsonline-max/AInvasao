@@ -42,13 +42,15 @@ export const INIMIGOS = {
 // Oficial da Volante: espada erguida dando ordem, pistola, chora fugindo.
 INIMIGOS.oficial = { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
   parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [33, 19] };
-for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial']) {
+// Soldado de máscara contra gás (fase 2, tools/arte/mascarado.py): quadros da Volante comum.
+INIMIGOS.mascarado = { ...INIMIGOS.volante };
+for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial', 'mascarado']) {
   INIMIGOS[tipo].sentado = [9, 10];
   INIMIGOS[tipo].facada = [11, 12]; // morte na peixeira: de joelhos e caído de cara
 }
 INIMIGOS.xeremita.facada = [9, 10];
 // De bruços com a mão na cabeça (granada caiu perto).
-for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial']) INIMIGOS[tipo].brucos = 13;
+for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial', 'mascarado']) INIMIGOS[tipo].brucos = 13;
 INIMIGOS.xeremita.brucos = 11;
 // Aliens da fase 2 (tools/arte/aliens.py): mesma ordem de quadros dos inimigos e um extra
 // no 12 (cerebrão: cérebro pulsando parado; olheiro: olho acendendo antes do raio).
