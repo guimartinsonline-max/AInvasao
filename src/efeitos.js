@@ -106,9 +106,18 @@ export class Efeitos {
     const agora = this.cena.time.now;
     this.congeladoAte = Math.max(this.congeladoAte, agora + ms);
     this.cena.physics.world.pause();
-    this.cena.time.delayedCall(ms, () => {
-      if (this.cena.time.now >= this.congeladoAte - 1) this.cena.physics.world.resume();
-    });
+    this.pausouFisica = true;
+    // A volta da física é conferida a cada quadro em atualizar(): o delayedCall podia
+    // chegar uns ms antes do fim da pausa e a física ficava parada para sempre
+    // (o Lampião renascia e ficava preso no alto da tela, e os inimigos congelavam).
+  }
+
+  // Solta a física quando a pausa de impacto acabou.
+  soltarFisica() {
+    if (this.pausouFisica && this.cena.time.now >= this.congeladoAte) {
+      this.pausouFisica = false;
+      this.cena.physics.world.resume();
+    }
   }
 
   get congelado() {
@@ -249,6 +258,7 @@ export class Efeitos {
   }
 
   atualizar() {
+    this.soltarFisica();
     const agora = this.cena.time.now;
     for (const c of this.capsulas.getChildren()) {
       if (!c.active) continue;

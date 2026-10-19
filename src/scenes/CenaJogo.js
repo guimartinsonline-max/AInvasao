@@ -334,6 +334,7 @@ export class CenaJogo extends Phaser.Scene {
       this.scene.get('Hud').abrirPausa();
       return;
     }
+    this.efeitos.soltarFisica();
     if (this.pausado) {
       this.atualizarFase(t, dt);
       return;
