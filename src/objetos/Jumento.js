@@ -261,6 +261,7 @@ export class Jumento {
     this.mg.setVisible(false);
     this.direcao = -this.direcao;
     this.passo = 0;
+    this.vyFuga = -220; // pulo de susto; depois cai e corre pelo chão
     som('zurro');
     this.texto = cena.add.text(x, y - 70, 'IÓÓÓ!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(30);
     cena.tweens.add({ targets: this.texto, alpha: 0, y: y - 90, delay: 600, duration: 500 });
@@ -336,9 +337,26 @@ export class Jumento {
 
   fugir(t, dt) {
     const s = this.s;
+    const seg = dt / 1000;
     this.passo += dt;
-    s.x += this.direcao * 160 * dt / 1000;
-    s.setFlipX(this.direcao < 0).setFrame(6 + (Math.floor(this.passo / 90) % 2));
+    s.x += this.direcao * 160 * seg;
+    // Gravidade de verdade: se estourou no ar, cai até o chão antes de correr (nada de
+    // galopar no vento); no chão, acompanha o terreno (desce beirada, sobe degrau pequeno).
+    const chao = this.cena.chaoAbaixo(s.x, s.y - 8) - 1;
+    this.vyFuga = Math.min((this.vyFuga || 0) + 900 * seg, 500);
+    const noAr = s.y < chao - 1 || this.vyFuga < 0;
+    if (noAr) {
+      s.y = Math.min(s.y + this.vyFuga * seg, chao);
+      if (s.y >= chao && this.vyFuga > 0) {
+        this.vyFuga = 0;
+        this.cena.efeitos.poeira(s.x, s.y, 6);
+      }
+    } else {
+      this.vyFuga = 0;
+      s.y += Phaser.Math.Clamp(chao - s.y, -3, 6);
+    }
+    // No ar, patas encolhidas (quadro de pulo); no chão, galope desesperado.
+    s.setFlipX(this.direcao < 0).setFrame(noAr ? 5 : 6 + (Math.floor(this.passo / 90) % 2));
     const v = this.cena.cameras.main.worldView;
     if (s.x < v.x - 60 || s.x > v.right + 60) {
       s.setVisible(false);

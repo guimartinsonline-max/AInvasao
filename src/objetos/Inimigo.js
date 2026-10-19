@@ -418,7 +418,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.body.checkCollision.none = false;
     this.body.setDragX(0);
     this.body.setVelocity(lado * (longe ? 170 : forte ? 120 : 70), longe ? -170 : forte ? -330 : -150);
-    this.body.setAngularVelocity(forte ? lado * 760 : 0);
+    this.body.setAngularVelocity(0); // sem rodopio: voa de braço para o alto e cai
     this.lado = lado;
     this.morreuEm = cena.time.now;
     this.esperaChao = true;

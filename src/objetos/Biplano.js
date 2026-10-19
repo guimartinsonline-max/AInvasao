@@ -408,16 +408,31 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     }
     this.seguirArtilheiro();
     if (this.y >= this.chao) {
+      // Bateu no chão: o mesmo avião vira a carcaça ali mesmo (sem sumir e reaparecer).
       this.y = this.chao;
       this.estado = 'destruido';
+      this.virarCarcaca();
       this.explodirCarcaca();
     }
   }
 
   // Explosões em cadeia pela fuselagem e a carcaça queimando no chão.
+  // Troca na hora para o quadro destroçado, acertando a inclinação num tranco curto
+  // com quique (a explosão do impacto cobre a troca).
+  virarCarcaca() {
+    const cena = this.scene;
+    this.setFrame(Q.destruido);
+    this.artilheiro.setVisible(false);
+    cena.tweens.killTweensOf(this);
+    cena.tweens.add({ targets: this, rotation: 0, duration: 160, ease: 'Quad.easeOut' });
+    cena.tweens.add({ targets: this, y: this.chao - 6, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+    cena.explodir(this.x, this.y - 20, 40, 4, 1.6);
+    cena.efeitos.poeira(this.x, this.chao, 16);
+  }
+
   explodirCarcaca() {
     const cena = this.scene;
-    this.setRotation(0);
+    if (this.estado !== 'destruido' || this.frame.name !== Q.destruido) this.setRotation(0);
     for (let k = 0; k < 6; k++) {
       cena.time.delayedCall(k * 130, () => {
         const [x, y] = this.ponto(Phaser.Math.Between(-80, 20), Phaser.Math.Between(-40, -10));
@@ -425,7 +440,7 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
       });
     }
     cena.time.delayedCall(700, () => {
-      this.setFrame(Q.destruido);
+      this.setFrame(Q.destruido).setRotation(0);
       this.artilheiro.setVisible(false);
       cena.efeitos.estilhacos(this.x - 30, this.y - 30, 10, 100, this.y);
       cena.efeitos.tremer(0.02, 500);
