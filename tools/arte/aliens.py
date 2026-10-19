@@ -241,6 +241,154 @@ def cerebrao(fase=0.0):
     return t
 
 
+PELE_O = ["sombra", "sombra_media", "azul_sombra", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz", "cinza_claro"]
+JUNTA = ["roxo_escuro", "vermelho_esc", "rosa_poeira", "pele_luz", "pele_brilho"]
+
+
+def olheiro(fase=0.0):
+    """Olheiro: magrelo encurvado de costelas aparecendo, pernas viradas para trás,
+    dedos compridos, boca vertical na barriga e o pescoço terminando num olho gigante
+    com veias e pálpebra. Olha para a direita. fase: 0 parado, 1 passo/piscada."""
+    t = Tela(60, 60)
+    chao = 58
+    xx, yy = t.xx, t.yy
+
+    def osso(pts, r0, r1, rampa=PELE_O, amb=0.0, br=0.6, s=0.8):
+        n = len(pts) - 1
+        for k, (a, b) in enumerate(zip(pts, pts[1:])):
+            ra = r0 + (r1 - r0) * k / n
+            rb = r0 + (r1 - r0) * (k + 1) / n
+            m = t.capsula(a[0], a[1], b[0], b[1], ra, rb)
+            relevo(t, m, suave(m, s) * 3, rampa, ambiente=amb, brilho=br, dither=False)
+        for a in pts[1:-1]:
+            j = t.elipse(a[0], a[1], r0 * 0.9, r0 * 0.9)
+            relevo(t, j, domo(t, a[0], a[1], r0 * 0.9, r0 * 0.9) * 2.5, rampa, ambiente=amb + 0.1, brilho=br, dither=False)
+
+    # Sombra no chão.
+    t.chapado(t.elipse(28, chao + 0.4, 13, 1.3) & (yy > chao - 0.6), "couro_profundo")
+
+    # Perna de trás (mais escura): quadril, joelho para trás, jarrete, pé de dedos.
+    p = 1.5 * fase
+    # (joelho para a frente, jarrete para trás, pé de dedos compridos: perna de bicho)
+    osso([(23, 37), (26 - p, 44), (19 - p, 50), (21 - p, chao - 1)], 1.6, 0.9, amb=-0.12)
+    for dx in (3, 5):
+        osso([(21 - p, chao - 1), (21 - p + dx, chao - 0.4)], 0.7, 0.45, amb=-0.12)
+    # Perna da frente.
+    osso([(25, 37), (30 + p, 43), (25 + p, 50), (27 + p, chao - 1)], 1.8, 1.0, amb=0.18)
+    for k, dx in enumerate((3, 5, 6)):
+        osso([(27 + p, chao - 1), (27 + p + dx, chao - 0.4 + (k == 2) * 0.3)], 0.75, 0.45, amb=0.18)
+    t.ponto(33.5 + p, chao, "cinza_claro")
+
+    # Braço de trás pendurado, compridíssimo.
+    osso([(24, 23), (17, 29), (15, 37)], 1.3, 0.85, amb=-0.12)
+    for k in range(3):
+        osso([(15, 37), (13.5 + k * 1.2, 41), (13 + k * 1.8, 45)], 0.55, 0.35, amb=-0.12)
+
+    # Tronco encurvado: caixa de costelas, cintura fina, barriga murcha.
+    pelve = t.elipse(24.5, 36, 3.6, 2.6)
+    peito = t.elipse(27, 24, 5.5, 7, ang=0.35)
+    cintura = t.capsula(24.5, 34.5, 26.5, 28, 2.4, 4)
+    tronco = pelve | peito | cintura
+    H = suave(tronco, 1.8) * 5
+    # Costelas: arcos que sobem para as costas.
+    u = (yy - 18) - (xx - 27) * 0.35
+    cost = (np.sin(u * 1.35) > 0.35) & peito & (yy > 18.5) & (yy < 29.5)
+    H = H + cost * 0.9
+    H = ndimage.gaussian_filter(H, 0.45)
+    relevo(t, tronco, H, PELE_O, ambiente=0.2, contraste=1.2, brilho=0.9, dither=False)
+    # Costelas desenhadas: sulco escuro embaixo, aresta clara em cima.
+    for k in range(5):
+        y0 = 19.5 + k * 2.2
+        for x in np.arange(22.5, 32.5, 0.5):
+            yc = y0 + (x - 22.5) * 0.42 - ((x - 27) / 5) ** 2 * 1.2
+            xi, yi = int(x), int(yc)
+            if 0 <= yi < t.h - 1 and peito[yi, xi] and peito[yi + 1, xi]:
+                t.px[yi + 1, xi] = IDX["sombra_media"]
+                if x < 30:
+                    t.px[yi, xi] = IDX["cinza_luz"] if x < 27.5 else IDX["cinza"]
+    # Vértebras saltadas nas costas.
+    for k in range(5):
+        vx, vy = 21.2 + k * 0.35, 19 + k * 2.4
+        vm = t.elipse(vx, vy, 1.2, 1.0)
+        relevo(t, vm, domo(t, vx, vy, 1.2, 1.0) * 2, PELE_O, ambiente=0.2, brilho=1.0)
+    # Boca vertical na barriga, entreaberta, com dentes e baba.
+    bx, by = 28, 31
+    t.chapado(t.elipse(bx, by, 1.4, 3.0), "vermelho_esc")
+    t.chapado(t.elipse(bx, by, 0.7, 2.3), "preto")
+    for k in range(4):
+        t.ponto(bx - 1, by - 2 + k * 1.3, "cinza_claro")
+        t.ponto(bx + 1, by - 1.5 + k * 1.3, "branco")
+    t.linha(bx, by + 3, bx + 0.5, by + 6, "alien_luz")
+    t.ponto(bx + 0.5, by + 7, "alien_brilho")
+
+    # Pescoço comprido em S, com anéis de cartilagem, até o olho.
+    pesc = [(28, 19), (30, 15.5), (33, 14), (36, 12.5)]
+    for a, b in zip(pesc, pesc[1:]):
+        m = t.capsula(a[0], a[1], b[0], b[1], 2.1, 1.8)
+        relevo(t, m, suave(m, 0.8) * 3, PELE_O, ambiente=0.18, brilho=0.7, dither=False)
+    for (ax, ay) in ((29.2, 17), (31.5, 14.6)):
+        t.linha(ax - 1.2, ay - 1.4, ax + 1, ay + 1.4, "azul_sombra")
+    t.linha(28, 17, 31, 13.6, "cinza_luz")
+
+    # Braço da frente esticado, garras de quatro juntas abertas.
+    osso([(30, 21), (36, 27), (42, 26)], 1.7, 1.1, amb=0.18)
+    garras = ((47, 22, 50, 21), (48, 25, 51, 25.5), (47, 28, 49.5, 30))
+    for (x1, y1, x2, y2) in garras:
+        osso([(42, 26), (x1, y1), (x2, y2)], 0.7, 0.45, amb=0.2, br=0.8)
+        t.ponto(x2 + (x2 - x1) * 0.3, y2 + (y2 - y1) * 0.3, "cinza_claro")
+    osso([(42, 26), (43.5, 29.5), (45, 31)], 0.65, 0.45, amb=0.2)
+
+    # Olho gigante na ponta do pescoço: órbita de carne, esclera com veias, íris verde.
+    ex, ey, r = 41, 9, 7.5
+    orb = t.elipse(ex - 0.5, ey + 0.3, r + 1.6, r + 1.4)
+    relevo(t, orb, domo(t, ex - 0.5, ey + 0.3, r + 1.6, r + 1.4) * 3, JUNTA, ambiente=0.0, brilho=0.6)
+    bola = t.elipse(ex, ey, r, r)
+    relevo(t, bola, domo(t, ex, ey, r, r) * 5,
+           ["cinza", "cinza_luz", "cinza_claro", "branco", "branco"], ambiente=0.25, brilho=1.0, linha=False)
+    rng = np.random.default_rng(12)
+    for k in range(9):
+        a = rng.uniform(0, 2 * math.pi)
+        x, y = ex + math.cos(a) * (r - 0.3), ey + math.sin(a) * (r - 0.3)
+        cor = "vermelho_medio" if k % 3 else "vermelho"
+        for _ in range(int(r * 0.55)):
+            x += (ex - x) * 0.14 + rng.uniform(-0.7, 0.7)
+            y += (ey - y) * 0.14 + rng.uniform(-0.7, 0.7)
+            xi, yi = int(x), int(y)
+            if 0 <= xi < t.w and 0 <= yi < t.h and bola[yi, xi]:
+                t.px[yi, xi] = IDX[cor]
+    ix, iy = ex + 2.8, ey + 0.8
+    iris = t.elipse(ix, iy, 4.0, 4.2) & bola
+    relevo(t, iris, domo(t, ix, iy, 4.0, 4.2) * 2,
+           ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"], ambiente=0.0, linha=False)
+    # Raios da íris.
+    for k in range(10):
+        a = k * math.pi / 5
+        t.ponto(ix + math.cos(a) * 3, iy + math.sin(a) * 3.2, "alien_profundo")
+    t.chapado(t.elipse(ix + 0.3, iy, 1.1, 2.6) & bola, "preto")
+    t.ponto(ix - 1.8, iy - 2, "branco")
+    t.ponto(ix - 1.2, iy - 2, "branco")
+    t.ponto(ix - 1.8, iy - 1.3, "branco")
+    # Pálpebras de carne: a de cima pesada (fecha mais no quadro 1), a de baixo inchada.
+    fecha = 0.2 + 0.4 * fase
+    pal = t.elipse(ex - 0.5, ey - r * (1 - 2 * fecha) - r, r + 1.7, r + 0.4) & orb
+    relevo(t, pal, suave(pal, 0.8) * 3, JUNTA, ambiente=0.1, brilho=1.0)
+    borda = pal & ~ndimage.binary_erosion(pal) & bola
+    t.px[borda] = IDX["roxo_escuro"]
+    inf = t.elipse(ex, ey + r + 1.6, r + 1.2, 3.3) & orb
+    relevo(t, inf, suave(inf, 0.7) * 2.5, JUNTA, ambiente=0.0, brilho=0.8)
+    # Cílios duros espetados.
+    for k in range(5):
+        cx_ = ex - 5 + k * 2.6
+        cy_ = ey - r * (1 - 2 * fecha) - 0.8 - math.sin(k / 4 * math.pi) * 1.2
+        t.linha(cx_, cy_, cx_ + 0.6, cy_ - 2.2, "sombra")
+    # Lágrima de gosma.
+    t.linha(ex + r - 1, ey + 4, ex + r - 0.5, ey + 7, "alien_luz")
+    t.ponto(ex + r - 0.5, ey + 8, "alien_brilho")
+
+    t.contorno("sombra")
+    return t
+
+
 def previa(ims, saida, escala=4):
     from PIL import Image
     W = sum(i.width for i in ims) + 10 * (len(ims) + 1)
@@ -259,4 +407,4 @@ if __name__ == "__main__":
     lamp = Image.open(RAIZ / "assets/sprites/lampiao.png").crop((0, 0, 60, 72))
     lamp = lamp.crop(lamp.getbbox())
     saida = sys.argv[1] if len(sys.argv) > 1 else RAIZ / "tools/arte/pixel/aliens_previa.png"
-    print(previa([lamp, cerebrao().imagem(), cerebrao(fase=1.0).imagem()], saida))
+    print(previa([lamp, cerebrao().imagem(), olheiro().imagem(), olheiro(fase=1.0).imagem()], saida))
