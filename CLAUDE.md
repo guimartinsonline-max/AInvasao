@@ -114,12 +114,13 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 2. **Base da cratera** (aprovada em 19/10, mais detalhada que a fase 1; ainda sem ETs soltos): a Volante montou uma base improvisada em volta do disco caído.
    - Trechos: **borda da cratera** (caatinga queimada, pedra derretida virando vidro, árvores secas tortas, bichos mortos, arame farpado e cancelas); **acampamento da base** (barracas, guindaste de madeira, caminhões com pedaços do disco, holofotes, geradores, soldados de máscara contra gás); **descida da cratera** num **elevador de carga** (andaimes nas paredes, soldados pulando no elevador, o disco enorme meio enterrado soltando fumaça verde); **laboratório dentro do casco do disco** (tubos com bichos do sertão deformados, máquinas de válvula, papelada e, ao fundo, um alien vivo preso na maca).
    - **Chefe: o professor injetado** (opção B): médico que se aplicou o sangue do alien e vira monstro durante a luta (começa humano atirando, termina um bicho de carne com tentáculos e olho de alien).
-   - **Soldados contaminados:** quem mexeu na carcaça fica de pele verde e olho brilhando (inimigo novo, como os zumbis do Metal Slug).
+   - **Soldados contaminados:** quem mexeu na carcaça fica de pele verde e olho brilhando (inimigo novo, como os zumbis do Metal Slug). Atacam com **mordida** de perto e **vômito verde em arco** de longe.
    - **Gás verde** em trechos: quem respira fica "contaminado" uns segundos (lento, tiro fraco). É a transformação que estava prevista para a fase 3.
    - **Reféns** novos: vaqueiros e romeiros levados como cobaia.
    - **Desintegrador** aparece pela primeira vez aqui, achado no laboratório.
    - O alien preso escapa no fim e chama os outros: gancho para a invasão.
-   - **A definir:** onde fica a cidade em dia de feira (era a fase 2).
+   - **Aliens aprovados (conceito em `tools/arte/aliens_conceito.py`, prévia `pixel/conceito_aliens.png`):** **cerebrão** (cérebro exposto enorme pulsando, cara pequena de três olhos com mandíbulas, corpo de lesma babando, pistola de raio) e **olheiro** (magrelo de costelas aparecendo, pernas viradas para trás, dedos longos, pescoço terminando num olho gigante com veias e pálpebra). **Os esboços estão fracos: o design final e o detalhamento precisam melhorar MUITO** (nível dos aliens do Metal Slug). Rastejador recusado.
+   - A cidade em dia de feira (antiga fase 2) **saiu do jogo**.
 3. Trem da Great Western: fase em movimento.
 4. Açude e casa-grande: chefe coronel.
 5. Romaria: chefe beato.
@@ -250,6 +251,6 @@ Tudo em `src/som.js` (Web Audio):
 9. **Acabamento:** tela de título, seleção de personagem, pausa, game over com "continuar?", progresso salvo no celular.
 10. **Mais conteúdo:** fases 2 a 6, repetindo as etapas 4 a 6.
 
-**Próximo passo:** fase 1 com chefe, veículo e som prontos; ajustar com o teste do Guilherme antes da fase 2. Campo de treino continua no menu.
+**Próximo passo (conversa nova):** fase 2, a base da cratera. Começar pelo redesenho do cerebrão e do olheiro (testar uma peça, mostrar ao Guilherme e só então seguir), depois soldado contaminado, cenário dos 4 trechos, elevador, gás verde e o chefe professor injetado. Campo de treino continua no menu.
 
 
