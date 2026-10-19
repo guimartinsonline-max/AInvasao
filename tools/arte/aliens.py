@@ -140,7 +140,15 @@ def cerebrao(fase=0.0):
     s_ = xx * 0.9 - yy * 0.45
     H = H + np.clip(np.sin(s_ * 1.05 + fase * 0.6), -0.2, 1) * 1.1 * suave(corpo, 1.5)
     H = H + ruido(corpo.shape, 0.8, 21) * 0.35
-    relevo(t, corpo, H, LESMA, ambiente=-0.5, contraste=1.3, brilho=1.8)
+    relevo(t, corpo, H, ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"],
+           ambiente=-0.42, contraste=1.2, brilho=1.2, dither=False)
+    # Crista de calombos nas costas, do rabo ao tronco.
+    for k in range(1, 7, 2):
+        bx = 7 + k * 3.4
+        by = chao - 6.2 - k * 1.35 - (k > 4) * (k - 4) * 1.6
+        cm = t.elipse(bx, by + 0.6, 1.4, 1.0)
+        relevo(t, cm, domo(t, bx, by, 1.5, 1.2) * 2.5, ["alien_profundo", "alien_esc", "alien_medio", "alien_luz", "alien_brilho"],
+               ambiente=0.0, brilho=1.6)
     dobra = corpo & (np.sin(s_ * 1.05 + fase * 0.6) < -0.8) & (suave(corpo, 1.5) > 0.6)
     t.px[dobra] = IDX["alien_profundo"]
     # Pé ondulado embaixo.
@@ -175,14 +183,12 @@ def cerebrao(fase=0.0):
 
     # Cara embaixo da frente do cérebro.
     cara = t.elipse(41, 28.5, 7, 6)
-    relevo(t, cara, domo(t, 41, 28.5, 7, 6) * 4, CARNE, ambiente=0.15, brilho=0.9)
+    relevo(t, cara, domo(t, 41, 28.5, 7, 6) * 4, CARNE, ambiente=0.4, brilho=1.0)
     # Rugas da testa.
-    for k in range(2):
-        t.linha(36, 24.5 + k * 1.3, 45, 24 + k * 1.3, "pele_sombra")
     # Mandíbulas de quitina abertas.
-    for pts in (((43, 32), (47, 33.5), (47.5, 37)), ((38.5, 32.5), (40, 36), (43.5, 37.5))):
+    for pts in (((43, 31.5), (47.5, 33), (48, 37.5)), ((38.5, 32), (39.5, 36.5), (44, 38))):
         for a, b in zip(pts, pts[1:]):
-            parte(t.capsula(a[0], a[1], b[0], b[1], 1.25, 0.6), QUITINA, s=0.6, alt=2.5, amb=0.15, br=1.3)
+            parte(t.capsula(a[0], a[1], b[0], b[1], 1.5, 0.55), ["sombra", "cinza_escuro", "cinza", "cinza_luz", "cinza_claro", "branco"], s=0.6, alt=2.5, amb=0.1, br=1.6)
     # Boca redonda com dentinhos e baba.
     t.chapado(t.elipse(43.5, 32.8, 2.1, 1.5), "preto")
     t.chapado(t.elipse(43.5, 33.2, 1.2, 0.7), "vermelho_esc")
@@ -209,7 +215,10 @@ def cerebrao(fase=0.0):
     olho(46.3, 28.8, 1.6)
 
     # Cérebro enorme por cima, inclinado para a frente.
-    cerebro(t, 29, 12.5, 16, 11, fase=fase)
+    cerebro(t, 29, 12.5 - fase * 0.4, 16 + fase * 0.7, 11 + fase * 0.6, fase=fase)
+    # Gota de líquido escorrendo de baixo do cérebro.
+    t.linha(21, 21, 21, 24 + int(fase * 2), "rosa_poeira")
+    t.ponto(21, 25 + int(fase * 2), "pele_brilho")
 
     # Braço da frente estendido com a pistola de raio.
     braco([(38, 37), (43, 42), (48, 40)], 1.5)
