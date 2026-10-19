@@ -137,9 +137,16 @@ export class Jogador {
     // Correr.
     if (c.eixoX !== 0) this.direcao = c.eixoX;
     // Gordo anda mais devagar.
+    // Zumbi anda aos trancos: dá o passo duro (rápido) e arrasta o pé (quase parado).
+    let ginga = 1;
+    if (this.zumbi && this.noChao) {
+      const p = (this.passo % 340) / 340;
+      ginga = 0.3 + 1.4 * Math.sin(Math.PI * p) ** 2;
+    }
     corpo.setVelocityX(c.eixoX * (this.agachado ? VEL_AGACHADO : VEL_CORRER) * (this.gordo ? 0.7 : 1)
-      * (this.zumbi ? ZUMBI_VEL : 1));
-    corpo.setGravityY(this.zumbi && !this.noChao ? ZUMBI_FLUTUA : 0);
+      * (this.zumbi ? ZUMBI_VEL * ginga : 1));
+    // Zumbi sobe com a gravidade normal (pulo baixo) e só desce devagar.
+    corpo.setGravityY(this.zumbi && !this.noChao && corpo.velocity.y > 0 ? ZUMBI_FLUTUA : 0);
 
     // Pular, com tolerância de beirada e memória do botão.
     if (this.memoriaPulo > 0 && this.beirada > 0) {
@@ -313,8 +320,9 @@ export class Jogador {
       cena.time.delayedCall(k * 32, () => {
         if (this.morto || !this.zumbi) return;
         const d = this.direcao;
-        const x = this.x + d * 26;
-        const y = this.pe - 40;
+        // Sai da boca escancarada (quadro golfada) e vai embora junto com o jato.
+        const x = this.x + d * 10;
+        const y = this.pe - 42;
         // Começa alto e vai baixando (o jato varre o arco de cima para a frente).
         const sobe = 1.05 - (k / (n - 1)) * 0.7 + (Math.random() - 0.5) * 0.12;
         const ang = d > 0 ? -sobe : Math.PI + sobe;

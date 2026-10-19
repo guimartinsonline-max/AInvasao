@@ -85,6 +85,9 @@ def deitar(tela):
             t.px[y + dy, x + dx] = rot[y, x]
     return t
 import repintar as rp  # noqa: E402
+import mortos as mo  # noqa: E402
+# Morte por arma: os dois últimos quadros de cada folha são o corpo tombando (no meio da
+# queda) e o corpo estirado de costas, 100% no chão (tools/arte/mortos.py).
 for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "granadeiro": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "metralhador": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
@@ -99,8 +102,9 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
     # Depois da morte na peixeira: de bruços com a mão na cabeça (granada perto) e,
     # na Volante comum, as cenas cômicas (truco, cozinhando, foto da noiva).
     comicos = [d[n] for n in ("cartas1", "cartas2", "mexe1", "mexe2", "foto1", "foto2") if n in d]
-    folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra + [ajoelhar(d["morte"]), deitar(d["morte"])]
-          + [deitar(d["grito" if nome == "xeremita" else "panico"])] + comicos,
+    folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra + [ajoelhar(d["morte"]), mo.estirar(d["morte"], False)]
+          + [mo.estirar(d["grito" if nome == "xeremita" else "panico"], False)] + comicos
+          + [mo.tombar(d["morte"]), mo.estirar(d["morte"])],
           SAIDA / f"{nome}.png")
 d = {k: rp.repintar_tela(v) for k, v in pixel.ler("refem.txt").items()}
 folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
@@ -118,23 +122,34 @@ import aliens as al  # noqa: E402
 for nome, f, extra in (("cerebrao", al.cerebrao, al.cerebrao(fase=1.0)), ("olheiro", al.olheiro, al.olheiro(pose="mira"))):
     d = {p: f(pose=p) for p in ("parado", "atira", "grito", "morte")}
     anda = [f(pose="anda", k=k) for k in range(4)]
+    if nome == "cerebrao":
+        # Lesma: já morre rente ao chão, o cérebro rachado desaba ali mesmo.
+        caido = [d["morte"], d["morte"], d["morte"], d["morte"]]
+    else:
+        g = d["grito"].copy() if hasattr(d["grito"], "copy") else d["grito"]
+        limpo = _Tela(g.w, g.h)
+        limpo.px = g.px.copy()
+        limpo.px[-3:] = -1  # sem a sombra do chão antes de girar
+        caido = [mo.estirar(limpo, False), mo.estirar(limpo, False), mo.tombar(limpo), mo.estirar(limpo)]
     folha([d["parado"], d["atira"], d["grito"]] + anda + [d["morte"], tostar(d["morte"]),
-           ajoelhar(d["morte"]), deitar(d["morte"]), deitar(d["grito"]), extra], SAIDA / f"{nome}.png")
+           ajoelhar(d["morte"]), caido[0], caido[1], extra, caido[2], caido[3]], SAIDA / f"{nome}.png")
 # Soldado contaminado (tools/arte/contaminado.py): mesma ordem dos inimigos; a morte na
 # peixeira e a de bala usam o corpo sem cabeça. Extras: 12 mordida, 13-14 andando sem cabeça.
 import contaminado as ct  # noqa: E402
 sem = [ct.contaminado("anda", k, cabeca=False) for k in (0, 2)]
 folha([ct.contaminado("parado"), ct.contaminado("vomita"), ct.contaminado("grito")]
       + [ct.contaminado("anda", k) for k in range(4)]
-      + [ct.contaminado("morte"), tostar(ct.contaminado("morte")), ajoelhar(sem[0]), deitar(sem[0]),
-         deitar(ct.contaminado("grito")), ct.contaminado("morde")] + sem, SAIDA / "contaminado.png")
+      + [ct.contaminado("morte"), tostar(ct.contaminado("morte")), ajoelhar(sem[0]), mo.estirar(sem[0], False),
+         mo.estirar(ct.contaminado("grito"), False), ct.contaminado("morde")] + sem
+      + [mo.tombar(ct.contaminado("morte")), mo.estirar(ct.contaminado("morte"))], SAIDA / "contaminado.png")
 ct.cabeca_solta().salvar(SAIDA / "cabeca_contaminado.png")
 # Soldado de máscara contra gás (tools/arte/mascarado.py): mesmos quadros da Volante comum
 # (sem as cenas cômicas), com a máscara posta antes de gerar tostado, joelhos, caído e de bruços.
 import mascarado as mc  # noqa: E402
 d = {k: mc.mascarar(rp.repintar_tela(v)) for k, v in pixel.ler("volante.txt").items()}
 folha([d[n] for n in ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"]] + [tostar(d["morte"])]
-      + [d["sentado1"], d["sentado2"], ajoelhar(d["morte"]), deitar(d["morte"]), deitar(d["panico"])],
+      + [d["sentado1"], d["sentado2"], ajoelhar(d["morte"]), mo.estirar(d["morte"], False), mo.estirar(d["panico"], False),
+         mo.tombar(d["morte"]), mo.estirar(d["morte"])],
       SAIDA / "mascarado.png")
 # Lampião zumbi (tools/arte/lampiao_zumbi.py): folha, golfada grande (tiro dele) e o
 # vômito pequeno do contaminado, todos animados.

@@ -20,8 +20,19 @@ from motor import IDX, VAZIO, Tela  # noqa: E402
 from aliens import relevo, domo  # noqa: E402
 
 QUADROS = ["parado", "anda1", "anda2", "anda3", "anda4", "pulo", "golfada"]
-PERNAS = {"parado": "parado", "anda1": "corre2", "anda2": "corre3", "anda3": "corre5", "anda4": "corre6",
+PERNAS = {"parado": "parado", "anda1": "zanda1", "anda2": "zanda2", "anda3": "zanda3", "anda4": "zanda4",
           "pulo": "pulo", "golfada": "parado"}
+# Andar de zumbi (arrastado, nada de corrida): um passo duro com a perna da frente e a
+# de trás arrastando a ponta do pé; depois a perna da frente é que fica para trás, torta.
+lp.POSES_PERNAS.update({
+    "zanda1": (((-2, 4), (-7, 8)), ((4, 3), (6, 9)), 1),
+    "zanda2": (((-1, 4), (-3, 9)), ((3, 4), (2, 9)), 0),
+    "zanda3": (((3, 3), (4, 9)), ((0, 4), (-4, 8)), 1),
+    "zanda4": (((-1, 4), (-2, 9)), ((2, 4), (3, 9)), 0),
+})
+# Cabeça mole balançando (dx, dy) e altura dos braços esticados (trás, frente) por quadro.
+GINGA = {"parado": (1, 1, 0, 0), "anda1": (2, 2, 1, -1), "anda2": (1, 3, 2, 1),
+         "anda3": (0, 1, -1, 2), "anda4": (2, 2, 0, -2), "pulo": (1, 1, -3, -3), "golfada": (3, 3, 2, 4)}
 # Pele (tons 1-7 da legenda) vira verde doente com sombra roxa.
 PELE = {"1": "(", "2": "8", "3": "9", "4": "0", "5": "!", "6": "?", "7": "?"}
 GOSMA = ["alien_profundo", "alien_esc", "alien", "alien_luz", "alien_brilho"]
@@ -89,26 +100,30 @@ def olho_saltado(t, lx, ly, ox, oy):
 
 def quadro(nome):
     pernas = PERNAS[nome]
-    g, dy, _ = la.base(pernas)
+    g = [["."] * lp.W for _ in range(lp.H)]
+    tras_, frente_, dy = lp.POSES_PERNAS[pernas]
+    dy += lp.MARGEM
+    qy = lp.QUADRIL_Y + dy
+    lp.perna(g, (11, qy), *tras_, atras=True)
+    lp.perna(g, (16, qy), *frente_, atras=False)
+    hx, hy, ot, of = GINGA[nome]
     # Braço de trás esticado para a frente (vai antes do tronco).
-    alto = nome == "pulo"
-    oy = -3 if alto else 0
-    la.braco(g, (la.OMBRO_TRAS[0], la.OMBRO_TRAS[1] + dy), (18, 25 + dy + oy), (26, 25 + dy + oy * 2), escurecer=1)
-    # Corpo curvado: cabeça um pouco para a frente e para baixo.
-    baixa = 2 if nome == "golfada" else 1
+    la.braco(g, (la.OMBRO_TRAS[0], la.OMBRO_TRAS[1] + dy), (18, 25 + dy + ot), (26, 25 + dy + ot * 2), escurecer=1)
+    # Corpo curvado: a cabeça mole cai para a frente e balança a cada passo.
+    baixa = hy
     for y, x, txt in lp.TRONCO:
         lp.pintar(g, y + dy, x, txt)
     for k, txt in enumerate(rosto("golfada" if nome == "golfada" else "mole")):
-        lp.pintar(g, 8 + k + dy + baixa, 7 + baixa, txt)
+        lp.pintar(g, 8 + k + dy + hy, 7 + hx, txt)
     for k, txt in enumerate(lp.CHAPEU):
-        lp.pintar(g, 1 + k + dy + baixa, 4 + baixa, txt)
+        lp.pintar(g, 1 + k + dy + hy, 4 + hx, txt)
     la._CORPO = [l[:] for l in g]
     # Braço da frente esticado, mão mole caída.
-    mx, my = (29, 24 + dy + oy * 2) if nome != "golfada" else (27, 30 + dy)
-    la.braco(g, (la.OMBRO_FRENTE[0], la.OMBRO_FRENTE[1] + dy), (23, 24 + dy + oy), (mx, my))
-    for (hx, hy) in ((mx, my), (26, 25 + dy + oy * 2)):
+    mx, my = (29, 24 + dy + of * 2) if nome != "golfada" else (27, 30 + dy)
+    la.braco(g, (la.OMBRO_FRENTE[0], la.OMBRO_FRENTE[1] + dy), (23, 24 + dy + of), (mx, my))
+    for (hx_m, hy_m) in ((mx, my), (26, 25 + dy + ot * 2)):
         for k, l in enumerate(["O45O", "O3455O", ".O34O3O", "..OO.O"]):
-            lp.pintar(g, hy - 1 + k, hx - 1, l)
+            lp.pintar(g, hy_m - 1 + k, hx_m - 1, l)
     t = la._fim(g)
     # Pele verde.
     tab = {IDX[pixel.LEGENDA[a]]: IDX[pixel.LEGENDA[b]] for a, b in PELE.items()}
@@ -118,22 +133,24 @@ def quadro(nome):
     t.px = px
     # Veias roxas no rosto e na mão, baba escorrendo do queixo.
     for (x, y) in ((13, 16), (13, 17), (12, 18), (14, 20), (15, 21)):
-        if t.px[y + dy + baixa, x] in (IDX["alien_medio"], IDX["alien"]):
-            t.px[y + dy + baixa, x] = IDX["roxo"]
+        x += hx - 1
+        if t.px[y + dy + hy, x] in (IDX["alien_medio"], IDX["alien"]):
+            t.px[y + dy + hy, x] = IDX["roxo"]
     if nome != "golfada":
-        bx, by = 20 + baixa, 19 + dy + baixa
+        bx, by = 20 + hx, 19 + dy + hy
         t.linha(bx, by, bx, by + 3 + (nome == "anda2"), "alien_luz")
         t.ponto(bx, by + 4 + (nome == "anda2"), "alien_brilho")
     else:
-        # Golfada saindo: jato grosso para a frente (o projétil grande sai no jogo).
-        jato = golfada(1, W=30, H=18)
-        jato.px[:, :3] = VAZIO
-        t.colar(jato, 21, 11 + dy + baixa)
-    ey = 11 + dy + baixa  # linha do olho
+        # Boca escancarada (o jato sai no jogo, como projétil): só um fio grosso pingando.
+        bx, by = 22 + hx, 20 + dy + hy
+        t.linha(bx, by, bx, by + 4, "alien")
+        t.linha(bx + 1, by, bx + 1, by + 2, "alien_luz")
+        t.ponto(bx, by + 5, "alien_brilho")
+    ey = 11 + dy + hy  # linha do olho
     balanca = {"anda1": 1, "anda3": -1, "pulo": -2}.get(nome, 0)
     corpo = t.px != VAZIO
     # Pele descascando: placas em carne viva na bochecha, na testa e nas mãos.
-    for (x, y, rx, ry) in ((11.5, ey + 3.5, 2.2, 1.6), (15.5, ey - 2, 1.6, 0.9), (mx + 1, my + 1, 1.2, 0.9)):
+    for (x, y, rx, ry) in ((10.5 + hx, ey + 3.5, 2.2, 1.6), (14.5 + hx, ey - 2, 1.6, 0.9), (mx + 1, my + 1, 1.2, 0.9)):
         m = t.elipse(x, y, rx, ry) & corpo
         t.chapado(m, "vermelho_medio")
         t.chapado(m & t.elipse(x + 0.3, y + 0.3, rx * 0.55, ry * 0.55), "rosa_poeira")
@@ -141,12 +158,13 @@ def quadro(nome):
         borda = m & ~np.roll(m, 1, 0)
         t.px[borda] = IDX["alien_luz"]
     # Olho saltado da lente rachada, pendurado pelo nervo e balançando.
-    ox, oy_ = 26.5 + baixa + balanca * 0.6, ey + 5
+    balanca += {"anda2": 1, "anda4": -1}.get(nome, 0)
+    ox, oy_ = 26.5 + hx + balanca * 0.6, ey + 5
     if nome == "golfada":
-        ox, oy_ = 21 + baixa, ey + 9
-    olho_saltado(t, 21 + baixa, ey + 1, ox, oy_)
+        ox, oy_ = 21 + hx, ey + 9
+    olho_saltado(t, 21 + hx, ey + 1, ox, oy_)
     # Furo de bala no chapéu, com a aba rasgada.
-    hx_, hy_ = 9 + baixa, 4 + dy + baixa
+    hx_, hy_ = 9 + hx, 4 + dy + hy
     t.chapado(t.elipse(hx_, hy_, 1.2, 1.0) & corpo, "couro_profundo")
     t.ponto(hx_ + 1, hy_ - 1, "couro_claro")
     # Camisa rasgada no peito mostrando as costelas.

@@ -23,6 +23,10 @@ export class Fase2Scene extends Fase1Scene {
 
   // As colunas de fumaça animadas dependem dos dados do trecho (quantas e de que tamanho).
   preload() {
+    const fogo = this.cache.json.get('fase2').fogo;
+    if (fogo && !this.textures.exists('f2_fogo')) {
+      this.load.spritesheet('f2_fogo', `assets/sprites/f2_fogo.png?v=${VERSAO}`, { frameWidth: fogo.w, frameHeight: fogo.h });
+    }
     for (const f of this.cache.json.get('fase2').fumacas || []) {
       if (!this.textures.exists(f.chave)) {
         this.load.spritesheet(f.chave, `assets/sprites/${f.chave}.png?v=${VERSAO}`, { frameWidth: f.w, frameHeight: f.h });
@@ -66,6 +70,20 @@ export class Fase2Scene extends Fase1Scene {
       this.add.sprite(f.x, c.base - h + DY + f.y, f.chave, 0).setOrigin(0).setScrollFactor(c.fator, 0)
         .setDepth(f.camada === 'longe' ? -4.3 : -3.3).play({ key: anim, startFrame: Phaser.Math.Between(0, f.n - 1) });
     }
+    // Labaredas vivas (casa ardendo, focos no morro, foguinhos na borda da cratera): cada
+    // uma com o próprio loop, começando num quadro qualquer para não tremerem juntas.
+    const PROF = { longe: -4.55, borda: -3.95, meio: -2.95, perto: -1.95 };
+    (this.dados.fogos || []).forEach((f, k) => {
+      const c = d[f.camada];
+      const h = this.textures.get(`f2_${f.camada}`).source[0].height;
+      const anim = `f2_fogo_${k}`;
+      if (!this.anims.exists(anim)) {
+        this.anims.create({ key: anim, frames: this.anims.generateFrameNumbers('f2_fogo', { start: f.q, end: f.q + this.dados.fogo.n - 1 }),
+          frameRate: Phaser.Math.Between(10, 13), repeat: -1 });
+      }
+      this.add.sprite(f.x, c.base - h + DY + f.y, 'f2_fogo', f.q).setOrigin(0).setScrollFactor(c.fator, 0)
+        .setDepth(PROF[f.camada]).play({ key: anim, startFrame: Phaser.Math.Between(0, this.dados.fogo.n - 1) });
+    });
     pintada('f2_perto', d.perto.base, d.perto.fator, -2);
     pintada('f2_frente', d.frente.base, d.frente.fator, 25);
   }

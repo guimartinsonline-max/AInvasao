@@ -437,10 +437,19 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.esperaChao = false;
     this.body.setAngularVelocity(0);
     this.setRotation(0);
-    const caido = this.q.facada ? this.q.facada[1] : this.q.morte;
-    this.setFrame(caido);
-    // Corpo baixo: a caixa de colisão vira a de quem está deitado.
-    this.body.setVelocity(this.body.velocity.x * 0.35, -60).setDragX(260);
+    // Os dois últimos quadros da folha: tombando (meio da queda) e estirado de costas,
+    // com o corpo inteiro apoiado no chão (tools/arte/mortos.py).
+    const n = this.texture.getFrameNames().length;
+    const tomba = n - 2;
+    const estirado = n - 1;
+    this.setFrame(tomba);
+    this.body.setVelocity(this.body.velocity.x * 0.3, 0).setDragX(420);
+    cena.time.delayedCall(110, () => {
+      if (this.vivo) return;
+      this.setFrame(estirado);
+      // Quiquezinho do corpo batendo: desce 2 px e volta, sem sair do chão.
+      cena.tweens.add({ targets: this, scaleY: 0.86, duration: 60, yoyo: true, ease: 'Quad.easeOut' });
+    });
     ef.poeira(this.x, this.y, 8);
     ef.poeiraPasso(this.x + this.direcao * 10, this.y, this.direcao < 0);
     ef.tremer(0.002, 60);

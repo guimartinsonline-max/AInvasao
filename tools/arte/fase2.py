@@ -1032,11 +1032,13 @@ def casa_ardendo(w=70, h=48, semente=0):
     c.px[fuligem & (lim(c.h, c.w) < 0.7)] = IDX["sombra"]
     t = Tela(w, h + 20)
     t.colar(c, 0, 20)
-    for (x, y, r) in ((w * 0.35, 22, 6), (w * 0.7, 26, 4.5), (w * 0.5, 34, 3)):
-        for k in range(4):
-            yy = y - k * r * 0.5
-            fl = t.elipse(x + math.sin(k * 2.3) * 1.5, yy, r * (1 - k * 0.22), r * 0.9 * (1 - k * 0.18))
-            t.chapado(fl, BRASA[min(3, k)])
+    # Boca do fogo (janela e buraco do telhado) em brasa; as labaredas são animadas à parte.
+    t.fogos = []
+    for (x, y, r) in ((w * 0.35, 24, 6), (w * 0.7, 28, 4.5), (w * 0.5, 36, 3)):
+        m = t.elipse(x, y + 1, r * 0.8, 1.6) & (t.px != VAZIO)
+        t.chapado(m, "vermelho_esc")
+        t.chapado(m & t.elipse(x, y + 1, r * 0.45, 1.0), "laranja_fogo")
+        t.fogos.append((x, y + 2, r))
     t.contorno("preto")
     return t
 
@@ -1202,6 +1204,61 @@ def coluna_fumaca(t, x, base, altura, larg, rampa, semente=0, vento=-0.35, brilh
             t.px[m & (lim(t.h, t.w) < 0.6)] = IDX[brilho_base]
 
 
+FOGOS = []  # labaredas animadas registradas pelas camadas (sprites em loop, nunca paradas)
+FOGO_W, FOGO_H, FOGO_N = 28, 26, 8
+
+
+def registrar_fogo(camada, x, y, tam, semente):
+    """Guarda uma labareda (pé do fogo em x, y da camada) para virar sprite animado."""
+    FOGOS.append(dict(camada=camada, x=x, y=y, tam=min(tam, 6.5), semente=semente))
+
+
+def chama_anim(t, x, y, tam, semente, fase):
+    """Labareda viva: as línguas crescem, encolhem e balançam em ritmos diferentes
+    (tudo periódico, o loop emenda), fagulhas sobem e o pé fica em brasa."""
+    rng = np.random.default_rng(semente)
+    ang = fase * 2 * math.pi
+    n = int(rng.integers(3, 6))
+    for k in range(n):
+        dx = rng.uniform(-tam * 0.6, tam * 0.6)
+        fi = rng.uniform(0, 2 * math.pi)
+        vel = int(rng.integers(1, 3))
+        h = tam * rng.uniform(1.4, 2.4) * (1 - abs(dx) / (tam * 1.5))
+        h *= 0.75 + 0.35 * math.sin(ang * vel + fi)
+        w_ = tam * rng.uniform(0.55, 0.8) * (0.9 + 0.12 * math.cos(ang * vel + fi))
+        ponta = 1.3 * math.sin(ang * (vel + 1) + fi * 1.7)
+        for camada, cor in enumerate(("vermelho_esc", "laranja_escuro", "laranja_fogo", "amarelo_fogo")):
+            f = 1 - camada * 0.22
+            pts = [(x + dx - w_ * f, y), (x + dx - w_ * f * 0.4 + ponta * 0.3, y - h * f * 0.55),
+                   (x + dx + ponta, y - h * f), (x + dx + w_ * f * 0.45 + ponta * 0.3, y - h * f * 0.5), (x + dx + w_ * f, y)]
+            t.chapado(t.poligono(pts), cor)
+    # Línguas que se soltam da ponta e somem subindo.
+    for k in range(2):
+        fi = rng.uniform(0, 1)
+        p = (fase + fi) % 1
+        if p < 0.6:
+            yy = y - tam * (1.5 + p * 1.6)
+            xx = x + rng.uniform(-tam * 0.4, tam * 0.4) + math.sin(p * 6) * 1.2
+            r = max(0.6, tam * 0.22 * (1 - p / 0.6))
+            t.chapado(t.elipse(xx, yy, r, r * 1.4), "laranja_fogo" if p < 0.35 else "vermelho_esc")
+    # Fagulhas.
+    for k in range(3):
+        p = (fase + k / 3 + rng.uniform(0, 0.2)) % 1
+        t.ponto(x + rng.uniform(-tam, tam) + math.sin(p * 9 + k) * 1.5, y - tam * 1.2 - p * tam * 2.4,
+                "amarelo_claro" if p < 0.5 else "laranja_fogo")
+    t.chapado(t.elipse(x, y, tam * 1.1, 1.2), "vermelho_esc")
+    t.ponto(x + math.sin(ang) * tam * 0.4, y - 1, "amarelo_claro")
+
+
+def quadros_fogo(f):
+    qs = []
+    for k in range(FOGO_N):
+        t = Tela(FOGO_W, FOGO_H)
+        chama_anim(t, FOGO_W / 2, FOGO_H - 2, f["tam"], f["semente"], k / FOGO_N)
+        qs.append(t)
+    return qs
+
+
 FUMACAS = []  # colunas animadas registradas pelas camadas (exportadas como sprites à parte)
 
 
@@ -1317,12 +1374,12 @@ def camada_longe():
                 t.ponto(vx, y, "alien_profundo")
                 t.ponto(vx + 1, y, "alien_esc" if j % 3 else "alien_medio")
         t.ponto(vx, y + 1, "alien_luz")
-    # Foguinhos pela encosta.
+    # Foguinhos pela encosta (animados à parte).
     for k in range(6):
         fx = cx + rng.uniform(-180, 180)
         fy = crista[int(np.clip(fx, 0, W - 1))] + rng.uniform(10, 40)
-        for j in range(3):
-            t.chapado(t.elipse(fx + j * 0.5, fy - j * 1.3, 1.6 - j * 0.4, 1.1), BRASA[j + 1])
+        t.chapado(t.elipse(fx, fy + 1, 2.2, 0.9), "vermelho_esc")
+        registrar_fogo("borda", fx, fy + 1, 2.3, 60 + k)
     # Lajes de pedra levantadas pela queda, tortas, de tamanhos diferentes.
     for k, (off, hh, ww, inc) in enumerate(((-170, 14, 12, -0.5), (-95, 22, 16, -0.25), (-40, 10, 9, 0.1),
                                             (30, 26, 18, 0.3), (120, 16, 13, 0.6), (185, 9, 8, 0.9))):
@@ -1437,6 +1494,8 @@ def camada_meio():
     ca = casa_ardendo(46, 30, semente=12)
     cx_ = int(330 * fator)
     yb = assentar_morro(ca, cx_)
+    for (fx_, fy_, r_) in ca.fogos:
+        registrar_fogo("meio", cx_ + fx_, yb - ca.h + 4 + fy_, r_ * 0.9, int(fx_))
     # Focos de fogo (B): a labareda no chão do morro e a fumaça subindo de cada um.
     fogos = [(int(wx * fator), sem) for wx, sem in ((640, 1), (790, 2), (960, 3), (1060, 4))]
     for k, (fx, sem) in enumerate(fogos):
@@ -1447,7 +1506,8 @@ def camada_meio():
     for (fx, sem) in fogos:
         brilho = t.elipse(fx, alto[fx] + 3, 9, 3) & morro
         t.px[brilho & (lim(alt, W) < 0.5)] = IDX["laranja_escuro"]
-        chama(t, fx, alto[fx] + 3, tam=6, semente=sem)
+        t.chapado(t.elipse(fx, alto[fx] + 3, 6.6, 1.3), "vermelho_esc")
+        registrar_fogo("meio", fx, alto[fx] + 3, 6, sem)
     # Refaz a casa por cima da fumaça (a fumaça sai de trás do telhado).
     assentar_morro(ca, cx_)
     # Veios de vidro na encosta da cratera (C).
@@ -1539,6 +1599,7 @@ def exportar(saida, raiz):
     """Grava as camadas do trecho em assets/sprites (f2_*.png) e assets/fases/fase2.json."""
     import json
     FUMACAS.clear()
+    FOGOS.clear()
     jogo, topo = camada_jogo()
     perto, fp = camada_perto()
     meio, fm = camada_meio()
@@ -1553,9 +1614,16 @@ def exportar(saida, raiz):
         qs, x0, y0 = quadros_fumaca(f)
         w_, h_ = folha_grade(qs, saida / f"f2_fumaca_{k}.png")
         fumacas.append({"chave": f"f2_fumaca_{k}", "camada": f["camada"], "x": x0, "y": y0, "w": w_, "h": h_, "n": len(qs)})
+    # Labaredas animadas: todas numa folha só (FOGO_N quadros seguidos por fogo).
+    qs = [q for f in FOGOS for q in quadros_fogo(f)]
+    folha_grade(qs, saida / "f2_fogo.png")
+    fogos = [{"camada": f["camada"], "x": int(round(f["x"] - FOGO_W / 2)), "y": int(round(f["y"] - (FOGO_H - 2))),
+              "q": k * FOGO_N} for k, f in enumerate(FOGOS)]
     ceu_fumaca().imagem().save(saida / "ceu_fumaca.png", optimize=True)
     d = dados_fase()
     d["fumacas"] = fumacas
+    d["fogos"] = fogos
+    d["fogo"] = {"w": FOGO_W, "h": FOGO_H, "n": FOGO_N}
     d["camadas"] = {"jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp}, "meio": {"base": 192, "fator": fm},
                     "longe": {"base": 160, "fator": fl}, "borda": {"base": 160, "fator": fl}, "frente": {"base": 216, "fator": ff},
                     "fumaca": {"de": 300, "ate": 1100}}
