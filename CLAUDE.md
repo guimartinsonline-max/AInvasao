@@ -191,6 +191,8 @@ Uma fase na fazenda pode entrar depois, como conteúdo extra.
 
 ## Arte
 
+- **Nada de pontilhado em xadrez (Bayer) na fase 2 em diante** (pedido do Guilherme): mistura de tons e transições de terreno em manchas orgânicas (`lim()` de `fase2.py` é ruído suave, `colar_organico()` faz ilhas grandes), chão próprio sem pontilhado (`chao_base`) e queimada em três estágios (normal, chamuscado, torrado).
+- **Coerência do cenário** (regra fixa): nada flutuando (peça no morro assenta no ponto mais baixo embaixo dela, `assentar_morro`); fumaça sempre sai de um fogo visível (casa, foco no morro) ou de trás de algo que esconde a base, começando fina e engrossando.
 - **Passagem entre ambientes sempre suave** (regra fixa): nenhum trecho começa com corte reto. Chão de outro tipo entra misturando (`colar_suave`), barrancos descem em curva e espalham terra no chão, pedras e construções usam o material da região. Vale para toda fase nova.
 - **Nível de detalhe do cenário:** o das referências do Metal Slug que o Guilherme mandou (MS2/MS3): volume em tudo, textura, rachaduras, líquen, chão em corte com camadas e pedras, várias camadas de parallax e uma de frente.
 - **Estilo exatamente igual ao do Metal Slug** (proporções, contorno escuro, volume com vários tons, rostos expressivos, poses exageradas). O que muda é a **paleta** e o tema (sertão), não o estilo.

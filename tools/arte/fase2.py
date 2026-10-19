@@ -41,11 +41,39 @@ def ruido(h, w, s, semente):
     return r / (r.std() + 1e-9)
 
 
-def lim(h, w):
-    return np.tile(BAYER4, (h // 4 + 1, w // 4 + 1))[:h, :w]
+_GRAO = {}
 
 
-def pintar_niveis(t, m, v, rampa, dither=True):
+def lim(h, w, s=1.1):
+    """Limiar para misturar tons. Em vez do xadrez (Bayer), manchas orgânicas: ruído
+    suave com distribuição uniforme, então a mistura sai em grumos irregulares."""
+    k = (h, w, s)
+    if k not in _GRAO:
+        r = ndimage.gaussian_filter(np.random.default_rng(h * 7919 + w).standard_normal((h, w)), s)
+        _GRAO[k] = (np.argsort(np.argsort(r.ravel())) / r.size).reshape(h, w)
+    return _GRAO[k]
+
+
+def colar_organico(t, peca, x, y, borda=80, semente=0, grao=5.0):
+    """Cola um chão de outro tipo misturando nas pontas em manchas grandes e irregulares
+    (ilhas de um no outro, como queimado avançando pelo chão), nunca em pontilhado."""
+    h, w = peca.px.shape
+    rng = np.random.default_rng(semente)
+    xs = np.arange(w)[None, :].repeat(h, 0)
+    rampa = np.clip(np.minimum(xs, w - 1 - xs) / borda, 0, 1)
+    n = ruido(h, w, (grao * 0.6, grao), semente) * 0.55 + ruido(h, w, 1.0, semente + 1) * 0.12
+    # Mais queimado em cima (a crosta) que embaixo: a mancha avança pela superfície.
+    n += (0.5 - np.arange(h)[:, None] / h) * 0.3
+    m = (rampa * 2 - 1 + n) > 0
+    m = ndimage.binary_opening(m, iterations=1)
+    p = peca.px.copy()
+    p[~m] = VAZIO
+    tmp = Tela(w, h)
+    tmp.px = p
+    t.colar(tmp, x, y)
+
+
+def pintar_niveis(t, m, v, rampa, dither=False):
     """Pinta a máscara com o valor v (0-1) em faixas da rampa, com pontilhado na transição."""
     k = len(rampa)
     vv = np.clip(v, 0, 0.999) * k
@@ -59,14 +87,96 @@ def pintar_niveis(t, m, v, rampa, dither=True):
 
 # ------------------------------------------------------------------ chão
 
+TERRA_CORTE = ["marrom_noite", "terra_escura", "terra", "terra_media", "barro", "areia_media"]
+
+
+def chao_base(w, h=26, semente=0):
+    """Chão em corte da fase 2, sem pontilhado: crosta clara com calombos, estratos de
+    terra ondulados em faixas lisas que escurecem para baixo, pedras enterradas com
+    volume e contorno, pedrisco, raízes e rachaduras."""
+    import rocha
+    t = Tela(w, h)
+    rng = np.random.default_rng(semente)
+    yy = t.yy - 0.5
+    n = ruido(h, w, (1.2, 7), semente)
+    faixa = np.floor((yy + n * 1.8) / 5)
+    v = 0.92 - yy / h * 0.62 + np.where(faixa % 2 == 0, 0.0, -0.13) + ruido(h, w, (1.5, 4), semente + 1) * 0.05
+    pintar_niveis(t, np.ones((h, w), bool), v, TERRA_CORTE)
+    # Manchas de cascalho claro dentro dos estratos.
+    casc = (ruido(h, w, (1, 3), semente + 2) > 1.5) & (t.yy > 5)
+    t.px[casc] = IDX["areia_media"]
+    # Pedras enterradas com volume e contorno.
+    for k in range(w // 12):
+        grande = rng.random() < 0.35
+        pw = rng.uniform(5, 11) if grande else rng.uniform(2, 4.5)
+        ph = pw * rng.uniform(0.5, 0.75)
+        cx, cy = rng.uniform(0, w), rng.uniform(h * 0.5, h - 1) if grande else rng.uniform(6, h - 2)
+        m = t.elipse(cx, cy, pw, ph, ang=rng.uniform(-0.3, 0.3))
+        relevo(t, m, domo(t, cx, cy, pw, ph) * 2.5, rocha.PEDRA_CHAO if rng.random() < 0.6 else rocha.PEDRA_TERRA,
+               ambiente=0.1, linha=False)
+        t.px[m & ~ndimage.binary_erosion(m)] = IDX["marrom_noite"]
+    # Pedrisco.
+    for _ in range(w // 4):
+        x, y = int(rng.integers(0, w)), int(rng.integers(5, h))
+        t.px[y, x] = IDX[rng.choice(["cinza_luz", "cinza_medio", "areia_luz", "terra_escura"])]
+    # Raízes finas descendo do topo.
+    for _ in range(w // 30):
+        x, y = rng.uniform(0, w), 3
+        for _k in range(int(rng.integers(5, 12))):
+            x += rng.uniform(-1.2, 1.2)
+            y += 1
+            if 0 <= int(x) < w and int(y) < h:
+                t.px[int(y), int(x)] = IDX["couro_escuro"]
+    # Crosta de cima: lábio claro com calombos e a sombra logo abaixo.
+    topo = (ruido(1, w, 3, semente + 3)[0] > 0.4).astype(int)
+    for x in range(w):
+        t.px[0, x] = IDX["areia_clara" if topo[x] else "areia_luz"]
+        t.px[1, x] = IDX["areia_luz" if topo[x] else "areia"]
+        t.px[2, x] = IDX["areia"]
+        t.px[3, x] = IDX["barro"] if (x // 3 + topo[x]) % 4 else IDX["terra"]
+    # Rachaduras com aresta clara.
+    for _ in range(w // 24):
+        x, y = rng.uniform(0, w), 2
+        for _k in range(int(rng.integers(3, 8))):
+            x += rng.uniform(-1, 1)
+            y += 1
+            X, Y = int(x) % w, int(y)
+            if Y < h:
+                t.px[Y, X] = IDX["terra_escura"]
+                t.px[Y, (X + 1) % w] = IDX["barro"]
+    return t
+
+
+CHAMUSCA = {"areia_clara": "areia_media", "areia_luz": "barro", "areia": "terra_media", "areia_media": "terra",
+            "barro": "terra", "terra_media": "terra_escura", "terra": "couro_profundo", "terra_escura": "marrom_noite"}
+
+
+def chao_chamuscado(w, h=26, semente=0):
+    """Estágio do meio: a terra escureceu com o calor, a crosta virou marrom e há
+    tocos de capim pretos, mas ainda não é cinza."""
+    t = chao_base(w, h, semente)
+    tab = {IDX[a]: IDX[b] for a, b in CHAMUSCA.items()}
+    px = t.px.copy()
+    for a_, b_ in tab.items():
+        px[(t.px == a_) & (t.yy < 14 + ruido(h, w, (1, 6), semente + 4) * 3)] = b_
+    t.px = px
+    fuligem = (ruido(h, w, (0.8, 4), semente + 5) > 1.0) & (t.yy < 4)
+    t.px[fuligem] = IDX["marrom_noite"]
+    # Manchas de cinza na crosta, cada vez mais para o lado da queimada.
+    cinza = (ruido(h, w, (0.7, 5), semente + 6) > 1.3 - t.xx / w * 1.8) & (t.yy < 2.5)
+    t.px[cinza & (t.yy < 1)] = IDX["cinza_luz"]
+    t.px[cinza & (t.yy >= 1)] = IDX["cinza_medio"]
+    return t
+
+
 def chao_queimado(w, h=26, semente=0):
     """Chão em corte queimado: crosta de cinza clara fofa com calombos e montinhos, logo
     abaixo uma faixa de carvão preta com brasas nas rachaduras, depois a terra torrada
     em estratos (mais escura e fria que a terra normal) com pedras escurecidas e raízes
     viradas carvão; o fundo volta aos poucos para a cor da terra."""
-    t = f1.chao(w, h, semente=semente)
+    t = chao_base(w, h, semente=semente)
     rng = np.random.default_rng(semente)
-    L = lim(h, w)
+    L = lim(h, w, 2.0)
     n = ruido(h, w, (1, 5), semente + 1)
     prof = (t.yy - 0.5) + n * 1.4
     # Terra toda torrada: cada tom desce dois degraus para o lado frio/escuro.
@@ -948,10 +1058,11 @@ def camada_jogo():
                 c.px[c.px != VAZIO] = IDX["preto"] if rng.random() < 0.5 else IDX["marrom_noite"]
             f1.colar(t, c, x + rng.integers(-3, 3), y(CHAO) - c.h + 1)
     # Chão: terra -> queimado -> vidro, misturando sem corte reto.
-    t.colar(f1.chao(LARGURA, 26, semente=11), 0, y(CHAO) - 2)
-    f1.colar_suave(t, chao_queimado(1150 - 380, 26, semente=12), 380, y(CHAO) - 2, borda=90, semente=12)
-    f1.colar_suave(t, chao_queimado(LARGURA - 1050, 26, semente=13), 1050, y(CHAO) - 2, borda=40, semente=13)
-    f1.colar_suave(t, chao_vidro(LARGURA - 1120, 26, semente=14), 1120, y(CHAO) - 2, borda=80, semente=14)
+    t.colar(chao_base(LARGURA, 26, semente=11), 0, y(CHAO) - 2)
+    colar_organico(t, chao_chamuscado(1150 - 300, 26, semente=15), 300, y(CHAO) - 2, borda=110, semente=15)
+    colar_organico(t, chao_queimado(1150 - 440, 26, semente=12), 440, y(CHAO) - 2, borda=130, semente=12)
+    colar_organico(t, chao_queimado(LARGURA - 1050, 26, semente=13), 1050, y(CHAO) - 2, borda=40, semente=13)
+    colar_organico(t, chao_vidro(LARGURA - 1120, 26, semente=14), 1120, y(CHAO) - 2, borda=80, semente=14)
     # A) Beira da caatinga: xique-xique, pedras, cerca velha, mandacaru ainda verde.
     for x in (60, 240, 420):
         f1.assentar(t, f1.xiquexique(semente=x), x, yc)
@@ -1014,6 +1125,7 @@ def camada_perto():
 # ------------------------------------------------------------------ fundo (muda ao longo do trecho)
 
 FUMACA_CINZA = ["azul_sombra", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz"]
+FUMACA_ESCURA_C = ["sombra", "sombra_media", "azul_sombra", "cinza_escuro", "cinza_medio", "cinza"]
 FUMACA_ESCURA = ["preto", "sombra", "sombra_media", "azul_sombra", "cinza_escuro"]
 
 
@@ -1032,29 +1144,52 @@ def bolas(t, lista, rampa, luz=(-0.45, -0.5), borda=None):
             t.px[aro] = IDX[borda]
 
 
-def coluna_fumaca(t, x, base, altura, larg, rampa, semente=0, vento=-0.35, brilho_base=None, abre=1.0):
-    """Coluna de fumaça como no Metal Slug: rolos grandes e sobrepostos com sombra em
-    faixas (cel), cada rolo com a luz em cima à esquerda e a borda de baixo escura,
-    subindo, engrossando e deitando com o vento; no alto abre num chapéu largo."""
+def coluna_fumaca(t, x, base, altura, larg, rampa, semente=0, vento=-0.35, brilho_base=None, abre=1.0, fino=3.0, denso=1.0):
+    """Coluna de fumaça saindo de um fogo: começa fina na boca do fogo e vai engrossando
+    em rolos, deitando com o vento. Cada rolo tem luz em cima à esquerda e sombra
+    embaixo; entre os rolos fica um vinco escuro (não bolhas soltas); a borda de fora
+    é escura e a fumaça vai clareando e se desfazendo em fiapos no alto."""
     rng = np.random.default_rng(semente)
     rolos = []
-    n = int(altura / 4)
-    for i in range(n):
-        s_ = i / max(1, n - 1)
-        y = base - s_ * altura
-        cx = x + vento * altura * s_ ** 1.5
-        r = larg * (0.32 + s_ ** 0.8 * 0.68 * abre)
-        espalha = r * (0.5 + s_ * 0.6)
-        for _ in range(2 + int(s_ * 3)):
-            rolos.append((cx + rng.uniform(-espalha, espalha), y + rng.uniform(-4, 4), r * rng.uniform(0.45, 0.7)))
-    # De cima para baixo: os rolos de baixo ficam na frente (a coluna sobe "de dentro").
+    y = base
+    while y > base - altura:
+        s_ = (base - y) / altura
+        cx = x + vento * altura * s_ ** 1.6 + math.sin(s_ * 7 + semente) * larg * 0.1
+        r = fino + (larg * abre - fino) * s_ ** 0.75
+        k = 1 + int((s_ * 2.2 + rng.random()) * denso)
+        for _ in range(k):
+            rolos.append((cx + rng.uniform(-r * 0.7, r * 0.7), y + rng.uniform(-r * 0.3, r * 0.3),
+                          r * rng.uniform(0.38, 0.8), s_))
+        y -= max(2.0, r * rng.uniform(0.45, 0.8) / denso)
+    # Do alto para baixo: os rolos de baixo (mais novos) ficam por cima.
     rolos.sort(key=lambda b: b[1])
-    for (rx, ry, rr) in rolos:
-        m = t.elipse(rx, ry, rr, rr * 0.82)
-        t.cel(m, rampa, sombra=min(4, max(2, int(rr * 0.3))), luz=min(3, max(1, int(rr * 0.15))), linha=False, rebaixo=True)
+    uniao = np.zeros((t.h, t.w), bool)
+    nivel = np.full((t.h, t.w), -1, int)
+    k_ = len(rampa)
+    for (rx, ry, rr, s_) in rolos:
+        m = t.elipse(rx, ry, rr, rr * 0.85)
+        if not m.any():
+            continue
+        hx, hy = rx - rr * 0.38, ry - rr * 0.42
+        d = np.hypot((t.xx - hx) / rr, (t.yy - hy) / (rr * 0.85))
+        v = np.clip(1.02 - d / 1.55 + s_ * 0.12, 0, 0.999)
+        nv = (v * k_).astype(int)
+        # Vinco: borda deste rolo por cima de um rolo que já estava lá.
+        borda = m & ~t.elipse(rx, ry, rr - 1, rr * 0.85 - 1) & uniao & ((t.xx - rx) * 0.6 + (t.yy - ry) > -rr * 0.2)
+        nv[borda] = np.maximum(nv[borda] - 2, 0)
+        nivel[m] = nv[m]
+        uniao |= m
+    cores = np.array([IDX[c] for c in rampa])
+    t.px[uniao] = cores[np.clip(nivel[uniao], 0, k_ - 1)]
+    # Borda de fora escura embaixo/direita, fiapos se desfazendo no alto.
+    fora = uniao & ~ndimage.binary_erosion(uniao)
+    t.px[fora & (t.xx > x + vento * (base - t.yy) * 0.5)] = IDX[rampa[0]]
+    alto = uniao & (t.yy < base - altura * 0.82)
+    furo = alto & (ruido(t.h, t.w, 1.2, semente + 9) > 0.9)
+    t.px[furo] = VAZIO
     if brilho_base:
-        for (bx, by, br) in rolos[-8:]:
-            m = t.elipse(bx, by + br * 0.35, br * 0.9, br * 0.45) & (t.px != VAZIO)
+        for (bx, by, br, s_) in rolos[-10:]:
+            m = t.elipse(bx, by + br * 0.35, br * 0.9, br * 0.45) & uniao
             t.px[m & (lim(t.h, t.w) < 0.6)] = IDX[brilho_base]
 
 
@@ -1090,13 +1225,10 @@ def camada_longe():
         t.px[m] = sub.px[m]
     # Névoa baixa.
     t.px[(t.px != VAZIO) & (t.yy > alt - 40)] = IDX["ceu_luz"]
-    # Plumas dos incêndios (A e B).
-    for wx, h_, l_, sem in ((300, 90, 16, 1), (720, 110, 20, 2), (980, 80, 14, 3)):
-        coluna_fumaca(t, wx * fator + 120, alt - 50, h_, l_ * 1.6, FUMACA_CINZA, semente=sem, vento=-0.5)
     # Coluna de fumaça do disco, enorme, subindo de trás da borda e saindo pelo alto da
     # tela: preta e grossa, deitando para a esquerda, com a barriga iluminada de verde.
     cx = 1560 * fator + 300
-    coluna_fumaca(t, cx + 10, alt - 62, alt - 40, 58, FUMACA_ESCURA, semente=7, vento=-0.4, abre=1.25)
+    coluna_fumaca(t, cx + 10, alt - 62, alt - 40, 58, FUMACA_ESCURA, semente=7, vento=-0.4, abre=1.25, fino=14, denso=2.2)
     fum = t.px != VAZIO
     # Luz verde vinda de baixo: borda de baixo de cada rolo e o miolo perto da base.
     perto_base = np.clip(1 - (alt - 62 - t.yy) / 120, 0, 1)
@@ -1171,54 +1303,108 @@ def camada_longe():
     return t, fator
 
 
+def chama(t, x, y, tam=6, semente=0):
+    """Labareda em línguas: três a cinco pontas tremidas, amarelo no miolo, laranja e
+    vermelho por fora, brasa no pé e o chão em volta clareado pelo fogo."""
+    rng = np.random.default_rng(semente)
+    for k in range(int(rng.integers(3, 6))):
+        dx = rng.uniform(-tam * 0.6, tam * 0.6)
+        h = tam * rng.uniform(1.0, 1.9) * (1 - abs(dx) / (tam * 1.4))
+        w_ = tam * rng.uniform(0.35, 0.55)
+        for camada, cor in enumerate(("vermelho_esc", "laranja_escuro", "laranja_fogo", "amarelo_fogo")):
+            f = 1 - camada * 0.22
+            pts = [(x + dx - w_ * f, y), (x + dx - w_ * f * 0.4, y - h * f * 0.55), (x + dx + rng.uniform(-1, 1), y - h * f),
+                   (x + dx + w_ * f * 0.45, y - h * f * 0.5), (x + dx + w_ * f, y)]
+            t.chapado(t.poligono(pts), cor)
+    t.chapado(t.elipse(x, y, tam * 1.1, 1.2), "vermelho_esc")
+    t.ponto(x, y - 1, "amarelo_claro")
+
+
 def camada_meio():
-    """Longe (0,45): morros. A) com caatinga ainda verde e uma casa ardendo; B) morros
-    torrados com árvores deitadas e focos de fogo; C) encosta da cratera com veios de vidro."""
+    """Longe (0,45): morros. A) caatinga ainda verde e a casa ardendo assentada no morro,
+    com a fumaça saindo do telhado; B) morros chamuscados e depois torrados (a queimada
+    avança em manchas, sem pontilhado), árvores mortas, focos de fogo com a fumaça subindo
+    de cada um; C) encosta da cratera com veios de vidro e as barracas da base no alto."""
     fator = 0.45
     W = int(LARGURA * fator + 548)
-    alt = 72
+    alt = 240
     t = Tela(W, alt)
     rng = np.random.default_rng(5)
-    n = ruido(1, W, 30, 6)[0]
     xs = np.arange(W)
+    n = ruido(1, W, 30, 6)[0]
     alto = (alt - 28 + n * 6 - np.clip((xs - 1150 * fator) / 300, 0, 1) * 10).astype(int)
     morro = t.yy >= alto[None, :]
-    zona = xs / fator  # x do mundo correspondente (aprox.)
-    queimado = np.clip((zona - 450) / 250, 0, 1)
-    sub_n = Tela(W, alt)
-    sub_n.volume(morro, ["azul_sombra", "terra", "terra_media", "barro", "areia_media", "areia"], achatado=6, suave=3,
-                 ambiente=0.35, textura=0.2, semente=2, linha=False)
-    sub_q = Tela(W, alt)
-    sub_q.volume(morro, ["sombra", "marrom_noite", "couro_profundo", "terra_escura", "cinza_escuro", "cinza_medio"],
-                 achatado=6, suave=3, ambiente=0.35, textura=0.25, semente=3, linha=False)
-    usa_q = (queimado[None, :] > lim(alt, W)) & morro
-    t.px[morro] = sub_n.px[morro]
-    t.px[usa_q] = sub_q.px[usa_q]
-    f1.textura_morro(t, morro & ~usa_q, alto, rng)
-    # Vegetação: viva no A, torrada e deitada no B, nada no C.
+    zona = xs / fator
+    # Queimada em três estágios (normal, chamuscado, torrado) avançando em manchas.
+    q = np.clip((zona[None, :] - 380) / 520, 0, 1) + ruido(alt, W, (4, 12), 31) * 0.22
+    prof = (t.yy - alto[None, :]).astype(float)
+    v = 0.78 - np.clip(prof, 0, 30) / 30 * 0.45 + ruido(alt, W, (1.5, 5), 32) * 0.08
+    NORMAL = ["azul_sombra", "terra", "terra_media", "barro", "areia_media", "areia"]
+    CHAMUSCADO = ["sombra", "couro_profundo", "terra_escura", "terra", "terra_media", "barro"]
+    TORRADO = ["preto", "sombra", "marrom_noite", "couro_profundo", "cinza_escuro", "cinza_medio"]
+    for rampa, sel in ((NORMAL, q < 0.35), (CHAMUSCADO, (q >= 0.35) & (q < 0.68)), (TORRADO, q >= 0.68)):
+        pintar_niveis(t, morro & sel, v, rampa)
+    # Textura: capim riscado no normal, cinza clara e brasas no torrado, pedrinhas.
+    for _ in range(W // 2):
+        x = int(rng.integers(0, W))
+        y = int(rng.integers(alto[x] + 2, alt - 1))
+        qq = q[y, x]
+        if qq < 0.35:
+            t.px[y, x] = IDX["areia_luz"]
+            t.px[y + 1, x] = IDX["terra"]
+        elif qq < 0.68:
+            t.px[y, x] = IDX["couro_profundo"]
+        else:
+            t.px[y, x] = IDX["cinza_luz" if rng.random() < 0.6 else "laranja_escuro"]
+    for _ in range(W // 12):
+        x = int(rng.integers(1, W - 3))
+        y = int(rng.integers(alto[x] + 3, alt - 2))
+        t.px[y, x:x + 2] = IDX["cinza_luz"]
+        t.px[y + 1, x:x + 2] = IDX["sombra"]
+    # Crista do morro com aresta clara (luz do céu).
+    for x in range(W):
+        t.px[alto[x], x] = IDX["areia" if q[alto[x], x] < 0.35 else "terra_media" if q[alto[x], x] < 0.68 else "cinza_medio"]
+    def assentar_morro(p, x):
+        x = int(x)
+        fim = min(W - 1, x + p.w)
+        y = int(max(alto[x:fim + 1])) if fim > x else alto[x]
+        f1.colar(t, p, x, y - p.h + 4)
+        return y
+    # Vegetação: viva no A, árvores mortas no B, nada no C.
     x = 0
     while x < W:
         wx = x / fator
-        if wx < 1150:
-            h = int(rng.integers(10, 24))
-            if wx < 500:
-                a = f1.arvore(h, semente=int(x), folhas=rng.random() > 0.3)
+        qq = q[alto[min(W - 1, x)], min(W - 1, x)]
+        if wx < 1120:
+            if qq < 0.35:
+                a = f1.arvore(int(rng.integers(12, 24)), semente=int(x), folhas=rng.random() > 0.25)
+                assentar_morro(a, x)
+                x += int(rng.integers(8, 22))
             else:
-                a = arvore_queimada(h, semente=int(x), forca=0.15 + (wx - 500) / 1300)
-            f1.colar(t, a, x, alto[min(W - 1, x)] - a.h + 4)
-        x += int(rng.integers(6, 26))
-    # Focos de fogo nos morros torrados.
-    for wx in (600, 760, 900, 1040):
-        xx = int(wx * fator)
-        yy = alto[xx] + 2
-        for k in range(3):
-            t.chapado(t.elipse(xx + k * 2 - 2, yy - k * 1.6, 2.4 - k * 0.6, 1.6), BRASA[k + 1])
-    # Casa ardendo no morro (A).
+                a = arvore_queimada(int(rng.integers(16, 28)), semente=int(x), forca=0.12 + (wx - 450) / 1500)
+                assentar_morro(a, x)
+                x += int(rng.integers(18, 40))
+        else:
+            x += 20
+    # Casa ardendo assentada no morro (A), com a fumaça saindo do buraco do telhado.
     ca = casa_ardendo(46, 30, semente=12)
-    xx = int(330 * fator)
-    f1.colar(t, ca, xx, alto[xx] - ca.h + 5)
+    cx_ = int(330 * fator)
+    yb = assentar_morro(ca, cx_)
+    # Focos de fogo (B): a labareda no chão do morro e a fumaça subindo de cada um.
+    fogos = [(int(wx * fator), sem) for wx, sem in ((640, 1), (790, 2), (960, 3), (1060, 4))]
+    for k, (fx, sem) in enumerate(fogos):
+        fy = alto[fx] + 2
+        coluna_fumaca(t, fx, fy - 4, (150, 110, 175, 95)[k], (24, 16, 28, 14)[k], FUMACA_ESCURA_C,
+                      semente=sem, vento=(-0.45, -0.3, -0.55, -0.35)[k], fino=2.5, denso=1.4)
+    coluna_fumaca(t, cx_ + 18, yb - ca.h + 14, 170, 24, FUMACA_ESCURA_C, semente=9, vento=-0.4, fino=3.0)
+    for (fx, sem) in fogos:
+        brilho = t.elipse(fx, alto[fx] + 3, 9, 3) & morro
+        t.px[brilho & (lim(alt, W) < 0.5)] = IDX["laranja_escuro"]
+        chama(t, fx, alto[fx] + 3, tam=6, semente=sem)
+    # Refaz a casa por cima da fumaça (a fumaça sai de trás do telhado).
+    assentar_morro(ca, cx_)
     # Veios de vidro na encosta da cratera (C).
-    for k in range(40):
+    for k in range(50):
         xx = int(rng.integers(int(1150 * fator), W - 2))
         yy = int(rng.integers(alto[xx] + 2, alt - 2))
         if morro[yy, xx]:
@@ -1228,8 +1414,7 @@ def camada_meio():
     import fase1_extra as ext
     for k, wx in enumerate((1500, 1580, 1660)):
         b = ext.barraca(26, 14, semente=k + 20)
-        xx = int(wx * fator)
-        f1.colar(t, b, xx, alto[min(W - 1, xx)] - b.h + 3)
+        assentar_morro(b, int(wx * fator))
     return t, fator
 
 
