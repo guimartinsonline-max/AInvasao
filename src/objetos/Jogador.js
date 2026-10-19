@@ -9,6 +9,7 @@ import { som } from '../som.js';
 const VEL_CORRER = 100;
 const VEL_AGACHADO = 36;
 const VEL_PULO = -310;
+const ESPERA = 3500; // ms parado até começar a animação de espera
 const CORTE_PULO = -110; // soltar o botão no meio do pulo corta a subida
 const TOLERANCIA_BEIRADA = 100; // ms para ainda pular depois de sair da beirada
 const MEMORIA_PULO = 110; // ms que um pulo apertado antes de tocar o chão fica guardado
@@ -432,6 +433,16 @@ export class Jogador {
       this.passo = 0;
       // Grita ao atirar parado.
       quadro = this.desdeTiro < 160 ? 'atirando' : 'parado';
+    }
+    // Espera (como no Metal Slug): parado sem mexer em nada uns segundos, olha para
+    // trás, ajeita o chapéu suando e boceja; qualquer ação interrompe.
+    const quieto = quadro === 'parado' && this.desdeTiro > 800;
+    this.quieto = quieto ? (this.quieto || 0) + dt : 0;
+    if (this.quieto > ESPERA) {
+      const k = (this.quieto - ESPERA) % 5200;
+      if (k < 700) quadro = 'espera2';
+      else if (k > 1000 && k < 1700) quadro = Math.floor(k / 230) % 2 ? 'espera3' : 'parado';
+      else if (k > 2300 && k < 3400) quadro = 'espera1';
     }
     // Com arma pesada, usa a folha do Lampião segurando aquela arma.
     const folha = (this.arma === 'padrao' ? 'lampiao' : `lampiao_${this.arma}`) + (this.gordo ? '_gordo' : '');

@@ -748,6 +748,9 @@ VILA_ALTA = [(3900, 104, 84, "azul", False), (4004, 88, 100, "rosa", False), (41
 TOLDOS = [(3906, 60), (4492, 60)]  # x, largura (topo em y = 152)
 CASINHA_FIM = (4748, 72, 56)  # casinha baixa para descer do telhado
 HANGAR_X = 4890
+# Arena do trem: giraus de carga da estação em dois níveis. Lá de cima o tiro
+# reto alcança a chaminé e a torre do canhão (sem depender de granada).
+GIRAUS_ARENA = [(8170, 70, 150), (8064, 78, 108)]  # x, largura, topo
 BIPLANO_X = 5175  # roda do biplano parado (virado para a direita, o rabo para o lado do hangar)
 
 # Tudo o que compõe a fase. Coordenadas do mundo; pé = y do chão onde a coisa pisa.
@@ -787,6 +790,8 @@ FASE = {
         [4290, 176, 48, 18],          # sacos de areia na rua da vila alta
         # --- campo de pouso: trincheira depois da pista
         [5700, 176, 56, 18],
+        # --- arena do trem: giraus da estação
+        *[[x, topo, w, 6, True] for x, w, topo in GIRAUS_ARENA],
     ],
     "caixotes": [
         [250, CHAO - 18], [740, CHAO - 18], [764, CHAO - 18], [752, CHAO - 36],
@@ -1001,6 +1006,11 @@ def camada_jogo():
     assentar(t, ext.barraca(84, 44, semente=2), 7280, yc + 1)
     assentar(t, ext.mastro(110), 7430, yc)
     assentar(t, ext.caixas_municao(2, 2), 7188, yc)  # munição ao pé da torre de vigia
+    # ---- Arena do trem: giraus de carga da estação (um baixo e um alto) com sacos e caixas.
+    for gx, gw, gtopo in GIRAUS_ARENA:
+        gr = girau(gw, CHAO - gtopo, semente=gx)
+        sombra_contato(t, gx + gw / 2, yc + 1, gw * 1.1, 3)
+        colar(t, gr, gx - 4, y(gtopo))
     # ---- Linha de trem no fim (arena do chefe): trilhos no chão.
     import trem as tr
     t.colar(tr.trilhos(LARGURA_FASE - 7880), 7880, y(CHAO) - 6)

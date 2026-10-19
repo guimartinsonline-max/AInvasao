@@ -16,10 +16,10 @@ export const TREM = {
   vagao: { largura: 150, altura: 92 },
   // Encaixes das partes na locomotiva (canto de cima à esquerda) e o tamanho de cada uma.
   partes: {
-    mg: { x: 2, y: 58, largura: 16, altura: 30, vida: 30, pontos: 1000 },
-    chamine: { x: 34, y: 2, largura: 22, altura: 40, vida: 26, pontos: 1000 },
-    torre: { x: 156, y: 0, largura: 44, altura: 26, vida: 34, pontos: 1500 },
-    porta: { x: 8, y: 46, largura: 24, altura: 30, vida: 40, pontos: 5000 },
+    mg: { x: 2, y: 58, largura: 16, altura: 30, vida: 42, pontos: 1000 },
+    chamine: { x: 34, y: 2, largura: 22, altura: 40, vida: 36, pontos: 1000 },
+    torre: { x: 156, y: 0, largura: 44, altura: 26, vida: 48, pontos: 1500 },
+    porta: { x: 8, y: 46, largura: 24, altura: 30, vida: 56, pontos: 5000 },
   },
 };
 
@@ -137,6 +137,12 @@ export class TremBlindado {
         this.proximo.fumaca = t + (this.estado === 'chegando' ? 70 : 220);
         const ch = this.partes.chamine;
         if (ch.vivo) cena.efeitos.fumacaSobe(ch.x, ch.y - TREM.partes.chamine.altura);
+        // Válvula de segurança e apito soltando vapor de vez em quando.
+        if (Math.random() < 0.18) {
+          const v = cena.efeitos.animar('fumaca', this.x + 143, this.chao - TREM.loco.altura + 24, { anim: 'fumaca_lenta', escala: 0.7 });
+          v.setTint(0xf4f2ec);
+          cena.tweens.add({ targets: v, y: v.y - 14, duration: 600 });
+        }
         else cena.efeitos.fumaca(ch.x, ch.y - 10);
       }
     }
@@ -165,7 +171,7 @@ export class TremBlindado {
     }
     if (this.estado === 'morrendo') return;
     // Vai e vem nos trilhos; bravo (porta aberta) avança mais perto do Lampião.
-    const amplitude = this.portaAberta ? 70 : 24;
+    const amplitude = this.portaAberta ? 44 : 24; // não encosta nos giraus da arena
     const alvo = this.base - (Math.sin(t / (this.portaAberta ? 900 : 1600)) * 0.5 + 0.5) * amplitude;
     const dx = alvo - this.x;
     const anda = Phaser.Math.Clamp(dx, -60 * s, 60 * s);
@@ -195,6 +201,12 @@ export class TremBlindado {
     for (const rx of [22, 74, 108, 142]) ef.poeira(this.x + rx, this.chao, 1);
     for (const rx of [28, 122]) ef.poeira(this.x + TREM.loco.largura - 4 + rx, this.chao, 1);
     if (vel > 100) ef.faisca(this.x + 108, this.chao - 2, 2);
+    // Vapor escapando dos cilindros a cada pistonada (branco, rente aos trilhos).
+    if (Math.random() < 0.7) {
+      const v = ef.animar('fumaca', this.x + 30 - Phaser.Math.Between(0, 8), this.chao - 22, { anim: 'fumaca_lenta', escala: 0.9 });
+      v.setTint(0xf0eee8);
+      this.cena.tweens.add({ targets: v, x: v.x - Phaser.Math.Between(10, 22), duration: 500 });
+    }
     if (Math.random() < 0.4) ef.poeiraPasso(this.x + TREM.loco.largura + 10, this.chao);
   }
 

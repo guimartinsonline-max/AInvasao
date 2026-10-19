@@ -158,6 +158,17 @@ ROSTOS = {  # 20 colunas, colocado em x=7, começando na linha 7
     ],
 }
 
+# Rostos da espera (parado um tempo): bocejo, olhando para trás e suando sob o chapéu.
+_S = ROSTOS["serio"]
+ROSTOS["boceja"] = [_S[0], _S[1], _S[2], _S[3].replace("OOBWBO", "455555"), _S[4].replace("OBKBO", "OOOOO"),
+                    _S[5], _S[6], _S[7],
+                    ".....O3445OKKKKKO...",
+                    "......O334OKRRRKO...",
+                    ".......O23OKKKKO....",
+                    "........OOOOOOO....."]
+ROSTOS["olha"] = [_S[0], _S[1], _S[2], _S[3].replace("OOBWBO", "OOWBBO"), _S[4].replace("OBKBO", "OKBBO")] + _S[5:]
+ROSTOS["suor"] = list(_S)
+
 # ---------------------------------------------------------------- tronco
 TRONCO = [  # (linha, x, texto)
     (19, 11, "OOTUUTTTEOO"),

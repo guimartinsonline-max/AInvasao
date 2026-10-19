@@ -33,8 +33,9 @@ OMBRO_TRAS = (11, 22)
 
 QUADROS = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4", "corre5", "corre6",
            "pulo", "agachado", "mira_cima", "susto", "arremesso", "facada", "facada1", "mira_baixo", "recarga",
-           "morte1", "morte2", "morte3"]
-ROSTO = {"parado": "serio", "agachado": "serio", "susto": "susto", "mira_baixo": "baixo", "mira_cima": "cima"}
+           "morte1", "morte2", "morte3", "espera1", "espera2", "espera3"]
+# Espera (parado um tempo, como no Metal Slug): bocejo, olha para trás, ajeita o chapéu suando.
+ROSTO = {"espera1": "boceja", "espera2": "olha", "espera3": "suor", "parado": "serio", "agachado": "serio", "susto": "susto", "mira_baixo": "baixo", "mira_cima": "cima"}
 # Braço de trás erguido atirando a granada (por cima do ombro, como no Metal Slug).
 ARREMESSO = {"cotovelo": (4, 15), "mao": (5, 3)}
 
@@ -140,8 +141,17 @@ def cabeca(g, dy, rosto, baixa=0):
         lp.pintar(g, y + dy, x, txt)
     for k, txt in enumerate(lp.ROSTOS[rosto]):
         lp.pintar(g, 8 + k + dy + baixa, 7 + baixa, txt)
+    sobe = 0
+    if rosto == "suor":
+        # Ajeitando o chapéu: ele sobe 2 px e aparece a cabeleira; gotas de suor na testa.
+        sobe = 2
+        for k, txt in enumerate(lp.CABELO):
+            lp.pintar(g, 3 + k + dy, 7, txt)
     for k, txt in enumerate(lp.CHAPEU):
-        lp.pintar(g, 1 + k + dy + baixa, 4 + baixa, txt)
+        lp.pintar(g, 1 + k + dy + baixa - sobe, 4 + baixa, txt)
+    if rosto == "suor":
+        for yy, xx in ((9, 9), (10, 9), (12, 8), (13, 8)):
+            g[yy + dy][xx] = "B" if (yy % 3) else "W"
     global _CORPO
     _CORPO = [l[:] for l in g]  # o corpo antes de braço e arma: só ele é repintado
 

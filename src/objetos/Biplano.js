@@ -12,10 +12,10 @@ import { som } from '../som.js';
 // de trás é uma parte à parte: morto, o avião para de atirar.
 
 const Q = AVIAO.biplano;
-const VIDA = 70;
-const VIDA_ARTILHEIRO = 10;
+const VIDA = 100; // +40% (pedido do Guilherme)
+const VIDA_ARTILHEIRO = 14;
 const RABO = 0.24; // rad: inclinação parado no chão, com a bequilha apoiada
-const ACEL = 26; // px/s² taxiando
+const ACEL = 75; // px/s² taxiando (decola rápido: ninguém vence ele parado no chão)
 const VEL_DECOLA = 125;
 const VEL_VOO = 105;
 const VEL_RASANTE = 150;
@@ -109,7 +109,7 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     const cena = this.scene;
     this.estado = 'partida';
     const ef = cena.efeitos;
-    const tossir = (k, fala) => cena.time.delayedCall(300 + k * 750, () => {
+    const tossir = (k, fala) => cena.time.delayedCall(150 + k * 350, () => {
       if (this.estado !== 'partida') return;
       som('engasgo');
       this.helice = (this.helice % 3) + 1;
@@ -125,7 +125,7 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     tossir(0, 'PÓ!');
     tossir(1, 'PÓ-PÓ!');
     tossir(2, 'PUF...');
-    cena.time.delayedCall(2700, () => {
+    cena.time.delayedCall(1250, () => {
       if (this.estado !== 'partida') return;
       this.estado = 'taxi';
       this.falar('VRUUUM!', 900, 'amarelo_fogo');
@@ -310,7 +310,7 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
   }
 
   danoArtilheiro(dano, morte) {
-    if (this.artVida <= 0 || !this.vivo) return;
+    if (this.artVida <= 0 || !this.vivo || this.estado === 'pousado') return;
     const cena = this.scene;
     const a = this.artilheiro;
     this.artVida -= morte === 'facada' ? 99 : dano;
@@ -329,6 +329,12 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
   levarDano(dano, origemX, forte = false, morte = null) {
     if (!this.vivo) return;
     const cena = this.scene;
+    if (this.estado === 'pousado') {
+      // Antes da partida (durante a faixa do subchefe) a lataria só solta faísca.
+      const [fx, fy] = this.ponto(Phaser.Math.Between(-60, 20), Phaser.Math.Between(-44, -16));
+      cena.efeitos.faisca(fx, fy, 2);
+      return;
+    }
     if (morte === 'facada') dano = 5;
     this.vida -= dano;
     const [fx, fy] = this.ponto(Phaser.Math.Between(-60, 20), Phaser.Math.Between(-44, -16));

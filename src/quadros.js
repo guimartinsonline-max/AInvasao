@@ -3,7 +3,7 @@
 // Lampião pixel a pixel (tools/arte/pixel/lampiao.txt), ordem de tools/arte/exportar.py.
 const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6',
   'pulo', 'agachado', 'mira_cima', 'susto', 'arremesso', 'facada', 'facada1', 'mira_baixo', 'recarga',
-  'morte1', 'morte2', 'morte3'];
+  'morte1', 'morte2', 'morte3', 'espera1', 'espera2', 'espera3'];
 
 export const LAMPIAO = { largura: 60, altura: 72, peX: 14, peY: 63 };
 // Lampião gordo (comeu demais): mesmas folhas esticadas 5 px no meio do corpo.
