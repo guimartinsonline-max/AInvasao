@@ -6,7 +6,7 @@ import { som } from '../som.js';
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
 const ESCUDO = 6; // tiros que o escudo aguenta
 // Pontos por inimigo (como no Metal Slug, aparecem subindo quando ele cai).
-const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200, oficial: 500 };
+const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200, oficial: 500, cerebrao: 400, olheiro: 300 };
 // Quem pode se render quando o Lampião chega perto com arma pesada.
 const RENDE = new Set(['volante', 'granadeiro', 'rojao', 'metralhador']);
 const VE_DE = 130; // px: distância em que o soldado distraído percebe o Lampião
@@ -30,7 +30,17 @@ const TIPOS = {
   },
   xeremita: {
     vida: 3, velocidade: 26, alcance: 240, distancia: 130, recarga: [1500, 2400],
-    bala: 'raio', gritos: ['GLUB!', 'BZZT!', 'IIIH!', 'XERÉM!'], panico: 0,
+    bala: 'raio', gritos: ['GLUB!', 'BZZT!', 'IIIH!', 'XERÉM!'], panico: 0, alien: true,
+  },
+  // Aliens da fase 2 (tools/arte/aliens.py). Cerebrão: lesma lenta e resistente com a pistola de raio.
+  cerebrao: {
+    vida: 6, velocidade: 14, alcance: 240, distancia: 140, recarga: [1700, 2600],
+    bala: 'raio', gritos: ['BLORP!', 'SKRIII!', 'GLU-GLU!'], panico: 0, alien: true,
+  },
+  // Olheiro: para, o olho acende avisando (aviso em ms) e solta um raio reto de longe.
+  olheiro: {
+    vida: 4, velocidade: 30, alcance: 290, distancia: 180, recarga: [2300, 3200],
+    bala: 'raio', aviso: 600, gritos: ['IIIEEE!', 'KRRR!', 'HNNNG!'], panico: 0, alien: true,
   },
   // Joga banana de dinamite em arco, que explode no chão.
   granadeiro: {
@@ -180,7 +190,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     const agora = this.scene.time.now;
     if (this.queimaAte < agora) {
       this.proximaQueima = agora + QUEIMA_TICK;
-      this.grito.setText(this.tipo === 'xeremita' ? 'IIIIH!' : 'TÔ QUEIMANDO!').setPosition(this.x, this.y - 54)
+      this.grito.setText(this.cfg.alien ? 'IIIIH!' : 'TÔ QUEIMANDO!').setPosition(this.x, this.y - 54)
         .setVisible(true).setAlpha(1);
       this.scene.tweens.killTweensOf(this.grito);
       this.scene.tweens.add({ targets: this.grito, alpha: 0, delay: 700, duration: 300 });
@@ -269,7 +279,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     if (!this.vivo) return;
     const ef = this.scene.efeitos;
     if (this.distraido) this.acordar();
-    if (this.tipo !== 'xeremita') ef.sangue(this.x, this.y - 22, 6);
+    if (this.cfg.alien) ef.gosma(this.x, this.y - 22, 4);
+    else ef.sangue(this.x, this.y - 22, 6);
     if (queima) this.queimar();
     this.vida -= dano;
     this.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
@@ -295,7 +306,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.assustarColegas();
     // Sangue nas mortes (menos queimado e derretido); o xeremita espirra gosma.
     if (morte !== 'fogo' && morte !== 'derrete') {
-      if (this.tipo === 'xeremita') ef.gosma(this.x, this.y - 22, 14);
+      if (this.cfg.alien) ef.gosma(this.x, this.y - 22, 14);
       else ef.sangue(this.x, this.y - 22, morte === 'facada' ? 34 : 22);
     }
     if (this.refemAtivo) {
@@ -407,7 +418,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.gritar();
 
     cena.time.delayedCall(420, () => {
-      if (this.tipo === 'xeremita') ef.gosma(this.x, this.y - 16, 36);
+      if (this.cfg.alien) ef.gosma(this.x, this.y - 16, 36);
       else ef.poeira(this.x, this.y, 10);
       ef.faisca(this.x, this.y - 16, 6);
       this.setVisible(false);
@@ -641,7 +652,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       return;
     } else {
       this.body.setVelocityX(0);
-      this.setFrame(q.parado);
+      // O cerebrão parado fica com o cérebro pulsando.
+      this.setFrame(q.pulsa !== undefined && Math.floor(t / 380) % 2 ? q.pulsa : q.parado);
     }
     const alcanceAtaque = cfg.acao === 'golpe' ? cfg.alcanceGolpe : cfg.alcance;
     const naAltura = cfg.acao !== 'golpe' || Math.abs(j.pe - this.y) < 30;
@@ -831,11 +843,23 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       const yy = y + (k % 2 ? 1 : 0);
       cena.balasInimigas.disparar(x, yy, this.direcao, cfg.bala, j.x, j.pe - 20);
       // Toda arma inimiga anima: clarão na boca, cápsula saltando e o tranco do recuo.
-      const verde = cfg.bala === 'raio' || this.tipo === 'xeremita';
+      const verde = cfg.bala === 'raio' || cfg.alien;
       cena.efeitos.disparo(x, yy, this.direcao > 0 ? 0 : Math.PI, verde ? 'verde' : 'normal');
       if (!verde) cena.efeitos.capsula(this.x + this.direcao * (q.cano[0] - 14), y + 2, -this.direcao);
       this.recuar(cfg.rajada ? 1 : 2);
     };
+    if (cfg.aviso) {
+      // Olheiro: o olho acende (quadro de mira) avisando e só depois sai o raio.
+      this.setFrame(q.mira);
+      this.fimEstado = t + cfg.aviso + 350;
+      cena.efeitos.faiscaEm.explode(3, x, y);
+      cena.time.delayedCall(cfg.aviso, () => {
+        if (!this.vivo || this.estado !== 'atirando') return;
+        this.setFrame(q.atira);
+        tiro(0);
+      });
+      return;
+    }
     tiro(0);
     for (let k = 1; k < (cfg.rajada || 1); k++) cena.time.delayedCall(k * 110, () => tiro(k));
   }

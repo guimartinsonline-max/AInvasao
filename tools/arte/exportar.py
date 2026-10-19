@@ -111,6 +111,15 @@ folha([ini.feixe(0, h=160), ini.feixe(1, h=160)], SAIDA / "feixe.png")
 folha([ini.bode("parado"), ini.bode("mastiga"), ini.bode("abduzido")], SAIDA / "bode.png")
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
+# Aliens da fase 2 (tools/arte/aliens.py). Mesma ordem dos inimigos (parado, atira, grito,
+# anda1-4, morte, tostado, joelhos, caído, de bruços) e um extra no fim: o cérebro pulsando
+# no cerebrão e o olho acendendo (aviso do raio) no olheiro.
+import aliens as al  # noqa: E402
+for nome, f, extra in (("cerebrao", al.cerebrao, al.cerebrao(fase=1.0)), ("olheiro", al.olheiro, al.olheiro(pose="mira"))):
+    d = {p: f(pose=p) for p in ("parado", "atira", "grito", "morte")}
+    anda = [f(pose="anda", k=k) for k in range(4)]
+    folha([d["parado"], d["atira"], d["grito"]] + anda + [d["morte"], tostar(d["morte"]),
+           ajoelhar(d["morte"]), deitar(d["morte"]), deitar(d["grito"]), extra], SAIDA / f"{nome}.png")
 
 # Armas (pixel/armas_mao.txt, lidas por tools/arte/armas.py) e efeitos de tiro (tools/arte/efeitos_tiro.py).
 import efeitos_tiro as ef  # noqa: E402

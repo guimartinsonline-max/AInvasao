@@ -119,7 +119,11 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
    - **Reféns** novos: vaqueiros e romeiros levados como cobaia.
    - **Desintegrador** aparece pela primeira vez aqui, achado no laboratório.
    - O alien preso escapa no fim e chama os outros: gancho para a invasão.
-   - **Aliens aprovados (conceito em `tools/arte/aliens_conceito.py`, prévia `pixel/conceito_aliens.png`):** **cerebrão** (cérebro exposto enorme pulsando, cara pequena de três olhos com mandíbulas, corpo de lesma babando, pistola de raio) e **olheiro** (magrelo de costelas aparecendo, pernas viradas para trás, dedos longos, pescoço terminando num olho gigante com veias e pálpebra). **Os esboços estão fracos: o design final e o detalhamento precisam melhorar MUITO** (nível dos aliens do Metal Slug). Rastejador recusado.
+   - **Aliens aprovados e desenhados no nível do Metal Slug** (`tools/arte/aliens.py`, desenho por relevo: campo de altura vira luz e sombra, com brilho molhado; folhas `cerebrao.png` 60x52 e `olheiro.png` 60x60 geradas no `exportar.py`):
+     - **Cerebrão:** cérebro enorme com giros roliços, fissura, veias e gota escorrendo; cara de três olhos amarelos em órbitas vermelhas, mandíbulas de osso e boca babando; corpo de lesma verde-escuro com anéis, crista de calombos, pústulas e barriga translúcida com órgãos acesos; pistola de raio com bulbo de vidro. Lento e resistente (vida 6), atira raio verde reto; parado, o cérebro pulsa. Rasteja em 4 quadros; morre com o cérebro rachando e vazando gosma. 400 pontos.
+     - **Olheiro:** magrelo encurvado de costelas e vértebras saltadas, boca vertical na barriga, pernas de bicho (joelho para a frente, jarrete para trás), garras de quatro juntas, pescoço com anéis e olho gigante com veias, íris verde de pupila em fenda, cílios duros e pálpebra de carne. **Ataque: raio do olho** (aprovado): para, abaixa o pescoço, o olho acende com aro brilhante avisando (600 ms, `aviso` em `Inimigo.js`) e solta o raio reto na altura do peito. Vida 4, 300 pontos. Morre com o olho estourando.
+     - Comportamento em `Inimigo.js` (`TIPOS.cerebrao`, `TIPOS.olheiro`, `alien: true` = gosma no lugar de sangue, sem medo nem rendição); quadros em `src/quadros.js` (o 12 é o extra: cérebro pulsando / olho acendendo). Estão no campo de treino para testar.
+     - Rastejador recusado; esboços antigos em `aliens_conceito.py` só como histórico.
    - A cidade em dia de feira (antiga fase 2) **saiu do jogo**.
 3. Trem da Great Western: fase em movimento.
 4. Açude e casa-grande: chefe coronel.
@@ -251,6 +255,6 @@ Tudo em `src/som.js` (Web Audio):
 9. **Acabamento:** tela de título, seleção de personagem, pausa, game over com "continuar?", progresso salvo no celular.
 10. **Mais conteúdo:** fases 2 a 6, repetindo as etapas 4 a 6.
 
-**Próximo passo (conversa nova):** fase 2, a base da cratera. Começar pelo redesenho do cerebrão e do olheiro (testar uma peça, mostrar ao Guilherme e só então seguir), depois soldado contaminado, cenário dos 4 trechos, elevador, gás verde e o chefe professor injetado. Campo de treino continua no menu.
+**Próximo passo (conversa nova):** fase 2, a base da cratera. Cerebrão e olheiro prontos (no campo de treino). Seguir com o soldado contaminado (mordida e vômito verde em arco; testar uma peça e mostrar antes), depois cenário dos 4 trechos, elevador, gás verde e o chefe professor injetado. Campo de treino continua no menu.
 
 

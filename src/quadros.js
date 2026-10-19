@@ -48,6 +48,14 @@ INIMIGOS.xeremita.facada = [9, 10];
 // De bruços com a mão na cabeça (granada caiu perto).
 for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial']) INIMIGOS[tipo].brucos = 13;
 INIMIGOS.xeremita.brucos = 11;
+// Aliens da fase 2 (tools/arte/aliens.py): mesma ordem de quadros dos inimigos e um extra
+// no 12 (cerebrão: cérebro pulsando parado; olheiro: olho acendendo antes do raio).
+INIMIGOS.cerebrao = { largura: 60, altura: 52, peX: 30, peY: 50, corpoL: 26, corpoA: 44,
+  parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [27, 12],
+  facada: [9, 10], brucos: 11, pulsa: 12 };
+INIMIGOS.olheiro = { largura: 60, altura: 60, peX: 27, peY: 58, corpoL: 16, corpoA: 50,
+  parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [26, 33],
+  facada: [9, 10], brucos: 11, mira: 12 };
 // Cenas cômicas da Volante comum antes de ver o Lampião (tools/arte/caricatos.py).
 INIMIGOS.volante.cenas = { truco: [14, 15], cozinha: [16, 17], foto: [18, 19] };
 // Objetos das cenas cômicas (tools/arte/cenas_comicas.py).

@@ -114,9 +114,15 @@ def cerebro(t, cx, cy, rx, ry, fase=0.0, semente=5):
     return m
 
 
-def cerebrao(fase=0.0):
+def cerebrao(fase=0.0, pose="parado", k=0):
     """Cerebrão: cérebro exposto enorme, cara de três olhos com mandíbulas,
-    corpo de lesma babando, bracinhos com a pistola de raio. Olha para a direita."""
+    corpo de lesma babando, bracinhos com a pistola de raio. Olha para a direita.
+    pose: parado, anda (k 0-3, rasteja), atira (tranco e bulbo aceso), grito, morte."""
+    anda = pose == "anda"
+    berra = pose in ("grito", "morte")
+    cauda = 4 + ((0, 2, 3, 1)[k] if anda else 0)
+    ph = fase * 0.6 + (k * 1.57 if anda else 0)
+    rx_ = -1.5 if pose == "atira" else 0
     t = Tela(60, 52)
     chao = 50
     xx, yy = t.xx, t.yy
@@ -132,13 +138,13 @@ def cerebrao(fase=0.0):
         t.ponto(x, chao, "alien_luz")
 
     # Corpo de lesma: rabo comprido à esquerda subindo para o tronco à direita.
-    rabo = t.capsula(4, chao - 3, 29, chao - 7, 3, 8.5)
+    rabo = t.capsula(cauda, chao - 3, 29, chao - 7, 3, 8.5)
     tronco = t.capsula(30, chao - 8, 37, 30, 8.5, 7)
     saia = t.elipse(22, chao - 2, 20, 3.5) & (yy < chao)
     corpo = (rabo | tronco | saia) & (yy < chao + 0.5)
     H = suave(corpo, 2.6) * 6
     s_ = xx * 0.9 - yy * 0.45
-    H = H + np.clip(np.sin(s_ * 1.05 + fase * 0.6), -0.2, 1) * 1.1 * suave(corpo, 1.5)
+    H = H + np.clip(np.sin(s_ * 1.05 + ph), -0.2, 1) * 1.1 * suave(corpo, 1.5)
     H = H + ruido(corpo.shape, 0.8, 21) * 0.35
     relevo(t, corpo, H, ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"],
            ambiente=-0.42, contraste=1.2, brilho=1.2, dither=False)
@@ -149,12 +155,12 @@ def cerebrao(fase=0.0):
         cm = t.elipse(bx, by + 0.6, 1.4, 1.0)
         relevo(t, cm, domo(t, bx, by, 1.5, 1.2) * 2.5, ["alien_profundo", "alien_esc", "alien_medio", "alien_luz", "alien_brilho"],
                ambiente=0.0, brilho=1.6)
-    dobra = corpo & (np.sin(s_ * 1.05 + fase * 0.6) < -0.8) & (suave(corpo, 1.5) > 0.6)
+    dobra = corpo & (np.sin(s_ * 1.05 + ph) < -0.8) & (suave(corpo, 1.5) > 0.6)
     t.px[dobra] = IDX["alien_profundo"]
     # Pé ondulado embaixo.
     pe = saia & (yy > chao - 2.5) & corpo
     t.chapado(pe, "alien_esc")
-    t.chapado(pe & (np.sin(xx * 1.4 + fase) > 0.3) & (yy > chao - 1.5), "alien_medio")
+    t.chapado(pe & (np.sin(xx * 1.4 + ph * 1.6) > 0.3) & (yy > chao - 1.5), "alien_medio")
     # Barriga translúcida com órgãos brilhando.
     barriga = t.elipse(36, 41, 4.2, 6.5) & corpo
     parte(barriga, ["alien_esc", "alien_medio", "alien", "alien_luz", "alien_brilho"], s=1.4, alt=4, amb=0.2, br=1.2)
@@ -186,12 +192,15 @@ def cerebrao(fase=0.0):
     relevo(t, cara, domo(t, 41, 28.5, 7, 6) * 4, CARNE, ambiente=0.4, brilho=1.0)
     # Rugas da testa.
     # Mandíbulas de quitina abertas.
-    for pts in (((43, 31.5), (47.5, 33), (48, 37.5)), ((38.5, 32), (39.5, 36.5), (44, 38))):
+    mands = ((((43, 31.5), (49, 31), (50.5, 35)), ((38.5, 32), (37.5, 37), (41, 39.5))) if berra
+             else (((43, 31.5), (47.5, 33), (48, 37.5)), ((38.5, 32), (39.5, 36.5), (44, 38))))
+    for pts in mands:
         for a, b in zip(pts, pts[1:]):
             parte(t.capsula(a[0], a[1], b[0], b[1], 1.5, 0.55), ["sombra", "cinza_escuro", "cinza", "cinza_luz", "cinza_claro", "branco"], s=0.6, alt=2.5, amb=0.1, br=1.6)
     # Boca redonda com dentinhos e baba.
-    t.chapado(t.elipse(43.5, 32.8, 2.1, 1.5), "preto")
-    t.chapado(t.elipse(43.5, 33.2, 1.2, 0.7), "vermelho_esc")
+    bb = 1.7 if berra else 1.0
+    t.chapado(t.elipse(43.5, 32.8 + (bb - 1), 2.1 * min(bb, 1.3), 1.5 * bb), "preto")
+    t.chapado(t.elipse(43.5, 33.2 + (bb - 1) * 1.5, 1.2, 0.7 * bb), "vermelho_esc")
     for x in (42, 43.5, 45):
         t.ponto(x, 31.6, "cinza_claro")
     t.linha(44, 34, 44, 39, "alien_luz")
@@ -205,38 +214,60 @@ def cerebrao(fase=0.0):
         relevo(t, bola, domo(t, x, y, r, r) * 3, ["cinza", "cinza_luz", "cinza_claro", "branco", "branco"],
                ambiente=0.3, brilho=1.0, linha=False)
         ix = x + olhar * r * 0.35
-        t.chapado(t.elipse(ix, y + 0.2, r * 0.65, r * 0.72) & bola, "amarelo_fogo")
-        t.chapado(t.elipse(ix + 0.15, y + 0.2, max(r * 0.22, 0.5), r * 0.6) & bola, "preto")
+        if pose == "morte":
+            t.chapado(t.elipse(x, y + r * 0.6, r * 0.6, r * 0.35) & bola, "amarelo_claro")
+        elif pose == "grito":
+            t.chapado(t.elipse(ix, y, r * 0.4, r * 0.45) & bola, "amarelo_fogo")
+            t.ponto(ix, y, "preto")
+        else:
+            t.chapado(t.elipse(ix, y + 0.2, r * 0.65, r * 0.72) & bola, "amarelo_fogo")
+            t.chapado(t.elipse(ix + 0.15, y + 0.2, max(r * 0.22, 0.5), r * 0.6) & bola, "preto")
         t.ponto(x - r * 0.4, y - r * 0.4, "branco")
-        pal = t.elipse(x, y - r * 0.75, r + 1.0, r * 0.5) & orb
+        pal = t.elipse(x, y - r * (1.1 if pose == "grito" else 0.75), r + 1.0, r * 0.5) & orb
         relevo(t, pal, suave(pal, 0.5) * 2, CARNE, ambiente=0.15, linha=False)
     olho(42, 28.2, 2.6)
     olho(37, 29, 1.7)
     olho(46.3, 28.8, 1.6)
 
     # Cérebro enorme por cima, inclinado para a frente.
+    fase = 1.6 if berra else fase
     cerebro(t, 29, 12.5 - fase * 0.4, 16 + fase * 0.7, 11 + fase * 0.6, fase=fase)
+    if pose == "morte":
+        # Cérebro rachando: fendas escuras com gosma verde vazando.
+        for (x0, y0, pts) in ((24, 3, ((26, 7), (24, 11), (27, 15))), (35, 5, ((33, 9), (36, 13), (34, 17)))):
+            xa, ya = x0, y0
+            for (xb, yb) in pts:
+                t.linha(xa, ya, xb, yb, "preto")
+                t.linha(xa + 1, ya, xb + 1, yb, "alien")
+                xa, ya = xb, yb
+        for (gx, gy) in ((27, 16), (34, 18), (20, 20)):
+            t.linha(gx, gy, gx, gy + 3, "alien_luz")
+            t.ponto(gx, gy + 4, "alien_brilho")
     # Gota de líquido escorrendo de baixo do cérebro.
     t.linha(21, 21, 21, 24 + int(fase * 2), "rosa_poeira")
     t.ponto(21, 25 + int(fase * 2), "pele_brilho")
 
     # Braço da frente estendido com a pistola de raio.
-    braco([(38, 37), (43, 42), (48, 40)], 1.5)
-    corpo_p = t.capsula(47, 39, 54, 39, 2.3, 1.7)
+    braco([(38, 37), (43 + rx_ * 0.5, 42), (48 + rx_, 40)], 1.5)
+    corpo_p = t.capsula(47 + rx_, 39, 54 + rx_, 39, 2.3, 1.7)
     parte(corpo_p, METAL, s=0.7, alt=3, amb=0.1, br=1.5)
-    for x in (50, 52):
+    for x in (50 + rx_, 52 + rx_):
         t.linha(x, 37, x, 41, "cinza_escuro")
-    bulbo = t.elipse(49.5, 36.3, 2.4, 2.0)
-    relevo(t, bulbo, domo(t, 49.5, 36.3, 2.4, 2.0) * 3, VIDRO, ambiente=0.3, brilho=2.0)
-    t.ponto(49, 36, "alien_brilho")
-    cano = t.retangulo(54, 38, 4, 2)
+    bulbo = t.elipse(49.5 + rx_, 36.3, 2.4, 2.0)
+    relevo(t, bulbo, domo(t, 49.5 + rx_, 36.3, 2.4, 2.0) * 3, VIDRO, ambiente=0.3, brilho=2.0)
+    t.ponto(49 + rx_, 36, "alien_brilho")
+    cano = t.retangulo(54 + rx_, 38, 4, 2)
     parte(cano, METAL, s=0.5, alt=2, amb=0.2)
-    t.ponto(58, 38, "alien_brilho")
-    t.ponto(58, 39, "alien")
-    parte(t.capsula(48, 40, 47, 43.5, 1.1), QUITINA, s=0.5, alt=2)
+    t.ponto(58 + rx_, 38, "alien_brilho")
+    t.ponto(58 + rx_, 39, "alien")
+    parte(t.capsula(48 + rx_, 40, 47 + rx_, 43.5, 1.1), QUITINA, s=0.5, alt=2)
     for k in range(3):
-        parte(t.capsula(47.5, 40 + k, 49.5, 41 + k * 1.1, 0.6), LESMA, s=0.5, alt=2, amb=0.05)
+        parte(t.capsula(47.5 + rx_, 40 + k, 49.5 + rx_, 41 + k * 1.1, 0.6), LESMA, s=0.5, alt=2, amb=0.05)
 
+    if pose == "atira":
+        # Bulbo aceso descarregando.
+        t.chapado(t.elipse(49.5 + rx_, 36.3, 1.6, 1.3), "alien_brilho")
+        t.ponto(49 + rx_, 35.5, "branco")
     t.contorno("sombra")
     return t
 
@@ -245,10 +276,33 @@ PELE_O = ["sombra", "sombra_media", "azul_sombra", "cinza_escuro", "cinza_medio"
 JUNTA = ["roxo_escuro", "vermelho_esc", "rosa_poeira", "pele_luz", "pele_brilho"]
 
 
-def olheiro(fase=0.0):
+def olheiro(fase=0.0, pose="parado", k=0):
     """Olheiro: magrelo encurvado de costelas aparecendo, pernas viradas para trás,
     dedos compridos, boca vertical na barriga e o pescoço terminando num olho gigante
-    com veias e pálpebra. Olha para a direita. fase: 0 parado, 1 passo/piscada."""
+    com veias e pálpebra. Olha para a direita. fase: 0 parado, 1 passo/piscada.
+    pose: parado, anda (k 0-3), mira (olho acendendo, avisa), atira (raio saindo), grito, morte."""
+    ciclo = ((2, -2), (0.5, -0.5), (-2, 2), (-0.5, 0.5))
+    pf, pb = ciclo[k] if pose == "anda" else ((1.5 * fase, -1.5 * fase) if pose == "parado" else (0, 0))
+    mirando = pose in ("mira", "atira")
+    if mirando:
+        pesc, (ex, ey) = [(28, 19), (32, 18.5), (36, 20), (40, 22)], (45.5, 25)
+        mao, garras, dedao = (40, 33), ((5, -3, 8, -3.5), (5.5, 0, 8.5, 1), (4, 3, 6.5, 5)), (1, 4, 2, 6)
+        braco_f = [(30, 21), (35, 28), (40, 33)]
+    elif pose == "grito":
+        pesc, (ex, ey) = [(28, 19), (27.5, 14.5), (29, 11.5), (31, 9)], (35, 8.5)
+        mao, garras, dedao = (45, 17), ((3, -6, 4, -9), (5, -5, 7, -7), (6, -2, 9, -3)), (2, 2, 4, 3)
+        braco_f = [(30, 21), (38, 22), (45, 17)]
+    elif pose == "morte":
+        pesc, (ex, ey) = [(28, 19), (31, 17), (34, 17), (37, 16)], (41, 13)
+        mao, garras, dedao = (41, 29), ((4, 2, 6, 5), (3, 3, 4.5, 6.5), (1.5, 3.5, 2, 7)), (0, 3, 0.5, 5)
+        braco_f = [(30, 21), (36, 27), (41, 29)]
+    else:
+        pesc, (ex, ey) = [(28, 19), (30, 15.5), (33, 14), (36, 12.5)], (41, 9)
+        mao, garras, dedao = (42, 26), ((5, -4, 8, -5), (6, -1, 9, -0.5), (5, 2, 7.5, 4)), (1.5, 3.5, 3, 5)
+        braco_f = [(30, 21), (36, 27), (42, 26)]
+    fecha = {"mira": 0.12, "atira": 0.06, "grito": 0.0, "morte": 0.55}.get(pose, 0.2 + 0.4 * fase)
+    if pose == "anda" and k == 2:
+        fecha = 0.3
     t = Tela(60, 60)
     chao = 58
     xx, yy = t.xx, t.yy
@@ -268,16 +322,15 @@ def olheiro(fase=0.0):
     t.chapado(t.elipse(28, chao + 0.4, 13, 1.3) & (yy > chao - 0.6), "couro_profundo")
 
     # Perna de trás (mais escura): quadril, joelho para trás, jarrete, pé de dedos.
-    p = 1.5 * fase
     # (joelho para a frente, jarrete para trás, pé de dedos compridos: perna de bicho)
-    osso([(23, 37), (26 - p, 44), (19 - p, 50), (21 - p, chao - 1)], 1.6, 0.9, amb=-0.12)
+    osso([(23, 37), (26 + pb, 44), (19 + pb, 50), (21 + pb, chao - 1)], 1.6, 0.9, amb=-0.12)
     for dx in (3, 5):
-        osso([(21 - p, chao - 1), (21 - p + dx, chao - 0.4)], 0.7, 0.45, amb=-0.12)
+        osso([(21 + pb, chao - 1), (21 + pb + dx, chao - 0.4)], 0.7, 0.45, amb=-0.12)
     # Perna da frente.
-    osso([(25, 37), (30 + p, 43), (25 + p, 50), (27 + p, chao - 1)], 1.8, 1.0, amb=0.18)
-    for k, dx in enumerate((3, 5, 6)):
-        osso([(27 + p, chao - 1), (27 + p + dx, chao - 0.4 + (k == 2) * 0.3)], 0.75, 0.45, amb=0.18)
-    t.ponto(33.5 + p, chao, "cinza_claro")
+    osso([(25, 37), (30 + pf, 43), (25 + pf, 50), (27 + pf, chao - 1)], 1.8, 1.0, amb=0.18)
+    for j, dx in enumerate((3, 5, 6)):
+        osso([(27 + pf, chao - 1), (27 + pf + dx, chao - 0.4 + (j == 2) * 0.3)], 0.75, 0.45, amb=0.18)
+    t.ponto(33.5 + pf, chao, "cinza_claro")
 
     # Braço de trás pendurado, compridíssimo.
     osso([(24, 23), (17, 29), (15, 37)], 1.3, 0.85, amb=-0.12)
@@ -322,24 +375,27 @@ def olheiro(fase=0.0):
     t.ponto(bx + 0.5, by + 7, "alien_brilho")
 
     # Pescoço comprido em S, com anéis de cartilagem, até o olho.
-    pesc = [(28, 19), (30, 15.5), (33, 14), (36, 12.5)]
     for a, b in zip(pesc, pesc[1:]):
         m = t.capsula(a[0], a[1], b[0], b[1], 2.1, 1.8)
         relevo(t, m, suave(m, 0.8) * 3, PELE_O, ambiente=0.18, brilho=0.7, dither=False)
-    for (ax, ay) in ((29.2, 17), (31.5, 14.6)):
-        t.linha(ax - 1.2, ay - 1.4, ax + 1, ay + 1.4, "azul_sombra")
-    t.linha(28, 17, 31, 13.6, "cinza_luz")
+    for (a, b) in zip(pesc[:2], pesc[1:3]):
+        mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        L = math.hypot(dx, dy) or 1
+        t.linha(mx - dy / L * 1.6, my + dx / L * 1.6, mx + dy / L * 1.6, my - dx / L * 1.6, "azul_sombra")
+    t.linha(pesc[0][0], pesc[0][1] - 2, pesc[1][0], pesc[1][1] - 1.8, "cinza_luz")
 
     # Braço da frente esticado, garras de quatro juntas abertas.
-    osso([(30, 21), (36, 27), (42, 26)], 1.7, 1.1, amb=0.18)
-    garras = ((47, 22, 50, 21), (48, 25, 51, 25.5), (47, 28, 49.5, 30))
-    for (x1, y1, x2, y2) in garras:
-        osso([(42, 26), (x1, y1), (x2, y2)], 0.7, 0.45, amb=0.2, br=0.8)
+    osso(braco_f, 1.7, 1.1, amb=0.18)
+    hx, hy = mao
+    for (a1, b1, a2, b2) in garras:
+        x1, y1, x2, y2 = hx + a1, hy + b1, hx + a2, hy + b2
+        osso([(hx, hy), (x1, y1), (x2, y2)], 0.7, 0.45, amb=0.2, br=0.8)
         t.ponto(x2 + (x2 - x1) * 0.3, y2 + (y2 - y1) * 0.3, "cinza_claro")
-    osso([(42, 26), (43.5, 29.5), (45, 31)], 0.65, 0.45, amb=0.2)
+    osso([(hx, hy), (hx + dedao[0], hy + dedao[1]), (hx + dedao[2], hy + dedao[3])], 0.65, 0.45, amb=0.2)
 
     # Olho gigante na ponta do pescoço: órbita de carne, esclera com veias, íris verde.
-    ex, ey, r = 41, 9, 7.5
+    r = 7.5
     orb = t.elipse(ex - 0.5, ey + 0.3, r + 1.6, r + 1.4)
     relevo(t, orb, domo(t, ex - 0.5, ey + 0.3, r + 1.6, r + 1.4) * 3, JUNTA, ambiente=0.0, brilho=0.6)
     bola = t.elipse(ex, ey, r, r)
@@ -358,18 +414,25 @@ def olheiro(fase=0.0):
                 t.px[yi, xi] = IDX[cor]
     ix, iy = ex + 2.8, ey + 0.8
     iris = t.elipse(ix, iy, 4.0, 4.2) & bola
-    relevo(t, iris, domo(t, ix, iy, 4.0, 4.2) * 2,
-           ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"], ambiente=0.0, linha=False)
+    if pose == "morte":
+        rampa_i = ["cinza_escuro", "cinza_medio", "cinza", "cinza_luz", "cinza_claro"]
+    elif mirando:
+        rampa_i = ["alien_medio", "alien", "alien_luz", "alien_brilho", "amarelo_claro"]
+    else:
+        rampa_i = ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"]
+    relevo(t, iris, domo(t, ix, iy, 4.0, 4.2) * 2, rampa_i, ambiente=0.0, linha=False)
     # Raios da íris.
     for k in range(10):
         a = k * math.pi / 5
         t.ponto(ix + math.cos(a) * 3, iy + math.sin(a) * 3.2, "alien_profundo")
-    t.chapado(t.elipse(ix + 0.3, iy, 1.1, 2.6) & bola, "preto")
+    pup = {"grito": (0.6, 0.9), "atira": (0.5, 1.4), "mira": (0.8, 2.0), "morte": (1.6, 1.6)}.get(pose, (1.1, 2.6))
+    t.chapado(t.elipse(ix + 0.3, iy, pup[0], pup[1]) & bola, "preto" if pose != "morte" else "cinza_escuro")
+    if pose == "atira":
+        t.chapado(t.elipse(ix + 0.3, iy, 2.2, 2.4) & bola & (t.px != IDX["preto"]), "branco")
     t.ponto(ix - 1.8, iy - 2, "branco")
     t.ponto(ix - 1.2, iy - 2, "branco")
     t.ponto(ix - 1.8, iy - 1.3, "branco")
     # Pálpebras de carne: a de cima pesada (fecha mais no quadro 1), a de baixo inchada.
-    fecha = 0.2 + 0.4 * fase
     pal = t.elipse(ex - 0.5, ey - r * (1 - 2 * fecha) - r, r + 1.7, r + 0.4) & orb
     relevo(t, pal, suave(pal, 0.8) * 3, JUNTA, ambiente=0.1, brilho=1.0)
     borda = pal & ~ndimage.binary_erosion(pal) & bola
@@ -381,6 +444,17 @@ def olheiro(fase=0.0):
         cx_ = ex - 5 + k * 2.6
         cy_ = ey - r * (1 - 2 * fecha) - 0.8 - math.sin(k / 4 * math.pi) * 1.2
         t.linha(cx_, cy_, cx_ + 0.6, cy_ - 2.2, "sombra")
+    if pose == "mira":
+        # Brilho em volta do olho avisando o raio.
+        aro = t.elipse(ex - 0.5, ey + 0.3, r + 2.6, r + 2.4) & ~t.elipse(ex - 0.5, ey + 0.3, r + 1.7, r + 1.5)
+        t.px[aro & (np.sin((t.xx + t.yy) * 1.3) > 0.2)] = IDX["alien_brilho"]
+    if pose == "morte":
+        # Olho estourando: rachaduras e gosma escorrendo.
+        for (a, b, c, d) in ((ex - 2, ey - 3, ex + 1, ey + 1), (ex + 1, ey + 1, ex - 1, ey + 5), (ex + 1, ey + 1, ex + 5, ey)):
+            t.linha(a, b, c, d, "vermelho_esc")
+        for gx in (ex - 3, ex + 2, ex + 5):
+            t.linha(gx, ey + 5, gx, ey + 10, "alien_luz")
+            t.ponto(gx, ey + 11, "alien_brilho")
     # Lágrima de gosma.
     t.linha(ex + r - 1, ey + 4, ex + r - 0.5, ey + 7, "alien_luz")
     t.ponto(ex + r - 0.5, ey + 8, "alien_brilho")
