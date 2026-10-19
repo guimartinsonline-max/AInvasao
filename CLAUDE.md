@@ -34,6 +34,8 @@ O governo manda a Volante (a força militar que caçava cangaceiros) para conter
 
 Na reta final, a Volante é dominada pelos alienígenas e o comandante pede trégua. Os cangaceiros salvam o sertão, que nunca vai agradecer.
 
+**Virada de tom (19/10):** a história fica mais séria e bizarra, como no Metal Slug. **Todos os alienígenas são ameaça** e o visual deles fica bizarro (carne, olhos demais, corpo errado), inspirado no clima dos aliens do Metal Slug, com desenhos nossos. O disco que cai no fim da fase 1 abre a fase 2.
+
 **Elementos aprovados:**
 - Coronel traidor: fez pacto com os alienígenas em troca da água do açude. Chefe dentro de uma casa-grande que vira robô.
 - Beato do fim do mundo: prega que os alienígenas são anjos e é possuído por eles. Chefe com romeiros hipnotizados.
@@ -101,7 +103,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Trem redesenhado no nível do Metal Slug** (`trem.py`): cabine com janelas acesas e o maquinista em contraluz, placa "07" de latão, escada e lanterna; caldeira com reflexo, cintas, saia blindada, corrimão, canos de cobre com flanges, válvulas vermelhas, bomba de ar, sino, apito, arame farpado e sacos; farol grande, placa redonda, estribo e limpa-trilhos listrados; rodas com contrapeso e manivelas. Vagão com janelas acesas e a tropa, ninho de metralhadora de sacos, caixotes, tambor, lona, letreiro e truques com molas. Chaminé com cintas e tela de faíscas; torre com canhão de freio de boca, artilheiro espiando e flâmula. Vapor saindo dos cilindros e da válvula.
 - **Barril de querosene detalhado** (`objetos.py`): cilindro com luz de lado, aros salientes, tampa com bujão e respiro, losango de inflamável, tinta descascada, ferrugem, amassado e mancha na base; furado esguicha querosene.
 - **Projéteis em arco** (dinamite, rojão, obus, carvão do trem, bomba do biplano) atravessam plataformas de um lado só: girau e telhado não protegem quem está embaixo nem seguram o tiro do trem.
-- **Transformação** (além do gordo): fica para a fase 3. Recusados: Maria Bonita agora; faixa com o nome da arma pega.
+- **Transformação** (além do gordo): virou o gás verde da fase 2. Recusados: Maria Bonita agora; faixa com o nome da arma pega.
 
 ## Fases (rascunho aprovado)
 
@@ -109,7 +111,15 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
    - **Chefe: trem blindado "A JARARACA"** (`tools/arte/trem.py`, `src/objetos/Trem.js`): locomotiva da Great Western blindada com vagão de soldados; entra pelos trilhos e apita. Partes que quebram separadas: metralhadoras do limpa-trilhos (avisam e atiram ALTO, agacha, ou BAIXO, pula), chaminé (cospe carvão em brasa em arco), torre do canhão (obus). Sem metralhadoras e chaminé, a porta da fornalha abre (ponto fraco) e o trem avança e recua; porta arrebentada explode a caldeira em cadeia.
    - **Cenário vivo** (`src/objetos/Ambiente.js`): urubus que voam quando o Lampião chega, galinhas que fogem do tiro e viram galinha assada no fogo (800), varal que a explosão arrebenta, casas da vila que perdem o telhado, ponte que a granada quebra por pedaços.
    - **Comidas** (`tools/arte/comidas.py`): cajá 100, rapadura 300, queijo coalho 500, galinha assada 800, cuscuz 1000, buchada 2000. Saem de caixotes e reféns.
-2. Cidade do interior em dia de feira: invasão e chegada da Volante.
+2. **Base da cratera** (aprovada em 19/10, mais detalhada que a fase 1; ainda sem ETs soltos): a Volante montou uma base improvisada em volta do disco caído.
+   - Trechos: **borda da cratera** (caatinga queimada, pedra derretida virando vidro, árvores secas tortas, bichos mortos, arame farpado e cancelas); **acampamento da base** (barracas, guindaste de madeira, caminhões com pedaços do disco, holofotes, geradores, soldados de máscara contra gás); **descida da cratera** num **elevador de carga** (andaimes nas paredes, soldados pulando no elevador, o disco enorme meio enterrado soltando fumaça verde); **laboratório dentro do casco do disco** (tubos com bichos do sertão deformados, máquinas de válvula, papelada e, ao fundo, um alien vivo preso na maca).
+   - **Chefe: o professor injetado** (opção B): médico que se aplicou o sangue do alien e vira monstro durante a luta (começa humano atirando, termina um bicho de carne com tentáculos e olho de alien).
+   - **Soldados contaminados:** quem mexeu na carcaça fica de pele verde e olho brilhando (inimigo novo, como os zumbis do Metal Slug).
+   - **Gás verde** em trechos: quem respira fica "contaminado" uns segundos (lento, tiro fraco). É a transformação que estava prevista para a fase 3.
+   - **Reféns** novos: vaqueiros e romeiros levados como cobaia.
+   - **Desintegrador** aparece pela primeira vez aqui, achado no laboratório.
+   - O alien preso escapa no fim e chama os outros: gancho para a invasão.
+   - **A definir:** onde fica a cidade em dia de feira (era a fase 2).
 3. Trem da Great Western: fase em movimento.
 4. Açude e casa-grande: chefe coronel.
 5. Romaria: chefe beato.
