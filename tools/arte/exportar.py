@@ -120,6 +120,15 @@ for nome, f, extra in (("cerebrao", al.cerebrao, al.cerebrao(fase=1.0)), ("olhei
     anda = [f(pose="anda", k=k) for k in range(4)]
     folha([d["parado"], d["atira"], d["grito"]] + anda + [d["morte"], tostar(d["morte"]),
            ajoelhar(d["morte"]), deitar(d["morte"]), deitar(d["grito"]), extra], SAIDA / f"{nome}.png")
+# Soldado contaminado (tools/arte/contaminado.py): mesma ordem dos inimigos; a morte na
+# peixeira e a de bala usam o corpo sem cabeça. Extras: 12 mordida, 13-14 andando sem cabeça.
+import contaminado as ct  # noqa: E402
+sem = [ct.contaminado("anda", k, cabeca=False) for k in (0, 2)]
+folha([ct.contaminado("parado"), ct.contaminado("vomita"), ct.contaminado("grito")]
+      + [ct.contaminado("anda", k) for k in range(4)]
+      + [ct.contaminado("morte"), tostar(ct.contaminado("morte")), ajoelhar(sem[0]), deitar(sem[0]),
+         deitar(ct.contaminado("grito")), ct.contaminado("morde")] + sem, SAIDA / "contaminado.png")
+ct.cabeca_solta().salvar(SAIDA / "cabeca_contaminado.png")
 
 # Armas (pixel/armas_mao.txt, lidas por tools/arte/armas.py) e efeitos de tiro (tools/arte/efeitos_tiro.py).
 import efeitos_tiro as ef  # noqa: E402

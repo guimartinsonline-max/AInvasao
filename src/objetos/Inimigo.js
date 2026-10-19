@@ -6,7 +6,7 @@ import { som } from '../som.js';
 // Comportamento por tipo. Distâncias em pixels, tempos em ms.
 const ESCUDO = 6; // tiros que o escudo aguenta
 // Pontos por inimigo (como no Metal Slug, aparecem subindo quando ele cai).
-const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200, oficial: 500, cerebrao: 400, olheiro: 300 };
+const PONTOS = { volante: 100, granadeiro: 150, facao: 150, rojao: 200, metralhador: 300, xeremita: 200, oficial: 500, cerebrao: 400, olheiro: 300, contaminado: 200 };
 // Quem pode se render quando o Lampião chega perto com arma pesada.
 const RENDE = new Set(['volante', 'granadeiro', 'rojao', 'metralhador']);
 const VE_DE = 130; // px: distância em que o soldado distraído percebe o Lampião
@@ -36,6 +36,12 @@ const TIPOS = {
   cerebrao: {
     vida: 6, velocidade: 14, alcance: 240, distancia: 140, recarga: [1700, 2600],
     bala: 'raio', gritos: ['BLORP!', 'SKRIII!', 'GLU-GLU!'], panico: 0, alien: true,
+  },
+  // Soldado contaminado (fase 2): anda cambaleando para cima do Lampião, vomita gosma em
+  // arco de longe e morde de perto. Morre de bala sem cabeça (anda uns passos e cai).
+  contaminado: {
+    vida: 3, velocidade: 20, alcance: 170, distancia: 0, recarga: [1700, 2600], acao: 'contaminado',
+    alcanceGolpe: 22, gritos: ['GRRAAH!', 'UUURGH!', 'BLÉÉÉ!'], panico: 0, alien: true, semCabeca: true,
   },
   // Olheiro: para, o olho acende avisando (aviso em ms) e solta um raio reto de longe.
   olheiro: {
@@ -341,6 +347,11 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
         this.body.allowGravity = true;
       });
       cena.time.delayedCall(2600, () => this.renascer());
+      return;
+    }
+    if (this.cfg.semCabeca && !forte && !['arremessa', 'derrete'].includes(morte)) {
+      // Contaminado: a cabeça sai e o corpo ainda anda (bala, peixeira, Papo-amarelo).
+      this.morrerSemCabeca(lado);
       return;
     }
     if (morte === 'facada') {
@@ -656,6 +667,12 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       this.setFrame(q.pulsa !== undefined && Math.floor(t / 380) % 2 ? q.pulsa : q.parado);
     }
     const alcanceAtaque = cfg.acao === 'golpe' ? cfg.alcanceGolpe : cfg.alcance;
+    // O contaminado morde quem chega colado, sem esperar a recarga do vômito.
+    if (cfg.acao === 'contaminado' && !foraDaTela && dist < cfg.alcanceGolpe && Math.abs(j.pe - this.y) < 24
+      && !j.morto && t > (this.proximaMordida || 0) && this.body.blocked.down) {
+      this.morder(t);
+      return;
+    }
     const naAltura = cfg.acao !== 'golpe' || Math.abs(j.pe - this.y) < 30;
     if (!foraDaTela && dist < alcanceAtaque && naAltura && !j.morto && t > this.proximoTiro
       && this.body.blocked.down) {
@@ -799,6 +816,75 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.setX(this.x - this.direcao * px);
   }
 
+  // Mordida do contaminado: bote para a frente com a bocarra aberta.
+  morder(t) {
+    const cena = this.scene;
+    const j = cena.jogador;
+    this.estado = 'atirando';
+    this.fimEstado = t + 420;
+    this.proximaMordida = t + 900;
+    this.setFrame(this.q.morde);
+    this.setX(this.x + this.direcao * 4);
+    this.falar('NHAC!', 400);
+    cena.efeitos.tremer(0.003, 60);
+    if (!j.morto && !j.invulneravel && (j.x - this.x) * this.direcao > -6 && Math.abs(j.x - this.x) < this.cfg.alcanceGolpe + 6
+      && Math.abs(j.pe - this.y) < 24) {
+      cena.efeitos.sangue(j.x, j.pe - 30, 8);
+      j.morrer(this.direcao * 160);
+    }
+  }
+
+  // Morte de bala do contaminado: a cabeça voa girando e o corpo anda uns passos
+  // tontos com o pescoço jorrando gosma (o tumor ainda olhando), depois desaba.
+  morrerSemCabeca(lado) {
+    const cena = this.scene;
+    const ef = cena.efeitos;
+    const q = this.q;
+    this.setFrame(q.semCabeca[0]).setRotation(0);
+    this.body.setVelocity(0, 0);
+    ef.parar(60);
+    ef.gosma(this.x + this.direcao * 4, this.y - 34, 26);
+    if (!this.cabecaSolta) this.cabecaSolta = cena.add.image(0, 0, 'cabeca_contaminado').setDepth(16);
+    const cab = this.cabecaSolta;
+    cena.tweens.killTweensOf(cab);
+    const x0 = this.x + this.direcao * 6;
+    const y0 = this.y - 32;
+    const xf = x0 + lado * Phaser.Math.Between(30, 50);
+    cab.setPosition(x0, y0).setVisible(true).setAlpha(1).setRotation(0).setFlipX(this.direcao < 0);
+    cena.tweens.add({ targets: cab, x: xf, duration: 650, ease: 'Linear' });
+    cena.tweens.add({ targets: cab, y: y0 - 34, duration: 280, ease: 'Quad.easeOut', yoyo: false,
+      onComplete: () => cena.tweens.add({ targets: cab, y: this.scene.chaoAbaixo(xf, -60) - 8, duration: 370, ease: 'Quad.easeIn',
+        onComplete: () => { ef.gosma(cab.x, cab.y + 4, 8); ef.poeira(cab.x, cab.y + 8, 3); } }) });
+    cena.tweens.add({ targets: cab, rotation: lado * Math.PI * 3, duration: 650 });
+    this.grito.setText('BLORP!').setPosition(x0, y0 - 6).setVisible(true).setAlpha(1);
+    cena.tweens.add({ targets: this.grito, y: y0 - 22, alpha: 0, duration: 700, onComplete: () => this.grito.setVisible(false) });
+    let passo = 0;
+    const andar = cena.time.addEvent({ delay: 170, repeat: 7, callback: () => {
+      if (this.vivo) return;
+      passo++;
+      this.setFrame(q.semCabeca[passo % 2]);
+      // Cambaleia: uns passos para a frente, um para trás.
+      this.body.setVelocityX(this.direcao * (passo === 4 ? -14 : 16));
+      ef.gosma(this.x + this.direcao * 4, this.y - 30, 4);
+    } });
+    cena.time.delayedCall(1450, () => {
+      andar.remove();
+      this.body.setVelocity(0, 0);
+      this.setFrame(q.facada[0]);
+      cena.time.delayedCall(200, () => {
+        this.setFrame(q.facada[1]);
+        ef.poeira(this.x + this.direcao * 10, this.y, 8);
+        ef.gosma(this.x + this.direcao * 12, this.y - 4, 10);
+        ef.tremer(0.003, 80);
+      });
+    });
+    cena.time.delayedCall(3000, () => {
+      cena.tweens.add({ targets: [this, cab], alpha: 0, duration: 110, yoyo: true, repeat: 3,
+        onComplete: () => { this.setVisible(false); this.body.enable = false; this.setAlpha(1); cab.setVisible(false); } });
+    });
+    cena.time.delayedCall(4000, () => this.renascer());
+  }
+
   atirar(t) {
     const q = this.q;
     const cfg = this.cfg;
@@ -816,6 +902,14 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       cena.efeitos.faiscaEm.explode(4, x, y - 4);
       cena.efeitos.poeira(this.x, this.y, 2);
       this.recuar(2);
+      return;
+    }
+    if (cfg.acao === 'contaminado') {
+      // Golfada de vômito em arco: estufa, joga a cabeça para a frente e solta.
+      this.fimEstado = t + 520;
+      cena.balasInimigas.lancarVomito(x, y, this.direcao, Math.abs(j.x - this.x));
+      cena.efeitos.gosma(x, y, 6);
+      this.falar('BLUÉÉÉ!', 500);
       return;
     }
     if (cfg.acao === 'rojao') {

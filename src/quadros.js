@@ -56,6 +56,11 @@ INIMIGOS.cerebrao = { largura: 60, altura: 52, peX: 30, peY: 50, corpoL: 26, cor
 INIMIGOS.olheiro = { largura: 60, altura: 60, peX: 27, peY: 58, corpoL: 16, corpoA: 50,
   parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [26, 33],
   facada: [9, 10], brucos: 11, mira: 12 };
+// Soldado contaminado (tools/arte/contaminado.py): 1 é o vômito, 12 a mordida,
+// 13-14 andando sem cabeça; 9-10 (joelhos e caído) já sem cabeça.
+INIMIGOS.contaminado = { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
+  parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [24, 23],
+  facada: [9, 10], brucos: 11, morde: 12, semCabeca: [13, 14] };
 // Cenas cômicas da Volante comum antes de ver o Lampião (tools/arte/caricatos.py).
 INIMIGOS.volante.cenas = { truco: [14, 15], cozinha: [16, 17], foto: [18, 19] };
 // Objetos das cenas cômicas (tools/arte/cenas_comicas.py).

@@ -46,6 +46,21 @@ export class BalasInimigas {
     d.body.setAngularVelocity(direcao * 720);
   }
 
+  // Vômito do soldado contaminado: golfada em arco que espirra no chão.
+  lancarVomito(x, y, direcao, distancia) {
+    som('arremesso');
+    const d = this.dinamites.get(x, y, 'vomito');
+    if (!d) return;
+    d.setTexture('vomito', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(direcao < 0);
+    d.body.reset(x, y);
+    d.body.setSize(7, 6);
+    d.body.setAngularVelocity(0);
+    d.vomito = true;
+    d.proximaFumaca = 0;
+    const vx = Phaser.Math.Clamp(distancia * 1.1, 60, 200);
+    d.body.setVelocity(direcao * vx, -170);
+  }
+
   // Rojão do soldado: sai inclinado para cima, cai em arco e explode no chão.
   lancarRojao(x, y, direcao, distancia) {
     som('rojao');
@@ -132,6 +147,17 @@ export class BalasInimigas {
     d.setActive(false).setVisible(false);
     d.body.stop();
     d.body.reset(-100, -100);
+    if (d.vomito) {
+      // Espirra gosma no chão (ou no Lampião) sem explodir.
+      d.vomito = false;
+      cena.efeitos.gosma(x, y - 2, 18);
+      const j = this.jogador;
+      if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < 14 && Math.abs(j.pe - 14 - y) < 24) {
+        if (j.zumbificar) j.zumbificar();
+        else j.morrer(j.x - x);
+      }
+      return;
+    }
     const forte = d.rojao;
     const obus = d.obus;
     const carvao = d.carvao;
@@ -181,6 +207,15 @@ export class BalasInimigas {
         d.proximaFumaca = agora + 60;
         d.setFrame(Math.floor(agora / 80) % 2);
         this.cena.efeitos.faisca(d.x, d.y, 1);
+      }
+      if (d.active && d.vomito) {
+        // Pinga gosma pelo caminho e tomba para onde vai.
+        d.setRotation(Math.atan2(d.body.velocity.y, Math.abs(d.body.velocity.x)) * (d.flipX ? -1 : 1));
+        if (agora > d.proximaFumaca) {
+          d.proximaFumaca = agora + 70;
+          this.cena.efeitos.gosma(d.x, d.y, 1);
+        }
+        continue;
       }
       if (!d.active || !d.rojao) continue;
       // O rojão aponta para onde vai e solta fumaça.
