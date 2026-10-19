@@ -45,6 +45,32 @@ for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'o
   INIMIGOS[tipo].facada = [11, 12]; // morte na peixeira: de joelhos e caído de cara
 }
 INIMIGOS.xeremita.facada = [9, 10];
+// De bruços com a mão na cabeça (granada caiu perto).
+for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial']) INIMIGOS[tipo].brucos = 13;
+INIMIGOS.xeremita.brucos = 11;
+// Cenas cômicas da Volante comum antes de ver o Lampião (tools/arte/caricatos.py).
+INIMIGOS.volante.cenas = { truco: [14, 15], cozinha: [16, 17], foto: [18, 19] };
+// Objetos das cenas cômicas (tools/arte/cenas_comicas.py).
+// Subchefe da fase 1: biplano da Aviação Militar (tools/arte/aviao.py). 4 etapas de dano
+// com 4 quadros de hélice cada (0 parada, 1-3 girando) e o queimado no fim.
+export const AVIAO = {
+  biplano: { largura: 132, altura: 60, n: 4, destruido: 16, rodaX: 92 },
+  artilheiro: { largura: 28, altura: 24 },
+  bomba_av: { largura: 14, altura: 8 },
+  biruta: { largura: 26, altura: 46 },
+};
+// Segredos: levam tiro e soltam prêmio (tools/arte/vila_campo.py). Quadro 0 inteiro, 1 aberto.
+export const SEGREDOS = {
+  segredo_cacimba: { largura: 32, altura: 40, vida: 4 },
+  segredo_ninho: { largura: 24, altura: 16, vida: 2 },
+  segredo_canoa: { largura: 64, altura: 16, vida: 5 },
+};
+export const CENAS = {
+  mesa_truco: { largura: 36, altura: 22 },
+  panela: { largura: 22, altura: 26 },
+  carta_voa: { largura: 5, altura: 7 },
+  foto_voa: { largura: 8, altura: 9 },
+};
 
 // Romeiro do mesmo porte do Lampião (tools/arte/caricatos.py).
 export const REFEM = { largura: 52, altura: 46, peX: 17, peY: 45, amarrado: [0, 1, 2], solto: 3, procura: 4,

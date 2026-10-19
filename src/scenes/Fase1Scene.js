@@ -8,7 +8,10 @@ import { PREMIOS } from '../armas.js';
 import { PEDACO, PEDACOS } from '../fase1_pedacos.js';
 import { Urubus, Galinha, Varal, CasaVila, Ponte } from '../objetos/Ambiente.js';
 import { Jumento } from '../objetos/Jumento.js';
-import { tocarMusica } from '../som.js';
+import { tocarMusica, pararMusica, som } from '../som.js';
+import { Biplano } from '../objetos/Biplano.js';
+import { Segredo } from '../objetos/Segredos.js';
+import { LAMPIAO, REFEM } from '../quadros.js';
 
 // Fase 1 é só contra a Volante: nada de arma alienígena.
 const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
@@ -97,6 +100,20 @@ export class Fase1Scene extends CenaJogo {
     }
     for (const [x, y, arma] of d.itens) this.itens.colocar(x, y, arma);
     this.urubus = new Urubus(this, d.urubus);
+    // Subchefe parado no campo de pouso (dá a partida quando a onda dele começa).
+    this.biplanos = (d.biplanos || []).map((x) => {
+      const b = new Biplano(this, x, this.chaoAbaixo(x, 60));
+      this.alvos.add(b);
+      b.body.allowGravity = false;
+      b.artilheiro.body.allowGravity = false;
+      return b;
+    });
+    // Segredos: cacimba, ninho no telhado, canoa e biruta.
+    for (const [x, pe, tipo, premio] of d.segredos || []) {
+      const sg = new Segredo(this, x, pe, tipo, premio);
+      this.alvos.add(sg);
+      sg.body.allowGravity = false;
+    }
     // Jumento blindado esperando no fim da caatinga (trecho de veículo).
     this.jumentos = (d.jumentos || []).map((x) => new Jumento(this, x, this.chaoAbaixo(x, 60)));
     for (const x of d.galinhas) {
@@ -160,12 +177,27 @@ export class Fase1Scene extends CenaJogo {
         onUpdate: () => { if (this.onda === onda) cam.setBounds(borda.x, -DY, x1 - borda.x, ALTURA); },
       });
     }
+    if (onda.chefe) this.entradaChefe(onda.chefe, () => this.soltarOnda(onda));
+    else this.soltarOnda(onda);
+  }
+
+  soltarOnda(onda) {
+    const cam = this.cameras.main;
     for (const [tipo, lado, atraso, opcoes] of onda.inimigos) {
       this.time.delayedCall(atraso, () => {
         const v = cam.worldView;
         let x;
         let y;
-        if (tipo === 'trem') tocarMusica('chefe');
+        if (tipo === 'biplano') {
+          // O biplano já está no campo de pouso: dá a partida.
+          const b = this.biplanos.find((bb) => bb.vivo && bb.estado === 'pousado');
+          if (b) {
+            b.partir();
+            onda.vivos.push(b);
+          }
+          onda.faltam--;
+          return;
+        }
         if (tipo === 'caminhao' || tipo === 'blindado' || tipo === 'trem') {
           this.chegarVeiculo(tipo, lado, opcoes || {}, onda);
           onda.faltam--;
@@ -215,12 +247,73 @@ export class Fase1Scene extends CenaJogo {
     }
   }
 
+  // Chefe chegando: a música corta, o chão treme cada vez mais, poeira cai do alto,
+  // pedrinhas pulam no chão e entra a faixa com o nome dele. Depois solta a onda.
+  entradaChefe(chefe, aoFim) {
+    const cam = this.cameras.main;
+    const ef = this.efeitos;
+    pararMusica();
+    som('ronco');
+    let k = 0;
+    this.time.addEvent({
+      delay: 110, repeat: 15, callback: () => {
+        k++;
+        ef.tremer(0.0015 + k * 0.0005, 110);
+        const v = cam.worldView;
+        ef.detritoEm.explode(1, v.x + Phaser.Math.Between(10, v.width - 10), v.y + 4);
+        if (k % 2) ef.poeira(v.x + Phaser.Math.Between(10, v.width - 10), 194, 2);
+      },
+    });
+    if (chefe.sub) {
+      this.time.delayedCall(500, () => som('engasgo'));
+      this.time.delayedCall(1100, () => som('engasgo'));
+    } else {
+      this.time.delayedCall(600, () => som('apito'));
+    }
+    this.time.delayedCall(1500, () => {
+      tocarMusica('chefe');
+      this.faixaChefe(chefe);
+    });
+    this.time.delayedCall(chefe.sub ? 2600 : 3000, aoFim);
+  }
+
+  // Faixa do chefe atravessando a tela (como as do Metal Slug): barras vermelhas com o nome.
+  faixaChefe(chefe) {
+    const y = 104 + DY / 2;
+    som('faixa');
+    const cor = chefe.sub ? 0x6e1e1e : 0x8a1414;
+    const barra = this.add.rectangle(-LARGURA, y, LARGURA, 46, cor, 0.9).setOrigin(0, 0.5).setScrollFactor(0).setDepth(41)
+      .setStrokeStyle(2, 0x0e0d14);
+    const filete = this.add.rectangle(LARGURA * 2, y + 16, LARGURA, 3, 0xe0b040).setOrigin(0, 0.5).setScrollFactor(0).setDepth(42);
+    const rotulo = this.add.text(LARGURA / 2, y - 14, chefe.sub ? 'SUBCHEFE' : 'CHEFE', estiloTexto(hex('amarelo_claro'), 8))
+      .setOrigin(0.5).setScrollFactor(0).setDepth(43).setAlpha(0);
+    const nome = this.add.text(LARGURA / 2, y + 1, chefe.nome, estiloTexto(hex('branco'), 16)).setOrigin(0.5).setScrollFactor(0).setDepth(43)
+      .setAlpha(0).setScale(2);
+    const titulo = this.add.text(LARGURA / 2, y + 26, chefe.titulo, estiloTexto(hex('amarelo_fogo'), 8)).setOrigin(0.5)
+      .setScrollFactor(0).setDepth(43).setAlpha(0);
+    this.tweens.add({ targets: barra, x: 0, duration: 220, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: filete, x: 0, duration: 260, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: [rotulo, titulo], alpha: 1, delay: 200, duration: 150 });
+    this.tweens.add({ targets: nome, alpha: 1, scale: 1, delay: 220, duration: 200, ease: 'Back.easeOut',
+      onComplete: () => this.efeitos.tremer(0.006, 140) });
+    this.time.delayedCall(1700, () => {
+      this.tweens.add({ targets: [barra, filete], x: LARGURA, duration: 220, ease: 'Cubic.easeIn' });
+      this.tweens.add({ targets: [rotulo, nome, titulo], alpha: 0, duration: 160,
+        onComplete: () => [barra, filete, rotulo, nome, titulo].forEach((o) => o.destroy()) });
+    });
+  }
+
   ondaAcabou(onda) {
     return onda.faltam === 0 && onda.vivos.every((i) => !i.vivo);
   }
 
   terminarOnda(onda) {
     onda.estado = 'feita';
+    // Depois do subchefe a música da fase volta.
+    if (onda.chefe && onda.chefe.sub) {
+      tocarMusica('caatinga');
+      this.mostrar('MUITO BEM!', '', 1200);
+    }
     this.tempo = TEMPO;
     this.onda = null;
     // Solta a câmera sem deixar voltar para trás (ela segue o Lampião suave, sem pulo).
@@ -251,7 +344,7 @@ export class Fase1Scene extends CenaJogo {
       this.aviso.setVisible(false);
       this.subaviso.setVisible(false);
       this.jogador.continuar();
-      tocarMusica(this.onda && this.onda.inimigos.some((i) => i[0] === 'trem') ? 'chefe' : 'caatinga');
+      tocarMusica(this.onda && this.onda.chefe ? 'chefe' : 'caatinga');
       return;
     }
     if (t > this.proximoSegundo) {
@@ -302,6 +395,79 @@ export class Fase1Scene extends CenaJogo {
       onComplete: () => this.efeitos.tremer(0.006, 120) });
     this.tweens.add({ targets: nome, alpha: 1, delay: atraso + 300, duration: 200 });
     this.time.delayedCall(atraso + 4200, () => this.scene.start('Menu'));
+  }
+
+  // Fim da missão: o Lampião comemora atirando para o alto e os reféns salvos
+  // chegam correndo, pulando e batendo continência (o bode Fubá passa de penetra).
+  comemorar(aoFim) {
+    const j = this.jogador;
+    const ef = this.efeitos;
+    const cam = this.cameras.main;
+    const d = j.direcao || 1;
+    if (j.montaria) {
+      const jm = j.montaria;
+      jm.ang = -Math.PI / 2;
+      for (let k = 0; k < 8; k++) {
+        this.time.delayedCall(200 + k * 110, () => {
+          jm.posicionarMg();
+          const [bx, by] = jm.boca();
+          ef.disparo(bx, by, -Math.PI / 2, 'normal');
+          ef.capsula(jm.mg.x, jm.mg.y, -jm.direcao);
+          som('metralha_jumento');
+        });
+      }
+    } else {
+      const v = j.visual;
+      const y0 = v.y;
+      for (let k = 0; k < 3; k++) {
+        this.time.delayedCall(200 + k * 520, () => {
+          v.setFrame(LAMPIAO.mira_cima);
+          this.tweens.add({ targets: v, y: y0 - 16, duration: 170, yoyo: true, ease: 'Quad.easeOut' });
+          this.time.delayedCall(170, () => {
+            ef.disparo(v.x + d * LAMPIAO.cano.cima[0], y0 - 16 - LAMPIAO.cano.cima[1], -Math.PI / 2, 'normal');
+            som('pistola');
+          });
+        });
+      }
+      this.time.delayedCall(1900, () => v.setFrame(LAMPIAO.parado));
+    }
+    // Reféns salvos chegando pela esquerda (até seis).
+    const n = Math.min(6, this.refensSalvos);
+    for (let i = 0; i < n; i++) {
+      const alvoX = j.x - d * (34 + i * 20);
+      const lado = alvoX < j.x ? -1 : 1;
+      const x0 = lado < 0 ? cam.worldView.x - 20 - i * 26 : cam.worldView.right + 20 + i * 26;
+      const r = this.add.sprite(x0, j.pe, 'refem', REFEM.corrida[0]).setDepth(9).setFlipX(lado > 0)
+        .setOrigin((lado > 0 ? REFEM.largura - REFEM.peX : REFEM.peX) / REFEM.largura, REFEM.peY / REFEM.altura);
+      let passo = i;
+      const corre = this.time.addEvent({ delay: 90, loop: true, callback: () => r.setFrame(REFEM.corrida[++passo % 4]) });
+      this.tweens.add({
+        targets: r, x: alvoX, duration: 900 + i * 160, ease: 'Linear',
+        onComplete: () => {
+          corre.remove();
+          r.setFlipX(j.x < r.x);
+          // Pulando de alegria e batendo continência, cada um no seu tempo.
+          this.time.addEvent({ delay: 260 + i * 30, loop: true, callback: () => {
+            const pula = r.frame.name !== REFEM.continencia;
+            r.setFrame(pula ? REFEM.continencia : REFEM.solto);
+            if (!pula) this.tweens.add({ targets: r, y: j.pe - 8, duration: 120, yoyo: true });
+          } });
+          if (i === 0) {
+            const viva = this.add.text(r.x, r.y - 40, 'VIVA O CAPITÃO!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(31);
+            this.tweens.add({ targets: viva, y: viva.y - 10, alpha: 0, delay: 1300, duration: 400, onComplete: () => viva.destroy() });
+          }
+        },
+      });
+    }
+    // O bode Fubá atravessa a tela berrando.
+    this.time.delayedCall(1200, () => {
+      const b = this.add.sprite(cam.worldView.right + 20, j.pe, 'bode', 0).setOrigin(0.5, 1).setDepth(8).setFlipX(true);
+      const berro = this.add.text(b.x, j.pe - 34, 'BÉÉÉ!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(30);
+      this.tweens.add({ targets: b, x: cam.worldView.x - 30, duration: 2600, onComplete: () => b.destroy() });
+      this.tweens.add({ targets: berro, x: cam.worldView.x - 30, alpha: 0, duration: 2600, onComplete: () => berro.destroy() });
+      this.tweens.add({ targets: b, y: j.pe - 5, duration: 130, yoyo: true, repeat: 9 });
+    });
+    this.time.delayedCall(3300, aoFim);
   }
 
   // ------------------------------------------------------------ a cada quadro
@@ -400,7 +566,7 @@ export class Fase1Scene extends CenaJogo {
             this.tweens.add({ targets: f, y: f.y - 90, x: f.x + 20, duration: 1600 });
           },
         });
-        this.time.delayedCall(1400, () => this.contarPontos());
+        this.time.delayedCall(1400, () => this.comemorar(() => this.contarPontos()));
       },
     });
   }

@@ -54,6 +54,14 @@ export class HudScene extends Phaser.Scene {
     campo.events.on('arma', anunciar);
     this.events.once('shutdown', () => campo.events.off('arma', anunciar));
     campo.events.on('arma', () => { this.alegreAte = this.time.now + 700; });
+    // Dica de jogo no pé da tela (ex.: o jumento kamikaze na primeira montada).
+    const dicar = (txt) => {
+      this.dica.setText(txt).setAlpha(1);
+      this.tweens.killTweensOf(this.dica);
+      this.tweens.add({ targets: this.dica, alpha: 0, delay: 4500, duration: 600 });
+    };
+    campo.events.on('dica', dicar);
+    this.events.once('shutdown', () => campo.events.off('dica', dicar));
     this.criarToque();
     this.criarPausa();
     this.mostrarFonte(this.controles.fonte);

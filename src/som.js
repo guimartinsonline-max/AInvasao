@@ -132,7 +132,7 @@ function chiado(inicio, dur, { vol = 1, filtro = 'lowpass', de = 4000, ate = 400
 
 // ---------------------------------------------------------------- efeitos
 const ultimo = {};
-const INTERVALO = { tiro_inimigo: 60, impacto: 40, grito: 90, madeira: 50, explosao: 50, quique: 60 };
+const INTERVALO = { motor: 140, engasgo: 120, tiro_inimigo: 60, impacto: 40, grito: 90, madeira: 50, explosao: 50, quique: 60 };
 
 // Versões sintetizadas: tocam enquanto as amostras ainda carregam e cobrem os
 // sons que não têm amostra (menus, comida, galinha...).
@@ -172,6 +172,16 @@ const SINTE = {
   alerta: (t) => { nota(mestreEfeitos, 1000, t, 0.06, { vol: 0.25 }); nota(mestreEfeitos, 1000, t + 0.1, 0.06, { vol: 0.25 }); },
   galinha: (t) => [900, 1200, 800].forEach((f, k) => nota(mestreEfeitos, f, t + k * 0.06, 0.06, { onda: 'square', vol: 0.12 })),
   engordar: (t) => nota(mestreEfeitos, 400, t, 0.4, { onda: 'square', vol: 0.25, desliza: 0.35, vibrato: 8 }),
+  // Biplano: motor engasgando ao dar a partida, ronco de hélice e bomba assobiando.
+  engasgo: (t) => { chiado(t, 0.12, { vol: 0.7, de: 900, ate: 120 }); nota(mestreEfeitos, 70, t, 0.12, { onda: 'square', vol: 0.4, desliza: 0.5 }); },
+  motor: (t, forca = 1) => { nota(mestreEfeitos, 55 + forca * 25, t, 0.22, { onda: 'sawtooth', vol: 0.12 * forca, vibrato: 22 }); chiado(t, 0.2, { vol: 0.12 * forca, filtro: 'bandpass', de: 300, ate: 260, q: 3 }); },
+  mergulho: (t) => nota(mestreEfeitos, 1500, t, 0.9, { onda: 'sine', vol: 0.18, desliza: 0.4 }),
+  // Segredo achado: arpejo brilhante.
+  segredo: (t) => [784, 988, 1175, 1568, 1976].forEach((f, k) => nota(mestreEfeitos, f, t + k * 0.06, 0.14, { onda: 'triangle', vol: 0.32 })),
+  // Chefe chegando: ronco grave do chão tremendo.
+  ronco: (t) => { nota(mestreEfeitos, 38, t, 1.4, { onda: 'sawtooth', vol: 0.35, vibrato: 7 }); chiado(t, 1.4, { vol: 0.35, de: 220, ate: 90 }); },
+  // Faixa do chefe entrando: batida de metal.
+  faixa: (t) => { chiado(t, 0.25, { vol: 0.8, filtro: 'bandpass', de: 1800, ate: 500, q: 2 }); nota(mestreEfeitos, 98, t, 0.4, { onda: 'square', vol: 0.4, desliza: 0.6 }); },
 };
 
 export function som(nome, ...args) {

@@ -96,7 +96,11 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
     d = {k: rp.repintar_tela(v) for k, v in d.items()}
     # Soldados da Volante também têm os quadros sentados (distraídos) depois do tostado.
     extra = [d["sentado1"], d["sentado2"]] if "sentado1" in d else []
-    folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra + [ajoelhar(d["morte"]), deitar(d["morte"])],
+    # Depois da morte na peixeira: de bruços com a mão na cabeça (granada perto) e,
+    # na Volante comum, as cenas cômicas (truco, cozinhando, foto da noiva).
+    comicos = [d[n] for n in ("cartas1", "cartas2", "mexe1", "mexe2", "foto1", "foto2") if n in d]
+    folha([d[n] for n in ordem] + [tostar(d["morte"])] + extra + [ajoelhar(d["morte"]), deitar(d["morte"])]
+          + [deitar(d["grito" if nome == "xeremita" else "panico"])] + comicos,
           SAIDA / f"{nome}.png")
 d = {k: rp.repintar_tela(v) for k, v in pixel.ler("refem.txt").items()}
 folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
@@ -164,6 +168,19 @@ folha([tr.carvao(q) for q in range(2)], SAIDA / "carvao.png")
 import jumento as jm  # noqa: E402
 folha(jm.QUADROS, SAIDA / "jumento.png")
 folha([jm.metralhadora()], SAIDA / "metralha_jumento.png")
+import cenas_comicas as ccm  # noqa: E402
+folha([ccm.mesa_truco(q) for q in range(2)], SAIDA / "mesa_truco.png")
+folha([ccm.panela(q) for q in range(3)], SAIDA / "panela.png")
+folha([ccm.carta_voa(q) for q in range(2)], SAIDA / "carta_voa.png")
+folha([ccm.foto_voa(q) for q in range(2)], SAIDA / "foto_voa.png")
+import aviao as av  # noqa: E402
+folha([bl.danificar(av.biplano(q), e, 4) for e in range(4) for q in range(4)] + [av.biplano(4)], SAIDA / "biplano.png")
+folha([av.artilheiro(q) for q in range(4)], SAIDA / "artilheiro.png")
+folha([av.bomba(q) for q in range(2)], SAIDA / "bomba_av.png")
+folha([av.biruta(q) for q in range(3)], SAIDA / "biruta.png")
+import vila_campo as vca  # noqa: E402
+for nome in ("cacimba", "ninho", "canoa"):
+    folha([getattr(vca, nome)(q) for q in range(2)], SAIDA / f"segredo_{nome}.png")
 import comidas as cm  # noqa: E402
 for nome, (fn, _pts) in cm.COMIDAS.items():
     folha([fn()], SAIDA / f"comida_{nome}.png")

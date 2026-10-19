@@ -21,7 +21,7 @@ export class BalasInimigas {
       if (!bala.active) return;
       cena.efeitos.impacto(bala.x, bala.y, bala.texture.key === 'raio' ? 'verde' : 'comum');
       this.recolher(bala);
-    });
+    }, (bala, s) => !(s.body && s.body.checkCollision.down === false) || bala.body.velocity.y > 0);
     cena.physics.add.overlap(this.grupo, jogador.corpo, (a, b) => {
       const bala = a === jogador.corpo ? b : a;
       if (!bala.active || jogador.morto || jogador.invulneravel) return;
@@ -74,6 +74,36 @@ export class BalasInimigas {
     d.proximaFumaca = 0;
   }
 
+  // Bomba do biplano: cai do avião com a velocidade dele, aponta para onde vai e explode grande.
+  soltarBomba(x, y, vx) {
+    som('mergulho');
+    const d = this.dinamites.get(x, y, 'bomba_av');
+    if (!d) return;
+    d.setTexture('bomba_av', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(false);
+    d.body.reset(x, y);
+    d.body.setSize(10, 6);
+    d.body.setAngularVelocity(0);
+    d.rojao = true;
+    d.obus = true;
+    d.bomba = true;
+    d.body.setVelocity(vx, 20);
+    d.proximaFumaca = 0;
+  }
+
+  // Tiro num ângulo qualquer (metralhadora do artilheiro do biplano).
+  dispararAngulo(x, y, ang, tipo = 'volante') {
+    const cfg = TIPOS[tipo];
+    const bala = this.grupo.get(x, y, cfg.textura);
+    if (!bala) return;
+    bala.setTexture(cfg.textura, 0).setActive(true).setVisible(true).setFlipX(false).setDepth(15);
+    bala.body.reset(x, y);
+    bala.body.setSize(bala.width, bala.height);
+    bala.quadros = cfg.quadros || 1;
+    som('tiro_inimigo');
+    bala.setRotation(ang);
+    bala.body.setVelocity(Math.cos(ang) * cfg.velocidade, Math.sin(ang) * cfg.velocidade);
+  }
+
   // Carvão em brasa da chaminé do trem: arco que cai perto de alvoX e estoura pequeno.
   lancarCarvao(x, y, alvoX) {
     som('chamine');
@@ -104,6 +134,7 @@ export class BalasInimigas {
     const carvao = d.carvao;
     d.rojao = false;
     d.obus = false;
+    d.bomba = false;
     d.carvao = false;
     cena.efeitos.explosao(x, y - 4, obus ? 1.4 : forte ? 0.9 : carvao ? 0.45 : 0.6);
     if (carvao) cena.efeitos.chama(x, y - 4);
@@ -151,8 +182,8 @@ export class BalasInimigas {
       if (!d.active || !d.rojao) continue;
       // O rojão aponta para onde vai e solta fumaça.
       d.setRotation(Math.atan2(d.body.velocity.y, d.body.velocity.x));
-      if (d.obus) d.setFrame(Math.floor(agora / 60) % 3);
-      if (agora > d.proximaFumaca) {
+      if (d.obus) d.setFrame(Math.floor(agora / 60) % (d.bomba ? 2 : 3));
+      if (agora > d.proximaFumaca && !d.bomba) {
         d.proximaFumaca = agora + 50;
         this.cena.efeitos.fumaca(d.x - Math.cos(d.rotation) * 10, d.y - Math.sin(d.rotation) * 10);
       }
@@ -160,7 +191,7 @@ export class BalasInimigas {
     for (const bala of this.grupo.getChildren()) {
       if (!bala.active) continue;
       if (bala.quadros > 1) bala.setFrame(Math.floor(agora / 70) % bala.quadros);
-      if (bala.x < v.x - 16 || bala.x > v.right + 16) this.recolher(bala);
+      if (bala.x < v.x - 16 || bala.x > v.right + 16 || bala.y < v.y - 30 || bala.y > 260) this.recolher(bala);
     }
   }
 }

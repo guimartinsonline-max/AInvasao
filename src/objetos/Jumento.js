@@ -9,7 +9,8 @@ import { som } from '../som.js';
 // para onde o Lampião mira (frente, diagonal, cima e, no ar, para baixo) e o
 // botão de granada dispara o canhão (bombas contadas no painel). A blindagem
 // aguenta alguns tiros; quando estoura, o Lampião é jogado para cima e o
-// jumento foge zurrando. Para descer: baixo + pulo.
+// jumento foge zurrando. Para descer: baixo + pulo. Baixo + granada: o Lampião
+// salta e o jumento dispara contra os inimigos e explode (como o Slug Attack).
 
 export const JUMENTO = { largura: 72, altura: 60, peX: 36, peY: 59, sela: 34 };
 const BLINDAGEM = 6;
@@ -19,6 +20,8 @@ const PULO = -290;
 const CADENCIA = 75; // ms entre balas da metralhadora
 const GIRO = Math.PI * 1.8; // rad/s da metralhadora girando
 const CORPO = { l: 40, a: 46 };
+const KAMI_VEL = 230; // px/s do jumento kamikaze
+const KAMI_TEMPO = 1700; // ms até explodir sozinho
 
 export class Jumento {
   constructor(cena, x, pe) {
@@ -51,6 +54,10 @@ export class Jumento {
 
   // Chamado pela cena a cada quadro.
   atualizar(t, dt) {
+    if (this.kami) {
+      this.correrKamikaze(t, dt);
+      return;
+    }
     if (this.fugindo) {
       this.fugir(t, dt);
       return;
@@ -82,6 +89,10 @@ export class Jumento {
     b.reset(this.s.x, fundo - CORPO.a / 2);
     this.direcao = j.direcao;
     cena.events.emit('arma', 'JUMENTO BLINDADO!');
+    if (!cena.dicaKamikaze) {
+      cena.dicaKamikaze = true;
+      cena.time.delayedCall(1600, () => cena.events.emit('dica', 'BAIXO + GRANADA: JUMENTO KAMIKAZE'));
+    }
     som('zurro');
     cena.efeitos.poeira(this.s.x, this.s.y, 10);
   }
@@ -129,6 +140,11 @@ export class Jumento {
     // Descer: baixo + pulo.
     if (c.estado.baixo && c.apertou('pular') && noChao) {
       this.desmontar();
+      return;
+    }
+    // Kamikaze: baixo + granada.
+    if (c.estado.baixo && c.apertou('granada') && noChao) {
+      this.kamikaze();
       return;
     }
     if (c.eixoX !== 0) this.direcao = c.eixoX;
@@ -246,6 +262,73 @@ export class Jumento {
     som('zurro');
     this.texto = cena.add.text(x, y - 70, 'IÓÓÓ!', estiloTexto(hex('branco'))).setOrigin(0.5).setDepth(30);
     cena.tweens.add({ targets: this.texto, alpha: 0, y: y - 90, delay: 600, duration: 500 });
+  }
+
+  // O Lampião salta para trás e o jumento dispara para a frente com o pavio aceso.
+  kamikaze() {
+    const cena = this.cena;
+    const j = this.j;
+    const dir = this.direcao;
+    this.desmontar(true);
+    j.corpo.body.setVelocity(-dir * 90, -340);
+    this.livre = false;
+    this.kami = true;
+    this.kamiFim = cena.time.now + KAMI_TEMPO;
+    this.passo = 0;
+    this.placa.setVisible(false);
+    som('zurro');
+    this.texto = cena.add.text(this.s.x, this.s.y - 70, 'IÓÓÓ!!', estiloTexto(hex('amarelo_fogo'))).setOrigin(0.5).setDepth(30);
+    cena.tweens.add({ targets: this.texto, alpha: 0, y: this.s.y - 92, delay: 500, duration: 500 });
+    cena.efeitos.poeira(this.s.x, this.s.y, 12);
+    cena.events.emit('arma', 'JUMENTO KAMIKAZE');
+  }
+
+  correrKamikaze(t, dt) {
+    const cena = this.cena;
+    const s = this.s;
+    this.passo += dt;
+    s.x += this.direcao * KAMI_VEL * dt / 1000;
+    const chao = cena.chaoAbaixo(s.x, s.y - 30);
+    s.y += Phaser.Math.Clamp(chao - 1 - s.y, -6, 6);
+    s.setFlipX(this.direcao < 0).setFrame(6 + (Math.floor(this.passo / 70) % 2));
+    this.posicionarMg();
+    // Pavio aceso na sela soltando faísca e poeira atrás das patas.
+    if (Math.floor(this.passo / 50) % 2 === 0) cena.efeitos.faisca(s.x - this.direcao * 6, s.y - 46, 2);
+    if (Math.floor(this.passo / 90) % 2 === 0) cena.efeitos.poeira(s.x - this.direcao * 18, s.y, 2);
+    const frente = s.x + this.direcao * 28;
+    const alvos = [...cena.alvos.getChildren(), ...(cena.trens || [])];
+    const bateu = alvos.some((a) => a.vivo && !a.temporario && !a.segredo && a.levarDano && Math.abs((a.x ?? 0) - frente) < 26 && Math.abs((a.y ?? s.y) - s.y) < 50)
+      || cena.caixotes.vivos().some((c) => Math.abs(c.x - frente) < 16 && Math.abs(c.y - s.y) < 30)
+      || cena.physics.overlapRect(frente - 1, s.y - 40, 2, 26, false, true).length > 0;
+    const v = cena.cameras.main.worldView;
+    if (bateu || t > this.kamiFim || s.x < v.x - 20 || s.x > v.right + 20) this.explodirKamikaze();
+  }
+
+  explodirKamikaze() {
+    const cena = this.cena;
+    const { x, y } = this.s;
+    this.kami = false;
+    this.s.setVisible(false);
+    this.mg.setVisible(false);
+    // Explosão grande em cadeia: o jumento leva tudo junto.
+    cena.explodir(x, y - 24, 72, 30, 2);
+    cena.time.delayedCall(120, () => cena.explodir(x - 22, y - 14, 40, 10, 1.2));
+    cena.time.delayedCall(220, () => cena.explodir(x + 22, y - 30, 40, 10, 1.2));
+    cena.efeitos.tabuas(x, y - 30);
+    cena.efeitos.tremer(0.02, 450);
+    cena.efeitos.fumacaFica(x, y - 30, 2.2);
+    if (cena.tudoVolta) {
+      cena.time.delayedCall(8000, () => {
+        this.blindagem = BLINDAGEM;
+        this.bombas = BOMBAS;
+        this.direcao = 1;
+        this.ang = 0;
+        this.livre = true;
+        this.s.setPosition(this.inicio.x, this.inicio.pe).setVisible(true);
+        this.mg.setVisible(true);
+        this.pousar();
+      });
+    }
   }
 
   fugir(t, dt) {

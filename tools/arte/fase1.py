@@ -736,9 +736,19 @@ def destrocos(semente=0):
 
 
 # ================================================================ a fase
-LARGURA_FASE = 6500
+LARGURA_FASE = 8600
 PEDACO = 2048
 CHAO = 194  # topo do chão sólido (o desenho do chão começa 2 px acima)
+
+# Vila alta (lote de 18/10): casario de platibanda colado; o topo de cada casa é chão.
+# x, largura, altura, cor da fachada, sacada. Toldos de bodega servem de degrau para subir.
+VILA_ALTA = [(3900, 104, 84, "azul", False), (4004, 88, 100, "rosa", False), (4126, 120, 92, "ocre", False),
+             (4246, 96, 112, "cal", True), (4376, 110, 96, "verde", False), (4486, 100, 84, "azul", False),
+             (4616, 124, 100, "rosa", False)]
+TOLDOS = [(3906, 60), (4492, 60)]  # x, largura (topo em y = 152)
+CASINHA_FIM = (4748, 72, 56)  # casinha baixa para descer do telhado
+HANGAR_X = 4890
+BIPLANO_X = 5175  # roda do biplano parado (virado para a direita, o rabo para o lado do hangar)
 
 # Tudo o que compõe a fase. Coordenadas do mundo; pé = y do chão onde a coisa pisa.
 FASE = {
@@ -759,14 +769,24 @@ FASE = {
         # --- vila de taipa
         [3290, 160, 64, 6, True],     # girau da vila
         # --- leito de rio seco: barrancos em degrau e a ponte por cima
-        [3940, 176, 40, 18],
-        [3972, 146, 52, 48],
-        [4580, 146, 56, 48],
-        [4636, 176, 40, 18],
+        [6040, 176, 40, 18],
+        [6072, 146, 52, 48],
+        [6680, 146, 56, 48],
+        [6736, 176, 40, 18],
         # --- acampamento da Volante
-        [4900, 176, 56, 18],          # trincheira de sacos de areia
-        [5030, 116, 52, 6, True],     # plataforma da torre de vigia
-        [5400, 176, 56, 18],          # trincheira
+        [7000, 176, 56, 18],          # trincheira de sacos de areia
+        [7130, 116, 52, 6, True],     # plataforma da torre de vigia
+        [7500, 176, 56, 18],          # trincheira
+        # --- vila alta: telhados (só o topo), toldos, sacada e a casinha baixa do fim
+        *[[x, CHAO - h, w, 6, True] for x, w, h, _c, _s in VILA_ALTA],
+        *[[x, 152, w, 5, True] for x, w in TOLDOS],
+        [4252, CHAO - 112 + 38, 84, 4, True],  # sacada do sobrado caiado
+        # Degrau entre telhados colados de alturas diferentes (só lá em cima: a rua passa por baixo).
+        [4004, CHAO - 100, 4, 16], [4246, CHAO - 112, 4, 20],
+        [CASINHA_FIM[0], CHAO - CASINHA_FIM[2], CASINHA_FIM[1], 6, True],
+        [4290, 176, 48, 18],          # sacos de areia na rua da vila alta
+        # --- campo de pouso: trincheira depois da pista
+        [5700, 176, 56, 18],
     ],
     "caixotes": [
         [250, CHAO - 18], [740, CHAO - 18], [764, CHAO - 18], [752, CHAO - 36],
@@ -775,24 +795,42 @@ FASE = {
         [1800, CHAO - 18], [1824, CHAO - 18], [2150, 170 - 18], [2560, CHAO - 18], [2584, CHAO - 18],
         [2700, CHAO - 24, "barril"],
         [3200, CHAO - 18], [3224, CHAO - 18], [3212, CHAO - 36], [3800, CHAO - 24, "barril"],
-        [3818, CHAO - 24, "barril"], [4450, CHAO - 18], [4980, CHAO - 24, "barril"], [4998, CHAO - 24, "barril"],
-        [4989, CHAO - 48, "barril"], [5300, CHAO - 18], [5560, CHAO - 18], [5584, CHAO - 18],
+        [3818, CHAO - 24, "barril"], [6550, CHAO - 18], [7080, CHAO - 24, "barril"], [7098, CHAO - 24, "barril"],
+        [7089, CHAO - 48, "barril"], [7400, CHAO - 18], [7660, CHAO - 18], [7684, CHAO - 18],
+        # vila alta e campo de pouso: caixotes na rua, tambores de gasolina na pista (o biplano esmaga)
+        [3990, CHAO - 18], [4400, CHAO - 18], [4424, CHAO - 18], [4412, CHAO - 36],
+        [5330, CHAO - 24, "barril"], [5348, CHAO - 24, "barril"], [5339, CHAO - 48, "barril"],
+        [5640, CHAO - 18], [5664, CHAO - 18], [5810, CHAO - 24, "barril"],
     ],
     "refens": [[330, CHAO], [1300, 138], [1700, CHAO], [2330, 150], [2640, CHAO],
                [1048, 166, {"pendurado": 124}], [2448, 166, {"pendurado": 124}],
-               [3350, CHAO], [4300, 188, {"pendurado": 152}], [5120, CHAO]],
+               [3350, CHAO], [6400, 188, {"pendurado": 152}], [7220, CHAO],
+               [4560, CHAO],  # refém extra de quem segue pela rua da vila alta
+               [5760, CHAO]],
     "itens": [[560, CHAO - 20, "madsen"]],
-    "bodes": [[1400, CHAO], [4400, CHAO]],
+    "bodes": [[1400, CHAO], [6500, CHAO]],
     "discos": [],
     # Inimigos que já estão no lugar quando o Lampião chega.
+    # Cenas cômicas (opção "cena"): truco, cozinha e foto; "olha" = para onde está virado.
     "inimigos": [
         [600, CHAO, "volante"], [940, CHAO, "granadeiro", {"distraido": True}],
-        [968, CHAO, "volante", {"distraido": True}], [995, CHAO, "volante", {"escudo": True}],
+        [898, CHAO, "volante", {"cena": "cozinha", "olha": 1}], [995, CHAO, "volante", {"escudo": True}],
         [1250, 152, "volante"], [1312, 138, "rojao"], [1650, 158, "granadeiro", {"distraido": True}],
         [2160, 170, "metralhador"], [2340, 150, "granadeiro"], [2560, CHAO, "rojao", {"distraido": True}],
-        [3330, 160, "granadeiro"], [3520, CHAO, "volante", {"distraido": True}], [4300, 146, "volante"],
-        [4480, CHAO, "facao"], [5056, 116, "rojao"], [5250, CHAO, "volante", {"distraido": True}],
-        [5280, CHAO, "granadeiro", {"distraido": True}],
+        [2470, CHAO, "volante", {"cena": "truco", "olha": 1}], [2514, CHAO, "volante", {"cena": "truco", "olha": -1, "prop": False}],
+        [3330, 160, "granadeiro"], [3520, CHAO, "volante", {"distraido": True}], [6400, 146, "volante"],
+        [6580, CHAO, "facao"], [7156, 116, "rojao"], [7346, CHAO, "volante", {"cena": "cozinha", "olha": 1}],
+        [7380, CHAO, "granadeiro", {"distraido": True}],
+        # Vila alta, pela rua: mais soldados (e um mostrando a foto da noiva para o colega que cochila).
+        [3970, CHAO, "volante"], [4150, CHAO, "volante", {"distraido": True}],
+        [4176, CHAO, "volante", {"cena": "foto", "olha": -1}], [4330, CHAO, "metralhador"],
+        [4430, CHAO, "granadeiro"], [4530, CHAO, "facao"], [4660, CHAO, "oficial"],
+        [4705, CHAO, "volante", {"escudo": True}],
+        # ... e por cima, nos telhados: menos gente.
+        [4050, CHAO - 100, "volante"], [4300, CHAO - 112, "volante"], [4690, CHAO - 100, "rojao"],
+        # Campo de pouso: mecânicos no truco perto do hangar e a guarda depois da pista.
+        [4962, CHAO, "volante", {"cena": "truco", "olha": 1}], [5006, CHAO, "volante", {"cena": "truco", "olha": -1, "prop": False}],
+        [5730, CHAO, "volante"], [5790, CHAO, "granadeiro", {"distraido": True}], [5880, CHAO, "rojao"],
     ],
     # Ondas: ao passar do gatilho, a câmera trava entre trava[0] e trava[1] até todos caírem.
     # Cada inimigo: [tipo, de onde vem, atraso em ms, opções]. De onde vem: "dir"/"esq" (entra pela
@@ -819,33 +857,42 @@ FASE = {
                                                               ["facao", "porta:3468", 3400], ["volante", "esq", 4000],
                                                               ["oficial", "porta:3468", 2000],
                                                               ["volante", "dir", 4800, {"refem": True}]]},
+        # Campo de pouso: o biplano "O GAVIÃO" dá a partida (subchefe).
+        {"gatilho": 5060, "trava": [5040, 5588], "chefe": {"nome": "O GAVIÃO", "titulo": "BIPLANO DA AVIAÇÃO MILITAR", "sub": True},
+         "inimigos": [["biplano", "pousado", 0], ["volante", "esq", 12000], ["granadeiro", "dir", 20000]]},
         # Rio seco: soldados pelo leito e pulando da ponte.
-        {"gatilho": 4150, "trava": [3990, 4538], "inimigos": [["volante", "dir", 0], ["granadeiro", "salta:4320", 500],
+        {"gatilho": 6250, "trava": [6090, 6638], "inimigos": [["volante", "dir", 0], ["granadeiro", "salta:6420", 500],
                                                               ["metralhador", "dir", 1500], ["rojao", "esq", 2300],
-                                                              ["volante", "salta:4440", 2800], ["facao", "dir", 3400],
+                                                              ["volante", "salta:6540", 2800], ["facao", "dir", 3400],
                                                               ["volante", "dir", 1000, {"refem": True}]]},
         # Acampamento: saem das barracas e de um caminhão.
-        {"gatilho": 4880, "trava": [4700, 5248], "inimigos": [["volante", "porta:4782", 0],
+        {"gatilho": 6980, "trava": [6800, 7348], "inimigos": [["volante", "porta:6882", 0],
                                                               ["caminhao", "dir", 600, {"soldados": ["volante", "facao", "granadeiro", "volante"]}],
-                                                              ["metralhador", "salta:4930", 1800], ["volante", "porta:5222", 3000],
-                                                              ["oficial", "porta:5222", 1200]]},
+                                                              ["metralhador", "salta:7030", 1800], ["volante", "porta:7322", 3000],
+                                                              ["oficial", "porta:7322", 1200]]},
         # Carro blindado da Volante.
-        {"gatilho": 5420, "trava": [5230, 5778], "inimigos": [["blindado", "dir", 300, {"para": 5640}],
+        {"gatilho": 7520, "trava": [7330, 7878], "inimigos": [["blindado", "dir", 300, {"para": 7740}],
                                                               ["volante", "esq", 5000], ["volante", "esq", 9000]]},
         # Chefe: o trem blindado da Volante chega pelos trilhos.
-        {"gatilho": 5960, "trava": [5900, 6448], "inimigos": [["trem", "dir", 600]]},
+        {"gatilho": 8060, "trava": [8000, 8548], "chefe": {"nome": "A JARARACA", "titulo": "TREM BLINDADO DA VOLANTE"},
+         "inimigos": [["trem", "dir", 600]]},
     ],
-    "fogueiras": [[918, CHAO], [2580, CHAO], [5266, CHAO]],
+    "fogueiras": [[918, CHAO], [2580, CHAO], [7366, CHAO]],
     "forquilhas": [[1010, 90], [2410, 90]],
     "buracos": [1862, 2382],
-    "fim": 6440,
+    "fim": 8540,
     # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
     "casas": [[3060, 130, 84, 21, False], [3680, 110, 72, 22, True]],  # x, largura, altura, semente, buraco
     "varais": [3795],
     "jumentos": [2680],  # jumento blindado esperando (o Lampião monta e atravessa a vila nele)
-    "ponte": [4024, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
-    "urubus": [[1010, 106], [2410, 106], [700, CHAO], [1880, CHAO], [2540, CHAO], [4390, CHAO], [5120, CHAO]],
-    "galinhas": [330, 3150, 3330, 3560, 3740, 5080],
+    "ponte": [6124, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
+    "urubus": [[1010, 106], [2410, 106], [700, CHAO], [1880, CHAO], [2540, CHAO], [6490, CHAO], [7220, CHAO]],
+    "galinhas": [330, 3150, 3330, 3560, 3740, 7180, 4070, 4600],
+    # Subchefe parado no campo de pouso e a biruta.
+    "biplanos": [BIPLANO_X],
+    # Segredos: x, pé, tipo, prêmio ("refem", "arma", "granadas" ou uma comida).
+    "segredos": [[2030, CHAO, "cacimba", "refem"], [4186, CHAO - 92, "ninho", "arma"],
+                 [6302, CHAO + 2, "canoa", "comida_buchada"], [5470, CHAO, "biruta", "granadas"]],
 }
 
 
@@ -866,11 +913,11 @@ def camada_jogo():
     import fase1_extra as ext
     t.colar(chao(LARGURA_FASE, 26, semente=3), 0, y(CHAO) - 2)
     # Lama rachada do leito misturando aos poucos na terra batida (sem corte reto).
-    colar_suave(t, ext.chao_rachado(4740 - 3880, 26, semente=8), 3880, y(CHAO) - 2, borda=70, semente=8)
+    colar_suave(t, ext.chao_rachado(6840 - 5980, 26, semente=8), 5980, y(CHAO) - 2, borda=70, semente=8)
     yc = y(CHAO) - 1  # linha do chão na camada
-    for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050, 3870, 4760, 5160, 5700):
+    for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050, 3870, 6860, 7260, 7800):
         assentar(t, xiquexique(semente=x), x, yc)
-    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850, 3000, 3640, 4100, 4520, 5350, 5750)):
+    for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850, 3000, 3640, 6200, 6620, 7450, 7850)):
         assentar(t, pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=k + 20), x, yc, afundar=2)
     assentar(t, cranio_boi(), 1880, yc)
     assentar(t, cranio_boi(), 2540, yc)
@@ -894,7 +941,7 @@ def camada_jogo():
         sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
     # Barrancos do rio seco onde a ponte apoia (terra em camadas, muro de pedra, viga).
-    for x0, perfil, lado, sem in ((3940, [(32, 18), (52, 48)], 1, 61), (4580, [(56, 48), (40, 18)], -1, 62)):
+    for x0, perfil, lado, sem in ((6040, [(32, 18), (52, 48)], 1, 61), (6680, [(56, 48), (40, 18)], -1, 62)):
         cb = cabeceira(perfil, lado, sem)
         dx = 26 if lado > 0 else 10  # rampa de terra do lado de fora
         sombra_contato(t, x0 - dx + cb.w / 2, yc + 1, cb.w * 1.05, 3.5)
@@ -917,24 +964,46 @@ def camada_jogo():
     assentar(t, ext.cruzeiro(), 3590, yc)
     for x, peca in ((3200 - 30, pote_barro(7)), (3400, cabacas()), (3800 + 40, pilao()), (3560, pote_barro(8, 12))):
         assentar(t, peca, x, yc)
+    # ---- Vila alta: casario de platibanda colado, toldos de bodega, casinha baixa no fim.
+    import vila_campo as vca
+    for k, (x, w_, h_, cor, sac) in enumerate(VILA_ALTA):
+        assentar(t, vca.sobrado(w_, h_, cor, semente=50 + k, sacada=sac), x, yc)
+    for x, w_ in TOLDOS:
+        assentar(t, vca.toldo(w_, CHAO - 152, semente=x), x, yc)
+    cx_, cw_, ch_ = CASINHA_FIM
+    assentar(t, casa_taipa(cw_, ch_, semente=88, quebrada=False), cx_, yc)
+    assentar(t, sacos_detalhados(4, 3, 3), 4290 - 3, yc, afundar=3)
+    for x, peca in ((3880, pote_barro(9)), (4110, cabacas()), (4360, pilao()), (4600, pote_barro(10, 12)),
+                    (4596, roda_carroca(8))):
+        assentar(t, peca, x, yc)
+    # ---- Campo de pouso: hangar, marcas de pneu, balizas, tanque de gasolina, cerca e trincheira.
+    assentar(t, vca.hangar(150, 96, semente=4), HANGAR_X, yc + 1)
+    vca.marcas_pneu(t, HANGAR_X + 60, 5960, yc - 6, semente=3)
+    for x in range(5110, 5600, 96):
+        assentar(t, vca.baliza(x), x, yc + 1)
+    assentar(t, vca.tanque_gasolina(2), 5600, yc)
+    assentar(t, sacos_detalhados(4, 3, 4), 5700 - 3, yc, afundar=3)
+    assentar(t, cerca_farpada(90, 6), 5890, yc)
+    for x in (4870, 5080, 5620, 5940):
+        assentar(t, xiquexique(semente=x), x, yc)
     # ---- Leito de rio seco: canoa velha encalhada, ossada, ponte com corrimão.
-    assentar(t, ext.canoa(), 4170, yc, afundar=3)
-    assentar(t, cranio_boi(), 4390, yc)
+    # (A canoa virou segredo: é sprite à parte, que o tiro arrebenta.)
+    assentar(t, cranio_boi(), 6490, yc)
     # (A ponte é feita de pedaços à parte que a granada quebra.)
     # ---- Acampamento da Volante: barracas, torre de vigia, mastro, munição.
-    assentar(t, ext.barraca(84, 44, semente=1), 4740, yc + 1)
-    assentar(t, ext.caixas_municao(3, 1), 4975, yc)  # atrás da barricada, de onde a Volante se abastece
+    assentar(t, ext.barraca(84, 44, semente=1), 6840, yc + 1)
+    assentar(t, ext.caixas_municao(3, 1), 7075, yc)  # atrás da barricada, de onde a Volante se abastece
     sa2 = sacos_detalhados(4, 3, 2)
-    for sx_ in (4900, 5400):
+    for sx_ in (7000, 7500):
         assentar(t, sa2, sx_ - 3, yc, afundar=3)
     tv = ext.torre_vigia(98, 40)
-    colar(t, tv, 5030, y(CHAO) - tv.h + 1)
-    assentar(t, ext.barraca(84, 44, semente=2), 5180, yc + 1)
-    assentar(t, ext.mastro(110), 5330, yc)
-    assentar(t, ext.caixas_municao(2, 2), 5088, yc)  # munição ao pé da torre de vigia
+    colar(t, tv, 7130, y(CHAO) - tv.h + 1)
+    assentar(t, ext.barraca(84, 44, semente=2), 7280, yc + 1)
+    assentar(t, ext.mastro(110), 7430, yc)
+    assentar(t, ext.caixas_municao(2, 2), 7188, yc)  # munição ao pé da torre de vigia
     # ---- Linha de trem no fim (arena do chefe): trilhos no chão.
     import trem as tr
-    t.colar(tr.trilhos(LARGURA_FASE - 5780), 5780, y(CHAO) - 6)
+    t.colar(tr.trilhos(LARGURA_FASE - 7880), 7880, y(CHAO) - 6)
     return t, topo
 
 
@@ -951,9 +1020,9 @@ def camada_perto():
     pecas = []
     import fase1_extra as ext
     import veiculos as vc
-    for k, wx in enumerate((20, 330, 560, 1000, 1500, 2050, 2400, 2700, 3000, 3900, 5600)):
+    for k, wx in enumerate((20, 330, 560, 1000, 1500, 2050, 2400, 2700, 3000, 6000, 7700)):
         pecas.append((lx(wx), arvore(int(rng.integers(64, 84)), semente=k + 100)))
-    for k, wx in enumerate((150, 460, 880, 1240, 1880, 2250, 2600, 2950, 3820, 4720, 5500)):
+    for k, wx in enumerate((150, 460, 880, 1240, 1880, 2250, 2600, 2950, 3820, 6820, 7600)):
         pecas.append((lx(wx), mandacaru(int(rng.integers(36, 56)), semente=k + 200, bracos=int(rng.integers(1, 4)))))
     for k, wx in enumerate((270, 1120, 2150)):
         pecas.append((lx(wx), pedra(int(rng.integers(34, 52)), int(rng.integers(20, 30)), semente=k + 300)))
@@ -966,13 +1035,22 @@ def camada_perto():
     # Vila: mais casas atrás, uma ao lado da outra.
     for k, (wx, w_, h_) in enumerate(((3150, 96, 66), (3300, 80, 58), (3560, 104, 70), (3760, 88, 60))):
         pecas.append((lx(wx), casa_taipa(w_, h_, semente=40 + k, quebrada=k % 2 == 1)))
+    # Vila alta: a igreja matriz e casas atrás do casario.
+    pecas.append((lx(4300), ext.capela(110, 110, semente=7)))
+    for k, (wx, w_, h_) in enumerate(((3950, 90, 62), (4120, 84, 70), (4520, 96, 66), (4700, 80, 58))):
+        pecas.append((lx(wx), casa_taipa(w_, h_, semente=60 + k, quebrada=k % 2 == 0)))
+    # Campo de pouso: hangar ao longe, depósito e mandacarus.
+    import vila_campo as vca
+    pecas.append((lx(5500), vca.tanque_gasolina(5)))
+    for k, wx in enumerate((4950, 5380, 5700, 5900)):
+        pecas.append((lx(wx), mandacaru(int(rng.integers(36, 56)), semente=k + 220, bracos=2)))
     # Rio seco: carnaúbas na beira.
-    for k, wx in enumerate((3980, 4080, 4230, 4380, 4520, 4640)):
+    for k, wx in enumerate((6080, 6180, 6330, 6480, 6620, 6740)):
         pecas.append((lx(wx), ext.carnauba(int(rng.integers(70, 96)), semente=k + 60)))
     # Acampamento: barracas enfileiradas e um caminhão parado.
-    for k, wx in enumerate((4800, 4960, 5260, 5450)):
+    for k, wx in enumerate((6900, 7060, 7360, 7550)):
         pecas.append((lx(wx), ext.barraca(70, 38, semente=k + 10, aberta=k % 2 == 0)))
-    pecas.append((lx(5120), vc.caminhao(0)))
+    pecas.append((lx(7220), vc.caminhao(0)))
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
         colar(t, p, x, base - p.h + 2)
     return t, fator
@@ -1049,7 +1127,7 @@ def camada_meio():
     casinha = casa_taipa(40, 30, semente=12, quebrada=False)
     colar(t, casinha, int(900 * fator), alto[int(900 * fator)] - 26)
     # A vila vista de longe: casinhas juntas no morro.
-    for k, wx in enumerate((3200, 3260, 3330, 3420, 3500)):
+    for k, wx in enumerate((3200, 3260, 3330, 3420, 3500, 3980, 4060, 4200, 4330, 4480)):
         c = casa_taipa(int(rng.integers(26, 40)), int(rng.integers(20, 30)), semente=70 + k, quebrada=False)
         xx = int(wx * fator)
         colar(t, c, xx, alto[min(W - 1, xx)] - c.h + 5)

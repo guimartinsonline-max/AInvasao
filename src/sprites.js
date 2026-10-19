@@ -1,5 +1,5 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA, LAMPIAO, LAMPIAO_GORDO, COMIDAS, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS } from './quadros.js';
+import { TOUCEIRA, LAMPIAO, LAMPIAO_GORDO, COMIDAS, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS, CENAS, AVIAO, SEGREDOS } from './quadros.js';
 import { BOCAS } from './maos.js';
 import { AMBIENTE } from './objetos/Ambiente.js';
 import { TREM } from './objetos/Trem.js';
@@ -13,7 +13,7 @@ export function carregarSprites(cena) {
   const s = (nome) => `assets/sprites/${nome}.png?v=${VERSAO}`;
   cena.load.spritesheet('lampiao', s('lampiao'), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
   cena.load.spritesheet('alien', s('alien'), { frameWidth: 40, frameHeight: 44 });
-  for (const [nome, q] of Object.entries({ ...INIMIGOS, ...VEICULOS, refem: REFEM, disco_voador: DISCO, feixe: FEIXE, bode: BODE })) {
+  for (const [nome, q] of Object.entries({ ...INIMIGOS, ...VEICULOS, ...CENAS, ...AVIAO, ...SEGREDOS, refem: REFEM, disco_voador: DISCO, feixe: FEIXE, bode: BODE })) {
     cena.load.spritesheet(nome, s(nome === 'disco_voador' ? 'disco' : nome), { frameWidth: q.largura, frameHeight: q.altura });
   }
   for (const [nome, q] of Object.entries(EFEITOS)) {

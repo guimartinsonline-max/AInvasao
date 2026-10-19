@@ -10,6 +10,8 @@ export class Balas {
     this.alvos = alvos;
     this.grupo = cena.physics.add.group({ defaultKey: 'tracer', maxSize: 64, allowGravity: false });
 
+    // Plataforma de um lado só (telhado, girau, toldo): o tiro passa, a não ser descendo.
+    const umLado = (s) => s.body && s.body.checkCollision.down === false;
     cena.physics.add.overlap(this.grupo, solidos, (bala, solido) => {
       if (!bala.active) return;
       const tipo = bala.tipo;
@@ -27,7 +29,7 @@ export class Balas {
       else if (tipo.porIdade) cena.efeitos.fumaca(bala.x, bala.y);
       else cena.efeitos.impacto(bala.x, bala.y, tipo.impacto);
       this.recolher(bala);
-    });
+    }, (bala, solido) => !umLado(solido) || bala.body.velocity.y > 0);
     cena.physics.add.overlap(this.grupo, alvos, (bala, alvo) => {
       if (!bala.active || !alvo.vivo) return;
       if (bala.tipo.atravessa) {

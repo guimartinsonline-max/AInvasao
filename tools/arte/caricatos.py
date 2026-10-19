@@ -87,7 +87,7 @@ def suor(t, x, y):
 
 
 # ================================================================ Volante
-def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
+def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0):
     """Soldado da Volante: narigão, bigodão, barriga redonda. Variações (tipo):
     fuzil (quepe), granadeiro (capacete, dinamite), metralhador (capacete,
     metralhadora, mais gordo) e facao (sargento de quepe com faixa vermelha)."""
@@ -102,8 +102,17 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     elif pose != "sem_pernas":
         perna(t, (12, 35), (11, 40), (9, CHAO), FARDA, atras=True)
 
+    # Cenas cômicas em pé (cozinhando, mostrando a foto): fuzil pendurado nas costas.
+    if braco in ("colher", "foto"):
+        t.cel(t.capsula(4, 37, 15, 13, 1.1), MADEIRA, sombra=1)
+        t.cel(t.capsula(13, 17, 17, 9, 0.8), ACO, sombra=0)
+        t.linha(8, 30, 16, 22, "couro_escuro")  # bandoleira
     # Braço de trás (segura o fuzil por baixo ou balança no pânico).
-    if pose == "panico":
+    if braco:
+        # Cena cômica: mão de trás largada na barriga.
+        membro(t, (12, 25), (10, 30), (14, 33), 2.2, 2.0, FARDA, -1)
+        t.cel(t.elipse(14.5, 33, 2, 1.8), PELE, sombra=1)
+    elif pose == "panico":
         membro(t, (11, 24), (7, 18), (5, 12), 2.2, 2.0, FARDA, -1)
         t.cel(t.elipse(5, 11, 2.2, 2.2), PELE, sombra=1)
     else:
@@ -199,6 +208,15 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     elif rosto == "morto":
         t.linha(ox - 1.5, oy - 1.5, ox + 1.5, oy + 1.5, "preto")
         t.linha(ox - 1.5, oy + 1.5, ox + 1.5, oy - 1.5, "preto")
+    elif rosto in ("saudade", "chora"):
+        # Olho fechado em arco virado para cima, sobrancelha triste e lágrima.
+        t.pontos([(ox - 2, oy + 0.5), (ox - 1, oy - 0.5), (ox, oy - 0.5), (ox + 1, oy + 0.5)], "preto")
+        t.linha(19, hy - 3.5, 24, hy - 1.5, "couro_profundo")
+        t.ponto(ox + 1, oy + 2, "ceu_claro")
+        if rosto == "chora":
+            t.linha(ox + 1, oy + 2, ox + 2, hy + 9, "ceu_claro")
+            t.ponto(ox + 2, hy + 9, "branco")
+            t.linha(ox - 2, oy + 2, ox - 3, hy + 8, "ceu_claro")
     elif rosto in ("dorme", "ronca"):
         # Olho fechado, sobrancelha caída.
         t.linha(ox - 2, oy + 0.5, ox + 1.5, oy + 0.5, "preto")
@@ -228,12 +246,21 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
         t.chapado(t.elipse(24.5, hy + 8.3, 1, 1.2), "vermelho")
     elif rosto == "ronca":
         t.chapado(t.elipse(23.5, hy + 7, 1.4, 1.4), "preto")
+    elif rosto in ("saudade", "chora"):
+        # Boca tremida de choro contido (ondinha).
+        t.pontos([(22, hy + 7), (23, hy + 6.5), (24, hy + 7), (25, hy + 6.5)], "couro_profundo")
+    elif rosto == "lambe":
+        # Provando a comida: boca aberta com a língua de fora.
+        t.chapado(t.elipse(23.5, hy + 7, 1.8, 1.3), "preto")
+        t.chapado(t.elipse(24.5, hy + 8, 1.2, 0.9), "vermelho")
     else:
         t.linha(22, hy + 6.5, 24, hy + 6.5, "couro_profundo")
 
     # Braço da frente e a arma de cada tipo.
     recuo = -1 if rosto == "grito" else 0
-    if pose == "panico":
+    if braco:
+        braco_comico(t, braco, k, hy)
+    elif pose == "panico":
         membro(t, (18, 24), (22, 18), (24, 11), 2.2, 2.0, FARDA)
         t.cel(t.elipse(24.5, 10, 2.2, 2.2), PELE, sombra=1)
     elif tipo == "oficial":
@@ -307,7 +334,7 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
         membro(t, (18, 25), (20, 30), (25, 30), 2.3, 2.1, FARDA)
         t.cel(t.elipse(25.5, 30, 2, 1.8), PELE, sombra=1)
     t.contorno("sombra")
-    if rosto == "grito" and tipo == "fuzil":
+    if rosto == "grito" and tipo == "fuzil" and not braco:
         t.pontos([(43, 28), (42, 27), (42, 29)], "amarelo_fogo")
     if rosto == "grito" and tipo == "rojao":
         t.pontos([(38, 14), (39, 15), (38, 16)], "amarelo_fogo")
@@ -316,9 +343,67 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil"):
     return t
 
 
-def sentado(tipo, k=0):
+CARTA = ["sombra", "cinza_luz", "cinza_claro", "branco"]
+
+
+def carta(t, cx, cy, ang, naipe="vermelho"):
+    """Uma carta de baralho de 3x5 girada, com o naipe no meio."""
+    c, s_ = math.cos(ang), math.sin(ang)
+    cantos = [(-1.6, -2.6), (1.6, -2.6), (1.6, 2.6), (-1.6, 2.6)]
+    pts = [(cx + x * c - y * s_, cy + x * s_ + y * c) for x, y in cantos]
+    t.cel(t.poligono(pts), CARTA, sombra=1)
+    t.ponto(cx, cy, naipe)
+
+
+def braco_comico(t, braco, k, hy):
+    """Braço da frente nas cenas cômicas, desenhado por cima do corpo."""
+    if braco == "cartas":
+        if k == 1:
+            # "TRUCO!": braço lá em cima batendo a carta.
+            membro(t, (18, 25), (25, 21), (31, 12), 2.2, 2.0, FARDA)
+            carta(t, 32.5, 8.5, 0.6, "preto")
+            t.cel(t.elipse(31, 12, 2.1, 2.1), PELE, sombra=1)
+        else:
+            # Leque de cartas na frente do peito, escondendo o jogo.
+            membro(t, (18, 25), (23, 28), (26, 24), 2.3, 2.1, FARDA)
+            for n, (dx, a, cor) in enumerate(((-2, -0.6, "vermelho"), (0, -0.2, "preto"), (2, 0.2, "vermelho"), (4, 0.6, "preto"))):
+                carta(t, 26 + dx, 20 + abs(dx - 1) * 0.3, a, cor)
+            t.cel(t.elipse(26.5, 24, 2.1, 1.9), PELE, sombra=1)
+    elif braco == "colher":
+        # Mexendo a panela com a colher de pau (a panela é um sprite à parte, na frente).
+        dx = (-2, 2)[k % 2]
+        membro(t, (18, 25), (23, 30), (27 + dx, 31), 2.3, 2.1, FARDA)
+        t.cel(t.capsula(27 + dx, 30, 31 + dx * 1.5, 41, 0.8, 0.6), ["couro_profundo", "couro", "couro_medio", "couro_luz"], sombra=0)
+        t.cel(t.elipse(27.5 + dx, 31, 2.1, 1.9), PELE, sombra=1)
+    elif braco == "foto":
+        # Retrato da noiva bem perto do nariz.
+        sobe = k % 2
+        membro(t, (18, 25), (24, 26), (28, 21 - sobe), 2.3, 2.1, FARDA)
+        fx, fy = 28, 12 - sobe
+        t.chapado(t.retangulo(fx, fy, 7, 8), "sombra")
+        t.chapado(t.retangulo(fx + 0.5, fy + 0.5, 6, 7), "areia_clara")
+        t.chapado(t.retangulo(fx + 1.5, fy + 1.5, 4, 5), "terra_media")
+        t.chapado(t.elipse(fx + 3.5, fy + 3, 1.1, 1.2), "areia_luz")  # rostinho
+        t.chapado(t.retangulo(fx + 2.3, fy + 4.5, 2.5, 2), "areia_media")
+        t.cel(t.elipse(28.5, 21 - sobe, 2.1, 1.9), PELE, sombra=1)
+
+
+def comico(nome, tipo="fuzil"):
+    """Quadros das cenas cômicas (só a Volante comum)."""
+    if nome == "cartas1":
+        return sentado(tipo, 0, rosto="serio", braco="cartas")
+    if nome == "cartas2":
+        return sentado(tipo, 1, rosto="grito", braco="cartas")
+    if nome in ("mexe1", "mexe2"):
+        k = int(nome[-1]) - 1
+        return volante("lambe" if k else "serio", "parado", tipo=tipo, braco="colher", k=k)
+    k = int(nome[-1]) - 1
+    return volante("chora" if k else "saudade", "parado", tipo=tipo, braco="foto", k=k)
+
+
+def sentado(tipo, k=0, rosto=None, braco=None):
     """Soldado sentado no chão cochilando (k=1: cabeça mais baixa, roncando)."""
-    cima = volante("ronca" if k else "dorme", "sem_pernas", tipo=tipo)
+    cima = volante(rosto or ("ronca" if k else "dorme"), "sem_pernas", tipo=tipo, braco=braco, k=k if braco else 0)
     t = Tela(W, H)
     perna(t, (12, 42), (19, 40), (25, CHAO), FARDA, atras=True)
     perna(t, (16, 42), (23, 39), (30, CHAO), FARDA)
@@ -356,6 +441,8 @@ FACAO = variante("facao")
 ROJAO = variante("rojao")
 OFICIAL = variante("oficial")
 VOLANTE = variante("fuzil")
+for _n in ("cartas1", "cartas2", "mexe1", "mexe2", "foto1", "foto2"):
+    VOLANTE[_n] = (lambda n: lambda: comico(n))(_n)
 
 
 

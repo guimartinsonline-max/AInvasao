@@ -13,6 +13,15 @@ const VE_DE = 130; // px: distância em que o soldado distraído percebe o Lampi
 const QUEIMA = 2200; // ms pegando fogo
 const DANO_QUEIMA = 0.5; // dano a cada QUEIMA_TICK ms
 const QUEIMA_TICK = 450;
+// Quem tem medo de granada (deita de bruços ou foge) e quem foge quando o colega cai.
+const MEDROSOS = new Set(['volante', 'granadeiro', 'rojao', 'oficial']);
+// Falas das cenas cômicas, antes de ver o Lampião.
+const FALAS_CENA = {
+  truco: ['TRUCO!', 'SEIS!', 'ZAP!', 'TÔ COM O PAUS!', 'NOVE!'],
+  cozinha: ['HUMMM...', 'TÁ QUASE!', 'FEIJÃO BOM!', 'FALTA SAL...'],
+  foto: ['AI, MARIQUINHA...', 'SAUDADE...', 'VOLTO NO NATAL...', 'SNIF!'],
+};
+const FUGA_COLEGA = ['É O CÃO!', 'VOU-ME EMBORA!', 'NÃO É COMIGO!', 'MÃEZINHA!'];
 
 const TIPOS = {
   volante: {
@@ -72,7 +81,15 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     if (this.temRefem) {
       this.refemImg = cena.add.sprite(x, y, 'refem', 0).setDepth(10);
     }
-    this.comecaDistraido = !!opcoes.distraido && !!this.q.sentado;
+    // Cena cômica (truco, cozinha, foto): distraído fazendo outra coisa até ver o Lampião.
+    this.cenaComica = this.q.cenas && this.q.cenas[opcoes.cena] ? opcoes.cena : null;
+    this.olhaInicio = opcoes.olha || -1;
+    this.comecaDistraido = (!!opcoes.distraido && !!this.q.sentado) || !!this.cenaComica;
+    if (this.cenaComica && opcoes.prop !== false) {
+      const px = x + this.olhaInicio * (this.cenaComica === 'truco' ? 22 : 20);
+      if (this.cenaComica === 'truco') this.prop = cena.add.sprite(px, y, 'mesa_truco', 0).setOrigin(0.5, 1).setDepth(8);
+      if (this.cenaComica === 'cozinha') this.prop = cena.add.sprite(px, y - 3, 'panela', 0).setOrigin(0.5, 1).setDepth(8);
+    }
     if (this.temEscudo) this.escudo = cena.add.image(x, y, 'escudo', 0).setOrigin(0.5, 1).setDepth(10);
     this.reiniciar();
   }
@@ -126,6 +143,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.contaTropa = 0;
     this.distraido = this.comecaDistraido;
     this.proximoZ = 0;
+    this.correDepois = false;
+    if (this.cenaComica) this.direcao = this.olhaInicio;
     if (this.escudo) this.escudo.setVisible(true).setFrame(0).clearTint();
     this.proximaChama = 0;
     this.setRotation(0).setVisible(true).clearTint().setAlpha(1);
@@ -181,8 +200,69 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     cena.tweens.killTweensOf(this.grito);
     cena.tweens.add({ targets: this.grito, alpha: 0, scale: 1, delay: 450, duration: 250 });
     this.proximoTiro = cena.time.now + 700;
+    if (this.cenaComica) this.largarTudo();
   }
 
+  // Levou susto no meio da cena cômica: larga tudo (cartas voando, panela virada,
+  // retrato caindo) e ainda dá uma corridinha de pânico antes de lutar.
+  largarTudo() {
+    const cena = this.scene;
+    const ef = cena.efeitos;
+    this.correDepois = true;
+    this.grito.setText(Phaser.Utils.Array.GetRandom(['OXE!?', 'É O LAMPIÃO!', 'VIXE!'])).setScale(1);
+    if (this.cenaComica === 'truco') {
+      if (this.prop) {
+        this.prop.setFrame(1);
+        ef.poeira(this.prop.x, this.prop.y, 6);
+      }
+      for (let k = 0; k < 7; k++) {
+        const c = cena.add.sprite(this.x + this.direcao * 12, this.y - 26, 'carta_voa', k % 2).setDepth(21);
+        const vx = Phaser.Math.Between(-70, 70);
+        cena.tweens.add({ targets: c, x: c.x + vx, duration: 900, ease: 'Linear' });
+        cena.tweens.add({ targets: c, y: c.y - Phaser.Math.Between(20, 44), duration: 300, ease: 'Quad.easeOut', yoyo: false,
+          onComplete: () => cena.tweens.add({ targets: c, y: this.y - 2, duration: 600, ease: 'Quad.easeIn' }) });
+        cena.tweens.add({ targets: c, angle: Phaser.Math.Between(-540, 540), duration: 900 });
+        cena.time.addEvent({ delay: 90, repeat: 9, callback: () => c.setFrame((c.frame.name + 1) % 2) });
+        cena.time.delayedCall(2600, () => cena.tweens.add({ targets: c, alpha: 0, duration: 400, onComplete: () => c.destroy() }));
+      }
+    } else if (this.cenaComica === 'cozinha') {
+      if (this.prop) {
+        this.prop.setFrame(2).setFlipX(this.direcao < 0);
+        ef.fumaca(this.prop.x, this.prop.y - 10);
+        ef.poeira(this.prop.x, this.prop.y, 6);
+      }
+    } else if (this.cenaComica === 'foto') {
+      const f = cena.add.sprite(this.x + this.direcao * 14, this.y - 34, 'foto_voa', 0).setDepth(21);
+      cena.tweens.add({ targets: f, y: this.y - 2, duration: 1500, ease: 'Sine.easeIn' });
+      cena.tweens.add({ targets: f, x: f.x + this.direcao * 6, duration: 300, yoyo: true, repeat: 2, ease: 'Sine.easeInOut' });
+      cena.time.addEvent({ delay: 150, repeat: 9, callback: () => f.setFrame((f.frame.name + 1) % 2) });
+      cena.time.delayedCall(1500, () => f.setFrame(1));
+      cena.time.delayedCall(4000, () => cena.tweens.add({ targets: f, alpha: 0, duration: 400, onComplete: () => f.destroy() }));
+    }
+  }
+
+  // Granada caiu perto: deita de bruços com a mão na cabeça ou foge gritando.
+  temerGranada(gx) {
+    if (!this.vivo || this.distraido || !MEDROSOS.has(this.tipo) || this.q.brucos === undefined) return;
+    if (!['andando', 'atirando'].includes(this.estado)) return;
+    const cena = this.scene;
+    const t = cena.time.now;
+    if (this.tipo !== 'oficial' && Math.random() < 0.5) {
+      this.estado = 'brucos';
+      this.fimEstado = t + 1300;
+      this.setFrame(this.q.brucos);
+      this.body.setVelocityX(0);
+      this.body.setSize(this.q.corpoL + 6, 12);
+      this.body.setOffset((this.direcao > 0 ? this.q.peX : this.q.largura - this.q.peX) - (this.q.corpoL + 6) / 2, this.q.peY - 12);
+      this.falar(Phaser.Utils.Array.GetRandom(['GRANADA!', 'DEITA!', 'AI, MEU PAI!']), 600);
+      cena.efeitos.poeira(this.x, this.y, 6);
+      return;
+    }
+    this.estado = 'panico';
+    this.fimEstado = t + 1100;
+    this.virar(this.x >= gx ? 1 : -1);
+    this.falar(Phaser.Utils.Array.GetRandom(['CORRE!', 'GRANADAAA!', 'VALEI-ME!']), 600);
+  }
   levarDano(dano, origemX, forte = false, morte = null, queima = false) {
     if (!this.vivo) return;
     const ef = this.scene.efeitos;
@@ -209,6 +289,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.estado = 'morto';
     cena.pontuar(PONTOS[this.tipo] || 100, this.x, this.y - 50);
     som('grito');
+    if (this.estado === 'brucos' || this.body.height < this.q.corpoA) this.ajustarCorpo();
+    this.assustarColegas();
     // Sangue nas mortes (menos queimado e derretido); o xeremita espirra gosma.
     if (morte !== 'fogo' && morte !== 'derrete') {
       if (this.tipo === 'xeremita') ef.gosma(this.x, this.y - 22, 14);
@@ -332,6 +414,22 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     cena.time.delayedCall(2600, () => this.renascer());
   }
 
+  // Viu o colega cair do lado: às vezes um medroso larga tudo e foge da tela.
+  assustarColegas() {
+    const cena = this.scene;
+    if (Math.random() > 0.3) return;
+    const perto = cena.alvos.getChildren().filter((o) => o !== this && o instanceof Inimigo && o.vivo && !o.distraido
+      && MEDROSOS.has(o.tipo) && !o.refemAtivo && ['andando', 'atirando'].includes(o.estado) && Math.abs(o.x - this.x) < 90);
+    if (!perto.length) return;
+    const o = Phaser.Utils.Array.GetRandom(perto);
+    cena.time.delayedCall(250, () => {
+      if (!o.vivo || !['andando', 'atirando'].includes(o.estado)) return;
+      o.estado = 'fugindo';
+      o.virar(o.x >= cena.jogador.x ? 1 : -1);
+      o.falar(Phaser.Utils.Array.GetRandom(FUGA_COLEGA), 1000);
+    });
+  }
+
   gritar() {
     this.grito.setText(Phaser.Utils.Array.GetRandom(this.cfg.gritos)).setPosition(this.x, this.y - 54)
       .setVisible(true).setAlpha(1);
@@ -396,6 +494,12 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       this.correrQueimando(t, dt);
       return;
     }
+    if (this.distraido && this.cenaComica) {
+      this.atualizarCena(t);
+      const jj = cena.jogador;
+      if (!jj.morto && Math.abs(jj.x - this.x) < VE_DE && Math.abs(jj.pe - this.y) < 50) this.acordar();
+      return;
+    }
     if (this.distraido) {
       this.body.setVelocityX(0);
       this.setFrame(this.q.sentado[Math.floor(t / 700) % 2]);
@@ -412,6 +516,25 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     if (this.estado === 'susto') {
       if (t < this.fimEstado) return;
       this.estado = 'andando';
+      if (this.correDepois) {
+        // Largou tudo: corridinha de pânico para longe antes de voltar a lutar.
+        this.correDepois = false;
+        this.estado = 'panico';
+        this.fimEstado = t + 750;
+        this.virar(cena.jogador.x > this.x ? -1 : 1);
+      }
+    }
+    if (this.estado === 'brucos') {
+      // Deitado de bruços tremendo, mão na cabeça, até a granada passar.
+      this.body.setVelocityX(0);
+      this.setFrame(this.q.brucos);
+      this.x += Math.floor(t / 70) % 2 ? 0.3 : -0.3;
+      if (t > this.fimEstado) {
+        this.estado = 'andando';
+        this.ajustarCorpo();
+        this.y -= 1;
+      }
+      return;
     }
     const j = cena.jogador;
     const dx = j.x - this.x;
@@ -520,6 +643,30 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     if (!foraDaTela && dist < alcanceAtaque && naAltura && !j.morto && t > this.proximoTiro
       && this.body.blocked.down) {
       this.atirar(t);
+    }
+  }
+
+  // Cena cômica rodando: truco (bate a carta gritando), cozinha (mexe e prova), foto (suspira).
+  atualizarCena(t) {
+    const [a, b] = this.q.cenas[this.cenaComica];
+    this.body.setVelocityX(0);
+    if (this.cenaComica === 'cozinha') {
+      this.setFrame(Math.floor(t / 380) % 2 ? b : a);
+      if (this.prop && t > (this.proximoVapor || 0)) {
+        this.proximoVapor = t + 600;
+        this.prop.setFrame(this.prop.frame.name === 0 ? 1 : 0);
+      }
+    } else {
+      this.setFrame(t < (this.fimFala || 0) ? b : a);
+    }
+    if (t > (this.proximaFala || 0)) {
+      // Primeira fala logo; depois, de tempos em tempos (cada um no seu ritmo).
+      this.proximaFala = t + Phaser.Math.Between(2200, 4200);
+      if (this.proximaFalaJa) {
+        this.fimFala = t + 650;
+        this.falar(Phaser.Utils.Array.GetRandom(FALAS_CENA[this.cenaComica]), 700);
+      }
+      this.proximaFalaJa = true;
     }
   }
 

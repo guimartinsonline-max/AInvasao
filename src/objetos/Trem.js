@@ -93,7 +93,7 @@ export class TremBlindado {
     this.estado = 'chegando';
     this.passo = 0;
     this.posicionar();
-    cena.mostrar?.('CUIDADO!', 'TREM BLINDADO "A JARARACA"', 2200);
+    // (O nome do chefe entra na faixa da entrada, em Fase1Scene.faixaChefe.)
   }
 
   // Recuo de uma peça ao disparar: deslocamento curto aplicado em posicionar().

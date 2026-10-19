@@ -193,6 +193,7 @@ export class CenaJogo extends Phaser.Scene {
     g.quiques = 0;
     g.ultimoQuique = 0;
     g.explodeEm = this.time.now + 2500; // segurança, se ficar presa
+    g.assustou = new Set(); // soldados que já viram esta granada (deitam ou fogem uma vez só)
   }
 
   explodirGranada(g) {
@@ -350,6 +351,15 @@ export class CenaJogo extends Phaser.Scene {
       if (!g.active) continue;
       // Gira no ar, quadro a quadro.
       if (!g.body.blocked.down) g.setFrame(Math.floor(t / 55) % 4);
+      // Medo coletivo: quem está perto de onde a granada vai cair deita de bruços ou foge.
+      for (const alvo of this.alvos.getChildren()) {
+        if (!alvo.temerGranada || !alvo.vivo || g.assustou.has(alvo)) continue;
+        const dx = Math.abs(alvo.x - (g.x + g.body.velocity.x * 0.25));
+        if (dx < 52 && Math.abs(alvo.y - 16 - g.y) < 60) {
+          g.assustou.add(alvo);
+          alvo.temerGranada(g.x);
+        }
+      }
       if (t >= g.explodeEm) this.explodirGranada(g);
     }
 
