@@ -67,6 +67,9 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     this.artilheiro = new Artilheiro(cena, this);
     cena.alvos.add(this.artilheiro);
     this.artilheiro.body.allowGravity = false;
+    // Metralhadora de tambor no anel do artilheiro: gira no pino e aponta para onde atira.
+    this.mg = cena.add.sprite(0, 0, 'torreta_mg', 0).setOrigin(6 / 30, 6 / 12).setDepth(9.5);
+    this.mgAng = Math.PI;
     this.artVida = VIDA_ARTILHEIRO;
     this.proximoTiro = 0;
     this.proximoMotor = 0;
@@ -230,8 +233,6 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     this.y = this.altura;
     this.vx = (this.rasante ? VEL_RASANTE : VEL_VOO) * (furia ? 1.25 : 1);
     this.bombas = this.rasante ? 0 : furia ? 7 : 5;
-    this.rajadasNariz = this.rasante ? (furia ? 3 : 2) : 0;
-    this.proximoNariz = 0;
     this.proximaBomba = 0;
     this.estado = 'voo';
     this.setRotation(0).setVisible(true);
@@ -264,27 +265,6 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
       const [bx, by] = this.ponto(BARRIGA[0], BARRIGA[1]);
       cena.balasInimigas.soltarBomba(bx, by, this.direcao * this.vx * 0.55);
     }
-    // Rasante: a metralhadora do nariz solta rajadas mirando onde o Lampião estava
-    // (pisca antes; correndo ou pulando dá para escapar).
-    if (this.rajadasNariz > 0 && t > this.proximoNariz && p > 0.12 && p < 0.7 && !j.morto) {
-      this.rajadasNariz--;
-      this.proximoNariz = t + 700;
-      const [nx, ny] = this.ponto(NARIZ[0] + 6, NARIZ[1] + 6);
-      cena.efeitos.faisca(nx, ny, 4);
-      const ang = Math.atan2(j.pe - 18 - ny, j.x - nx);
-      cena.time.delayedCall(220, () => {
-        for (let k = 0; k < (this.furioso ? 5 : 4); k++) {
-          cena.time.delayedCall(k * 90, () => {
-            if (!this.vivo || this.estado !== 'voo') return;
-            const [bx, by] = this.ponto(NARIZ[0] + 6, NARIZ[1] + 6);
-            const a = ang + Phaser.Math.FloatBetween(-0.05, 0.05);
-            cena.balasInimigas.dispararAngulo(bx, by, a);
-            cena.efeitos.disparo(bx, by, a, 'normal');
-            som('tiro_inimigo');
-          });
-        }
-      });
-    }
     if (this.direcao > 0 ? this.x > v.right + 110 : this.x < v.x - 110) this.sairDaTela(this.rasante ? 900 : this.furioso ? 1000 : 1400);
   }
 
@@ -301,44 +281,59 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  // Artilheiro do banco de trás: rajadas de 3 só para trás (e para baixo no rasante).
+  // Artilheiro do banco de trás: a metralhadora gira no anel até mirar no Lampião (para
+  // qualquer lado) e solta rajadas; todo tiro do avião sai dela. No rasante e na fúria
+  // atira mais seguido.
   atirarArtilheiro(t) {
-    if (this.artVida <= 0 || t < this.proximoTiro) return;
     const cena = this.scene;
     const j = cena.jogador;
-    if (j.morto) return;
     const a = this.artilheiro;
-    const mx = a.x - this.direcao * 13;
-    const my = a.y - 8;
-    const dx = j.x - mx;
-    const dy = j.pe - 20 - my;
-    if (dx * this.direcao > -10) {
-      a.setFrame(0);
-      return; // o Lampião está na frente: o artilheiro não alcança
-    }
-    const desce = Math.atan2(dy, Math.abs(dx));
-    if (desce < -0.15 || desce > 1.2) return;
-    this.proximoTiro = t + (this.furioso ? Phaser.Math.Between(800, 1200) : Phaser.Math.Between(1100, 1600));
-    const ang = this.direcao > 0 ? Math.PI - desce : desce;
-    for (let k = 0; k < (this.furioso ? 5 : 4); k++) {
-      cena.time.delayedCall(k * 120, () => {
+    if (this.artVida <= 0 || j.morto) return;
+    const [px, py] = this.pivoMg();
+    const alvo = Math.atan2(j.pe - 22 - py, j.x - px);
+    const dif = Phaser.Math.Angle.Wrap(alvo - this.mgAng);
+    if (!this.rajando) this.mgAng += Phaser.Math.Clamp(dif, -0.055, 0.055);
+    a.setFrame(this.rajando ? 2 : Math.sin(this.mgAng) > 0.55 ? 1 : 0);
+    if (t < this.proximoTiro || Math.abs(dif) > 0.12 || this.rajando) return;
+    const rapido = this.furioso || this.rasante;
+    this.proximoTiro = t + (this.furioso ? Phaser.Math.Between(750, 1100) : rapido ? Phaser.Math.Between(900, 1200)
+      : Phaser.Math.Between(1100, 1600));
+    const n = this.furioso ? 5 : 4;
+    this.rajando = true;
+    for (let k = 0; k < n; k++) {
+      cena.time.delayedCall(k * 110, () => {
+        if (k === n - 1) this.rajando = false;
         if (this.artVida <= 0 || !this.vivo) return;
-        a.setFrame(2);
-        cena.time.delayedCall(70, () => this.artVida > 0 && a.setFrame(desce > 0.35 ? 1 : 0));
-        const bx = a.x - this.direcao * 13;
-        const by = a.y - 8;
-        cena.balasInimigas.dispararAngulo(bx, by, ang + Phaser.Math.FloatBetween(-0.04, 0.04));
+        const [mx, my] = this.pivoMg();
+        const ang = this.mgAng + Phaser.Math.FloatBetween(-0.04, 0.04);
+        const bx = mx + Math.cos(this.mgAng) * 24;
+        const by = my + Math.sin(this.mgAng) * 24;
+        cena.balasInimigas.dispararAngulo(bx, by, ang);
         cena.efeitos.disparo(bx, by, ang, 'normal');
-        cena.efeitos.capsula(a.x, a.y - 6, this.direcao);
+        cena.efeitos.capsula(mx, my, Math.cos(this.mgAng) > 0 ? -1 : 1);
+        this.mg.setFrame(1);
+        cena.time.delayedCall(60, () => this.mg.setFrame(0));
       });
     }
+  }
+
+  // Pino da metralhadora (no anel, 8 px acima do pé do artilheiro, girando com o avião).
+  pivoMg() {
+    const a = this.artilheiro;
+    return [a.x + Math.sin(this.rotation) * 8, a.y - Math.cos(this.rotation) * 8];
   }
 
   seguirArtilheiro() {
     const a = this.artilheiro;
     const [x, y] = this.ponto(CABINE[0], CABINE[1] + 1);
-    a.setPosition(Math.round(x), Math.round(y)).setFlipX(this.direcao < 0).setRotation(this.rotation);
+    // O artilheiro olha para o lado em que a arma aponta (desenhado olhando para a esquerda).
+    a.setPosition(Math.round(x), Math.round(y)).setFlipX(Math.cos(this.mgAng) > 0).setRotation(this.rotation);
     a.body.updateFromGameObject?.();
+    // Morto, a arma tomba apontando para baixo.
+    if (this.artVida <= 0) this.mgAng += Phaser.Math.Clamp(Phaser.Math.Angle.Wrap(Math.PI / 2 + this.direcao * 0.4 - this.mgAng), -0.05, 0.05);
+    const [px, py] = this.pivoMg();
+    this.mg.setPosition(Math.round(px), Math.round(py)).setRotation(this.mgAng).setFlipY(Math.cos(this.mgAng) < 0)
+      .setVisible(a.visible);
   }
 
   danoArtilheiro(dano, morte) {

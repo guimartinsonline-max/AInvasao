@@ -7,7 +7,7 @@ export const ARMAS = {
   padrao: { nome: 'PISTOLA', municao: Infinity, cadencia: 150, toque: 90, bala: 'comum', tiros: 1, clarao: 'normal',
     capsula: true, semi: true },
   madsen: {
-    nome: 'METRALHADORA MADSEN', municao: 200, cadencia: 60, toque: 50, bala: 'comum', tiros: 1,
+    nome: 'METRALHADORA MADSEN', municao: 200, cadencia: 60, toque: 50, bala: 'pesada', tiros: 1,
     espalha: 0.06, clarao: 'normal', capsula: true,
   },
   // Como a shotgun do Metal Slug: rajada larga e curta que pega o grupo todo.
@@ -51,6 +51,8 @@ export const PREMIOS = ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'candee
 // impacto: efeito no acerto ('comum', 'verde' ou nenhum). pausa: ms de pausa no impacto.
 export const BALAS = {
   comum: { textura: 'tracer', velocidade: 380, dano: 1, impacto: 'comum' },
+  // Bala grossa (Madsen e metralhadora do jumento), como a da metralhadora pesada do Metal Slug.
+  pesada: { textura: 'bala_grossa', velocidade: 400, dano: 1, impacto: 'comum' },
   chumbo: { textura: 'chumbo', velocidade: 330, dano: 1, vida: 230, impacto: 'comum', morte: 'arremessa' },
   rojao: { textura: 'foguete', velocidade: 140, acelera: 900, maxima: 420, dano: 0, rastro: 'fumaca',
     explode: { raio: 36, dano: 4, tamanho: 1 } },

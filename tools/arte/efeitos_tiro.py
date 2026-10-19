@@ -66,6 +66,29 @@ def tracer(k, cores=("laranja_fogo", "amarelo_fogo", "branco")):
 
 
 
+def bala_grossa(k, w=20, h=7, cores=("vermelho_medio", "laranja_fogo", "amarelo_fogo", "amarelo_claro", "branco")):
+    """Bala grossa estilo Metal Slug (metralhadora pesada): projétil ovalado brilhante
+    com núcleo branco e rastro de fogo que pisca (2 quadros)."""
+    t = Tela(w, h)
+    cy = h / 2 - 0.5
+    comp = w - 6 if k == 0 else w - 9
+    x0 = w - 5 - comp
+    t.chapado(t.capsula(x0, cy, w - 5, cy, 0.5, h * 0.3), cores[0])
+    t.chapado(t.capsula(x0 + comp * 0.35, cy, w - 4, cy, 0.4, h * 0.26), cores[1])
+    t.chapado(t.elipse(w - 5, cy, 4, h / 2 - 0.2), cores[1])
+    t.chapado(t.elipse(w - 4.5, cy, 3.2, h / 2 - 1), cores[2])
+    t.chapado(t.elipse(w - 4, cy - 0.4, 2.2, max(1, h / 2 - 2)), cores[3])
+    t.chapado(t.elipse(w - 3.6, cy - 0.6, 1.2, 0.8), cores[4])
+    if k == 1:
+        t.pontos([(x0 + 1, int(cy) - 1), (x0 + 4, int(cy) + 1)], cores[1])
+    return t
+
+
+def bala_inimiga(k):
+    """Bala dos fuzis inimigos: oval laranja bem visível com rastro (maior que a pistola)."""
+    return bala_grossa(k, 14, 5, ("vermelho_esc", "vermelho_medio", "laranja_fogo", "amarelo_fogo", "amarelo_claro"))
+
+
 def bala_pesada(k):
     """Bala da metralhadora do blindado: projétil grosso e brilhante com rastro
     de fogo comprido que pisca (2 quadros)."""
@@ -105,69 +128,80 @@ def obus(k):
 
 
 def bala_papo(k):
-    """Bala da Papo-amarelo: risco comprido e branco, rápido."""
-    t = Tela(20, 3)
-    t.chapado(t.retangulo(0, 1, 20, 1), "amarelo_claro" if k else "amarelo_fogo")
-    t.chapado(t.retangulo(10, 1, 10, 1), "branco")
-    t.chapado(t.retangulo(15, 0, 4, 3), "amarelo_claro")
-    t.chapado(t.retangulo(16, 1, 4, 1), "branco")
+    """Bala da Papo-amarelo: risco comprido e grosso, branco no meio, ponta de chumbo
+    brilhante e rastro amarelo (como o tiro de fuzil pesado do Metal Slug)."""
+    t = Tela(32, 6)
+    t.chapado(t.capsula(0, 2.5, 30, 2.5, 0.4, 1.4), "laranja_fogo" if k else "ouro_escuro")
+    t.chapado(t.capsula(8, 2.5, 30, 2.5, 0.5, 1.6), "amarelo_fogo")
+    t.chapado(t.capsula(16, 2.5, 30, 2.5, 0.5, 1.0), "amarelo_claro")
+    t.chapado(t.elipse(28, 2.5, 3.4, 2.4), "amarelo_claro")
+    t.chapado(t.elipse(28.5, 2.2, 2.0, 1.2), "branco")
     return t
 
 
 def chumbo(k):
-    t = Tela(3, 3)
-    t.chapado(t.retangulo(0, 0, 3, 3), "cinza_escuro")
-    t.chapado(t.retangulo(0, 0, 2, 2), "cinza_claro")
-    t.ponto(0, 0, "branco")
+    """Bago de chumbo do bacamarte: bolinha de metal com brilho."""
+    t = Tela(5, 5)
+    t.cel(t.elipse(2.5, 2.5, 2.3, 2.3), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=1)
+    t.ponto(1, 1, "branco")
     return t
 
 
 def pedra(k):
     """Pedra da Baladeira, girando (2 quadros)."""
-    t = Tela(7, 7)
-    m = t.elipse(3.5, 3.5, 3.2, 2.7) if k == 0 else t.elipse(3.5, 3.5, 2.7, 3.2)
+    t = Tela(10, 10)
+    m = t.elipse(5, 5, 4.4, 3.7) if k == 0 else t.elipse(5, 5, 3.7, 4.4)
     t.cel(m, ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=1)
+    t.chapado(t.elipse(6 if k == 0 else 4, 6, 1.0, 0.7) & m, "cinza_escuro")  # lasca
     t.contorno("sombra")
-    t.ponto(2 if k == 0 else 4, 2, "branco")
+    t.ponto(3 if k == 0 else 6, 3, "branco")
+    t.ponto(4 if k == 0 else 5, 3, "cinza_claro")
     return t
 
 
 def foguete(k):
-    """Rojão voando: corpo de papel vermelho, ponta de metal e fogo na cauda."""
-    t = Tela(22, 7)
-    t.cel(t.retangulo(8, 2, 10, 3), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=1)
-    t.chapado(t.retangulo(11, 2, 2, 3), "amarelo_fogo")
-    t.cel(t.poligono([(18, 2), (21, 3.5), (18, 5)]), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=0)
-    t.chapado(t.poligono([(8, 1), (10, 2), (8, 2)]), "vermelho_esc")
-    t.chapado(t.poligono([(8, 5), (10, 5), (8, 6)]), "vermelho_esc")
+    """Rojão voando (grande, como o míssil do Metal Slug): corpo de papel vermelho com
+    cinta amarela, aletas, ponta de metal e labareda comprida na cauda."""
+    t = Tela(32, 11)
+    cy = 5
+    t.cel(t.retangulo(11, cy - 2, 15, 5), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=1)
+    t.chapado(t.retangulo(16, cy - 2, 3, 5), "amarelo_fogo")
+    t.chapado(t.retangulo(16, cy - 2, 3, 1), "amarelo_claro")
+    t.cel(t.poligono([(26, cy - 2), (31, cy + 0.5), (26, cy + 3)]), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=0)
+    t.chapado(t.poligono([(11, cy - 4), (15, cy - 2), (11, cy - 2)]), "vermelho_esc")
+    t.chapado(t.poligono([(11, cy + 3), (15, cy + 3), (11, cy + 5)]), "vermelho_esc")
     t.contorno("sombra")
-    comp = 7 if k == 0 else 5
-    t.chapado(t.capsula(7, 3.5, 7 - comp, 3.5, 1.6, 0.4), "laranja_fogo")
-    t.chapado(t.capsula(7, 3.5, 7 - comp * 0.6, 3.5, 0.9, 0.3), "amarelo_fogo")
-    t.ponto(6, 3, "branco")
+    comp = 10 if k == 0 else 7
+    t.chapado(t.capsula(10, cy + 0.5, 10 - comp, cy + 0.5, 2.6, 0.6), "vermelho_medio")
+    t.chapado(t.capsula(10, cy + 0.5, 10 - comp * 0.75, cy + 0.5, 1.9, 0.4), "laranja_fogo")
+    t.chapado(t.capsula(10, cy + 0.5, 10 - comp * 0.45, cy + 0.5, 1.1, 0.3), "amarelo_fogo")
+    t.ponto(9, cy, "branco")
     return t
 
 
 def buscape(k):
-    """Buscapé: foguetinho que serpenteia soltando faísca."""
-    t = Tela(12, 5)
-    t.cel(t.retangulo(4, 1, 6, 3), FOGO_CLARO, sombra=1)
-    t.cel(t.poligono([(10, 1), (12, 2.5), (10, 4)]), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=0)
+    """Buscapé: foguetinho que serpenteia soltando faísca (maior)."""
+    t = Tela(17, 7)
+    t.cel(t.retangulo(6, 2, 8, 4), FOGO_CLARO, sombra=1)
+    t.chapado(t.retangulo(9, 2, 1, 4), "vermelho_medio")
+    t.cel(t.poligono([(14, 2), (17, 4), (14, 6)]), ["sombra", "cinza_escuro", "cinza", "cinza_claro"], sombra=0)
     t.contorno("sombra")
-    t.pontos([(2, 2), (1, 1 + k % 2 * 2)], "amarelo_fogo")
-    t.ponto(0, 2 if k else 1, "branco")
+    t.pontos([(3, 3), (2, 2 + k % 2 * 3), (1, 4 - k)], "amarelo_fogo")
+    t.pontos([(4, 4), (3, 3 + k)], "laranja_fogo")
+    t.ponto(0, 3 if k else 2, "branco")
     return t
 
 
 def anel(k):
     """Disparo do raio desintegrador: anel verde que pulsa."""
-    t = Tela(10, 16)
-    rx, ry = (3.5, 7) if k == 0 else (3, 6)
-    fora = t.elipse(5, 8, rx, ry)
-    dentro = t.elipse(5.6, 8, rx - 1.6, ry - 2)
+    t = Tela(14, 22)
+    rx, ry = (5, 10) if k == 0 else (4.3, 8.6)
+    fora = t.elipse(7, 11, rx, ry)
+    dentro = t.elipse(7.8, 11, rx - 2.2, ry - 2.8)
+    t.chapado(t.elipse(7, 11, rx + 1, ry + 1) & ~t.elipse(7.8, 11, rx - 3, ry - 3.6), "alien_esc")
     t.chapado(fora & ~dentro, "alien")
-    t.chapado(t.elipse(4.2, 8, rx * 0.5, ry * 0.85) & fora & ~dentro, "alien_brilho")
-    t.chapado(t.elipse(3.8, 8, 0.8, ry * 0.6) & fora & ~dentro, "branco")
+    t.chapado(t.elipse(5.8, 11, rx * 0.5, ry * 0.85) & fora & ~dentro, "alien_brilho")
+    t.chapado(t.elipse(5.2, 11, 1.0, ry * 0.6) & fora & ~dentro, "branco")
     return t
 
 

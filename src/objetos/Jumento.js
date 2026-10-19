@@ -174,7 +174,7 @@ export class Jumento {
       const a = this.direcao > 0 ? this.ang : Math.PI - this.ang;
       const [bx, by] = this.boca();
       const espalha = Phaser.Math.FloatBetween(-0.05, 0.05);
-      cena.balas.disparar(bx, by, a + espalha, 'comum', 1);
+      cena.balas.disparar(bx, by, a + espalha, 'pesada', 1);
       som('metralha_jumento');
       cena.efeitos.disparo(bx, by, a, 'normal');
       cena.efeitos.capsula(this.mg.x, this.mg.y, -this.direcao);

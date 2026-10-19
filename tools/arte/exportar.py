@@ -225,6 +225,7 @@ folha([ccm.foto_voa(q) for q in range(2)], SAIDA / "foto_voa.png")
 import aviao as av  # noqa: E402
 folha([bl.danificar(av.biplano(q), e, 4) for e in range(4) for q in range(4)] + [av.destrocado()], SAIDA / "biplano.png")
 folha([av.artilheiro(q) for q in range(4)], SAIDA / "artilheiro.png")
+folha([av.metralhadora_torreta(q) for q in range(2)], SAIDA / "torreta_mg.png")
 folha([av.bomba(q) for q in range(2)], SAIDA / "bomba_av.png")
 folha([av.biruta(q) for q in range(3)], SAIDA / "biruta.png")
 import vila_campo as vca  # noqa: E402
@@ -242,6 +243,8 @@ for nome, quadros in {
     "clarao_g": [ef.clarao(k, grande=True) for k in range(3)],
     "tracer": [ef.tracer(k) for k in range(2)],
     "bala_pesada": [ef.bala_pesada(k) for k in range(2)],
+    "bala_grossa": [ef.bala_grossa(k) for k in range(2)],
+    "bala_inimiga": [ef.bala_inimiga(k) for k in range(2)],
     "obus": [ef.obus(k) for k in range(3)],
     "clarao_canhao": [ef.clarao(k, grande=2.1) for k in range(3)],
     "bala_papo": [ef.bala_papo(k) for k in range(2)],
