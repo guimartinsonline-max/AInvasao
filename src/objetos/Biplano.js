@@ -12,8 +12,8 @@ import { som } from '../som.js';
 // de trás é uma parte à parte: morto, o avião para de atirar.
 
 const Q = AVIAO.biplano;
-const VIDA = 100; // +40% (pedido do Guilherme)
-const VIDA_ARTILHEIRO = 14;
+const VIDA = 135; // mais duro (pedido do Guilherme)
+const VIDA_ARTILHEIRO = 19;
 const RABO = 0.24; // rad: inclinação parado no chão, com a bequilha apoiada
 const ACEL = 75; // px/s² taxiando (decola rápido: ninguém vence ele parado no chão)
 const VEL_DECOLA = 125;
@@ -61,6 +61,7 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     this.vy = 0;
     this.estado = 'pousado';
     this.passadas = 0;
+    this.furioso = false;
     this.virar(1);
     this.setRotation(-RABO);
     this.artilheiro = new Artilheiro(cena, this);
@@ -215,13 +216,22 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     // Nova passada pelo lado oposto: alta soltando bombas ou, a cada três, rasante.
     const v = this.scene.cameras.main.worldView;
     this.passadas++;
-    this.rasante = this.passadas % 3 === 0;
+    // Fúria: com menos de 40% da vida ele fica mais rápido, bombardeia mais e dá rasante
+    // a cada duas passadas.
+    const furia = this.vida < this.vidaMax * 0.4;
+    if (furia && !this.furioso) {
+      this.furioso = true;
+      this.scene.mostrar?.('O GAVIÃO ENFURECEU!', '', 1300);
+    }
+    this.rasante = this.passadas % (furia ? 2 : 3) === 0;
     this.virar(this.passadas % 2 === 1 ? -1 : 1);
     this.x = this.direcao > 0 ? v.x - 90 : v.right + 90;
     this.altura = this.rasante ? 112 : Phaser.Math.Between(18, 46);
     this.y = this.altura;
-    this.vx = this.rasante ? VEL_RASANTE : VEL_VOO;
-    this.bombas = this.rasante ? 0 : 3;
+    this.vx = (this.rasante ? VEL_RASANTE : VEL_VOO) * (furia ? 1.25 : 1);
+    this.bombas = this.rasante ? 0 : furia ? 7 : 5;
+    this.rajadasNariz = this.rasante ? (furia ? 3 : 2) : 0;
+    this.proximoNariz = 0;
     this.proximaBomba = 0;
     this.estado = 'voo';
     this.setRotation(0).setVisible(true);
@@ -249,11 +259,33 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     }
     if (this.bombas > 0 && Math.abs(this.x + this.direcao * 30 - j.x) < 120 && t > this.proximaBomba) {
       this.bombas--;
-      this.proximaBomba = t + 380;
+      // Fileira de bombas com espaço entre elas: dá para passar no vão, mas não parado.
+      this.proximaBomba = t + (this.furioso ? 270 : 320);
       const [bx, by] = this.ponto(BARRIGA[0], BARRIGA[1]);
       cena.balasInimigas.soltarBomba(bx, by, this.direcao * this.vx * 0.55);
     }
-    if (this.direcao > 0 ? this.x > v.right + 110 : this.x < v.x - 110) this.sairDaTela(this.rasante ? 900 : 1400);
+    // Rasante: a metralhadora do nariz solta rajadas mirando onde o Lampião estava
+    // (pisca antes; correndo ou pulando dá para escapar).
+    if (this.rajadasNariz > 0 && t > this.proximoNariz && p > 0.12 && p < 0.7 && !j.morto) {
+      this.rajadasNariz--;
+      this.proximoNariz = t + 700;
+      const [nx, ny] = this.ponto(NARIZ[0] + 6, NARIZ[1] + 6);
+      cena.efeitos.faisca(nx, ny, 4);
+      const ang = Math.atan2(j.pe - 18 - ny, j.x - nx);
+      cena.time.delayedCall(220, () => {
+        for (let k = 0; k < (this.furioso ? 5 : 4); k++) {
+          cena.time.delayedCall(k * 90, () => {
+            if (!this.vivo || this.estado !== 'voo') return;
+            const [bx, by] = this.ponto(NARIZ[0] + 6, NARIZ[1] + 6);
+            const a = ang + Phaser.Math.FloatBetween(-0.05, 0.05);
+            cena.balasInimigas.dispararAngulo(bx, by, a);
+            cena.efeitos.disparo(bx, by, a, 'normal');
+            som('tiro_inimigo');
+          });
+        }
+      });
+    }
+    if (this.direcao > 0 ? this.x > v.right + 110 : this.x < v.x - 110) this.sairDaTela(this.rasante ? 900 : this.furioso ? 1000 : 1400);
   }
 
   // A hélice e as rodas matam quem encosta; no ar, só no rasante dá para trombar.
@@ -286,9 +318,9 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     }
     const desce = Math.atan2(dy, Math.abs(dx));
     if (desce < -0.15 || desce > 1.2) return;
-    this.proximoTiro = t + Phaser.Math.Between(1500, 2300);
+    this.proximoTiro = t + (this.furioso ? Phaser.Math.Between(800, 1200) : Phaser.Math.Between(1100, 1600));
     const ang = this.direcao > 0 ? Math.PI - desce : desce;
-    for (let k = 0; k < 3; k++) {
+    for (let k = 0; k < (this.furioso ? 5 : 4); k++) {
       cena.time.delayedCall(k * 120, () => {
         if (this.artVida <= 0 || !this.vivo) return;
         a.setFrame(2);
