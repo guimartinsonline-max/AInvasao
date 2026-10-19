@@ -110,7 +110,8 @@ export const TOUCEIRA = { largura: 14, altura: 10, quantidade: 4 };
 // Folhas de efeitos de tiro (tools/arte/efeitos_tiro.py): tamanho do quadro e quantidade.
 export const EFEITOS = {
   golfada: { largura: 64, altura: 32, quadros: 3 },
-  vomito: { largura: 20, altura: 12, quadros: 3 },
+  vomito: { largura: 14, altura: 12, quadros: 3 },
+  gota_golfada: { largura: 22, altura: 18, quadros: 3 },
   clarao: { largura: 24, altura: 18, quadros: 3 },
   clarao_g: { largura: 33, altura: 25, quadros: 3 },
   tracer: { largura: 12, altura: 3, quadros: 2 },

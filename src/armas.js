@@ -57,8 +57,10 @@ export const BALAS = {
   chama: { textura: 'labareda', velocidade: 330, freio: 0.975, sobe: 70, levanta: 25, vida: 640, dano: 0.7,
     atravessa: true, queima: true, morte: 'fogo', corpo: 18, porIdade: true },
   // Golfada do Lampião zumbi: onda grossa de vômito que atravessa a fila e derrete.
-  golfada: { textura: 'golfada', velocidade: 230, dano: 4, atravessa: true, vida: 1100, morte: 'derrete',
-    impacto: 'verde', plano: true, corpo: 22 },
+  // Gotas do jato do Lampião zumbi (como no Metal Slug 3): saem em leque para o alto e
+  // caem em arco, atravessando quem estiver no caminho; no chão espirram gosma.
+  golfada: { textura: 'gota_golfada', velocidade: 270, dano: 2, atravessa: true, vida: 1500, morte: 'derrete',
+    impacto: 'verde', gravidade: 760, corpo: 12, respingo: true },
   papo: { textura: 'bala_papo', velocidade: 700, dano: 6, atravessa: true, impacto: 'comum', pausa: 50, morte: 'costas' },
   pedra: { textura: 'pedra', velocidade: 250, levanta: 130, gravidade: 500, quica: 2, vida: 1600, dano: 1, impacto: 'comum' },
   buscape: { textura: 'buscape_tiro', velocidade: 170, busca: 4.5, ziguezague: 9, vida: 1700, dano: 0, rastro: 'faisca',

@@ -300,19 +300,34 @@ export class Jogador {
     this.cena.efeitos.poeira(this.x, this.pe, 8);
   }
 
-  // Golfada do zumbi: estufa e solta uma onda de vômito que atravessa a fila.
+  // Golfada do zumbi, como no Metal Slug 3: joga a cabeça para trás e solta um jato
+  // grosso de vômito que sai em leque para o alto e cai em arco na frente, atravessando
+  // a fila; as gotas espirram no chão.
   golfar() {
     const cena = this.cena;
-    const d = this.direcao;
-    this.golfando = 320;
+    this.golfando = 460;
     som('arremesso');
-    const x = this.x + d * 34;
-    const y = this.pe - 38;
-    const b = cena.balas.disparar(x, y, d > 0 ? 0 : Math.PI, 'golfada');
-    if (b) b.setDepth(15);
-    cena.efeitos.gosma(this.x + d * 20, y, 10);
-    cena.efeitos.tremer(0.003, 80);
-    if (this.noChao) this.corpo.x -= d * 2;
+    cena.efeitos.tremer(0.003, 200);
+    const n = 11;
+    for (let k = 0; k < n; k++) {
+      cena.time.delayedCall(k * 32, () => {
+        if (this.morto || !this.zumbi) return;
+        const d = this.direcao;
+        const x = this.x + d * 26;
+        const y = this.pe - 40;
+        // Começa alto e vai baixando (o jato varre o arco de cima para a frente).
+        const sobe = 1.05 - (k / (n - 1)) * 0.7 + (Math.random() - 0.5) * 0.12;
+        const ang = d > 0 ? -sobe : Math.PI + sobe;
+        const b = cena.balas.disparar(x, y, ang, 'golfada');
+        if (b) {
+          b.setDepth(15).setFrame(k % 3);
+          const vel = 230 + Math.random() * 70;
+          b.body.setVelocity(Math.cos(ang) * vel, Math.sin(ang) * vel);
+        }
+        if (k % 3 === 0) cena.efeitos.gosma(x, y, 3);
+      });
+    }
+    if (this.noChao) this.corpo.x -= this.direcao * 3;
   }
 
   // Comeu: pontos no lugar e a barriga enche; muitas seguidas e ele engorda.

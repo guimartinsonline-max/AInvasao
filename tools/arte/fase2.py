@@ -1144,23 +1144,27 @@ def bolas(t, lista, rampa, luz=(-0.45, -0.5), borda=None):
             t.px[aro] = IDX[borda]
 
 
-def coluna_fumaca(t, x, base, altura, larg, rampa, semente=0, vento=-0.35, brilho_base=None, abre=1.0, fino=3.0, denso=1.0):
+def coluna_fumaca(t, x, base, altura, larg, rampa, semente=0, vento=-0.35, brilho_base=None, abre=1.0, fino=3.0, denso=1.0,
+                  fase=0.0, luz_verde=False):
     """Coluna de fumaça saindo de um fogo: começa fina na boca do fogo e vai engrossando
     em rolos, deitando com o vento. Cada rolo tem luz em cima à esquerda e sombra
-    embaixo; entre os rolos fica um vinco escuro (não bolhas soltas); a borda de fora
-    é escura e a fumaça vai clareando e se desfazendo em fiapos no alto."""
+    embaixo, com vinco escuro entre os rolos; a borda de fora é escura e no alto ela se
+    desfaz em fiapos. fase (0-1): os rolos sobem pela coluna; em fase=1 cada rolo chegou
+    onde o seguinte começou, então a animação emenda sem pulo."""
     rng = np.random.default_rng(semente)
+    n = int(altura / 3.2 * denso)
+    vagas = [(i / n, rng.uniform(-0.7, 0.7), rng.uniform(-0.3, 0.3), rng.uniform(0.42, 0.8)) for i in range(n)]
     rolos = []
-    y = base
-    while y > base - altura:
-        s_ = (base - y) / altura
+    for (s0, ox, oy, rf) in vagas:
+        s_ = (s0 + fase) % 1.0
+        y = base - altura * s_ ** 1.1
         cx = x + vento * altura * s_ ** 1.6 + math.sin(s_ * 7 + semente) * larg * 0.1
         r = fino + (larg * abre - fino) * s_ ** 0.75
-        k = 1 + int((s_ * 2.2 + rng.random()) * denso)
-        for _ in range(k):
-            rolos.append((cx + rng.uniform(-r * 0.7, r * 0.7), y + rng.uniform(-r * 0.3, r * 0.3),
-                          r * rng.uniform(0.38, 0.8), s_))
-        y -= max(2.0, r * rng.uniform(0.45, 0.8) / denso)
+        # No alto o rolo murcha e se desfaz; embaixo nasce pequeno.
+        rr = r * rf * (1 - max(0, s_ - 0.85) * 3.5)
+        if rr < 1:
+            continue
+        rolos.append((cx + ox * r, y + oy * r, rr, s_))
     # Do alto para baixo: os rolos de baixo (mais novos) ficam por cima.
     rolos.sort(key=lambda b: b[1])
     uniao = np.zeros((t.h, t.w), bool)
@@ -1174,23 +1178,66 @@ def coluna_fumaca(t, x, base, altura, larg, rampa, semente=0, vento=-0.35, brilh
         d = np.hypot((t.xx - hx) / rr, (t.yy - hy) / (rr * 0.85))
         v = np.clip(1.02 - d / 1.55 + s_ * 0.12, 0, 0.999)
         nv = (v * k_).astype(int)
-        # Vinco: borda deste rolo por cima de um rolo que já estava lá.
         borda = m & ~t.elipse(rx, ry, rr - 1, rr * 0.85 - 1) & uniao & ((t.xx - rx) * 0.6 + (t.yy - ry) > -rr * 0.2)
         nv[borda] = np.maximum(nv[borda] - 2, 0)
         nivel[m] = nv[m]
         uniao |= m
     cores = np.array([IDX[c] for c in rampa])
     t.px[uniao] = cores[np.clip(nivel[uniao], 0, k_ - 1)]
-    # Borda de fora escura embaixo/direita, fiapos se desfazendo no alto.
     fora = uniao & ~ndimage.binary_erosion(uniao)
     t.px[fora & (t.xx > x + vento * (base - t.yy) * 0.5)] = IDX[rampa[0]]
-    alto = uniao & (t.yy < base - altura * 0.82)
-    furo = alto & (ruido(t.h, t.w, 1.2, semente + 9) > 0.9)
+    alto = uniao & (t.yy < base - altura * 0.8)
+    furo = alto & (ruido(t.h, t.w, 1.2, semente + 9) > 1.25 - (base - altura * 0.8 - t.yy) / (altura * 0.2) * 0.6)
     t.px[furo] = VAZIO
+    if luz_verde:
+        # Barriga iluminada de verde pelo disco: borda de baixo dos rolos perto da base.
+        perto = np.clip(1 - (base - t.yy) / (altura * 0.45), 0, 1)
+        baixo = uniao & ~np.roll(uniao, -2, 0)
+        t.px[baixo & (perto > lim(t.h, t.w) * 0.9) & (t.px != VAZIO)] = IDX["alien_esc"]
+        miolo = uniao & t.elipse(x - 4, base - 12, larg * 0.6, 22) & (t.px != IDX["preto"]) & (t.px != VAZIO)
+        t.px[miolo & (lim(t.h, t.w) < 0.45)] = IDX["alien_profundo"]
     if brilho_base:
         for (bx, by, br, s_) in rolos[-10:]:
             m = t.elipse(bx, by + br * 0.35, br * 0.9, br * 0.45) & uniao
             t.px[m & (lim(t.h, t.w) < 0.6)] = IDX[brilho_base]
+
+
+FUMACAS = []  # colunas animadas registradas pelas camadas (exportadas como sprites à parte)
+
+
+def registrar_fumaca(camada, x, base, altura, larg, rampa, **kw):
+    """Guarda uma coluna de fumaça para virar sprite animado (em vez de pintada parada)."""
+    FUMACAS.append(dict(camada=camada, x=x, base=base, altura=altura, larg=larg, rampa=rampa, kw=kw))
+
+
+def quadros_fumaca(f, n=16):
+    """Quadros de uma coluna registrada, recortados num retângulo próprio.
+    Devolve (quadros, x0, y0) com o canto do recorte nas coordenadas da camada."""
+    vento = f["kw"].get("vento", -0.35)
+    abre = f["kw"].get("abre", 1.0)
+    largura = int(f["larg"] * abre * 2.2 + abs(vento) * f["altura"] + 16)
+    alt = int(f["altura"] + f["larg"] * abre + 10)
+    x0 = int(f["x"] + min(0, vento) * f["altura"] - f["larg"] * abre * 1.1 - 6)
+    y0 = int(f["base"] - alt + 8)
+    qs = []
+    for k in range(n):
+        t = Tela(largura, alt)
+        coluna_fumaca(t, f["x"] - x0, f["base"] - y0, f["altura"], f["larg"], f["rampa"], fase=k / n, **f["kw"])
+        qs.append(t)
+    return qs, x0, y0
+
+
+def folha_grade(quadros, caminho, maxw=2048):
+    """Folha em grade (várias linhas) para não passar do limite de textura do iPhone."""
+    from PIL import Image
+    w, h = quadros[0].w, quadros[0].h
+    cols = max(1, min(len(quadros), maxw // w))
+    linhas = (len(quadros) + cols - 1) // cols
+    img = Image.new("RGBA", (w * cols, h * linhas))
+    for k, q in enumerate(quadros):
+        img.paste(q.imagem(), ((k % cols) * w, (k // cols) * h))
+    img.save(caminho, optimize=True)
+    return w, h
 
 
 def ceu_fumaca(h=308, w=548):
@@ -1228,14 +1275,10 @@ def camada_longe():
     # Coluna de fumaça do disco, enorme, subindo de trás da borda e saindo pelo alto da
     # tela: preta e grossa, deitando para a esquerda, com a barriga iluminada de verde.
     cx = 1560 * fator + 300
-    coluna_fumaca(t, cx + 10, alt - 62, alt - 40, 58, FUMACA_ESCURA, semente=7, vento=-0.4, abre=1.25, fino=14, denso=2.2)
-    fum = t.px != VAZIO
-    # Luz verde vinda de baixo: borda de baixo de cada rolo e o miolo perto da base.
-    perto_base = np.clip(1 - (alt - 62 - t.yy) / 120, 0, 1)
-    baixo = fum & ~np.roll(fum, -2, 0) & (t.px != IDX["ceu_luz"])
-    t.px[baixo & (perto_base > lim(alt, W) * 0.9)] = IDX["alien_esc"]
-    miolo = fum & t.elipse(cx + 6, alt - 74, 34, 22) & (t.px != IDX["preto"])
-    t.px[miolo & (lim(alt, W) < 0.45)] = IDX["alien_profundo"]
+    registrar_fumaca("longe", cx + 10, alt - 62, alt - 40, 58, FUMACA_ESCURA, semente=7, vento=-0.4, abre=1.25, fino=14,
+                     denso=2.2, luz_verde=True)
+    # A borda da cratera vai numa imagem à parte, na frente da fumaça (a base da coluna fica atrás dela).
+    fundo_px = t.px.copy()
     # Borda da cratera (C): encosta de terra arrancada com blocos de pedra, a parte de
     # cima queimada preta pelo calor, veios de vidro escorrendo da crista, lajes
     # levantadas tortas na crista e o contorno verde do brilho que vem de dentro.
@@ -1300,7 +1343,11 @@ def camada_longe():
     topo_b = borda & ~np.roll(borda, 1, 0)
     t.px[topo_b] = IDX["alien_medio"]
     t.px[ndimage.binary_dilation(topo_b) & ~borda & (t.px != VAZIO) & (lim(alt, W) < 0.5)] = IDX["alien_esc"]
-    return t, fator
+    frente = Tela(W, alt)
+    frente.px = np.where(t.px != fundo_px, t.px, VAZIO).astype(t.px.dtype)
+    fundo = Tela(W, alt)
+    fundo.px = fundo_px
+    return fundo, frente, fator
 
 
 def chama(t, x, y, tam=6, semente=0):
@@ -1394,9 +1441,9 @@ def camada_meio():
     fogos = [(int(wx * fator), sem) for wx, sem in ((640, 1), (790, 2), (960, 3), (1060, 4))]
     for k, (fx, sem) in enumerate(fogos):
         fy = alto[fx] + 2
-        coluna_fumaca(t, fx, fy - 4, (150, 110, 175, 95)[k], (24, 16, 28, 14)[k], FUMACA_ESCURA_C,
-                      semente=sem, vento=(-0.45, -0.3, -0.55, -0.35)[k], fino=2.5, denso=1.4)
-    coluna_fumaca(t, cx_ + 18, yb - ca.h + 14, 170, 24, FUMACA_ESCURA_C, semente=9, vento=-0.4, fino=3.0)
+        registrar_fumaca("meio", fx, fy - 4, (150, 110, 175, 95)[k], (24, 16, 28, 14)[k], FUMACA_ESCURA_C,
+                         semente=sem, vento=(-0.45, -0.3, -0.55, -0.35)[k], fino=2.5, denso=1.4)
+    registrar_fumaca("meio", cx_ + 18, yb - ca.h + 14, 170, 24, FUMACA_ESCURA_C, semente=9, vento=-0.4, fino=3.0)
     for (fx, sem) in fogos:
         brilho = t.elipse(fx, alto[fx] + 3, 9, 3) & morro
         t.px[brilho & (lim(alt, W) < 0.5)] = IDX["laranja_escuro"]
@@ -1491,17 +1538,26 @@ def dados_fase():
 def exportar(saida, raiz):
     """Grava as camadas do trecho em assets/sprites (f2_*.png) e assets/fases/fase2.json."""
     import json
+    FUMACAS.clear()
     jogo, topo = camada_jogo()
     perto, fp = camada_perto()
     meio, fm = camada_meio()
-    longe, fl = camada_longe()
+    longe, borda_l, fl = camada_longe()
     frente, ff = camada_frente()
-    for nome, c in (("f2_jogo", jogo), ("f2_perto", perto), ("f2_meio", meio), ("f2_longe", longe), ("f2_frente", frente)):
+    for nome, c in (("f2_jogo", jogo), ("f2_perto", perto), ("f2_meio", meio), ("f2_longe", longe),
+                    ("f2_borda", borda_l), ("f2_frente", frente)):
         c.imagem().save(saida / f"{nome}.png", optimize=True)
+    # Colunas de fumaça animadas: cada uma vira uma folha de quadros em grade.
+    fumacas = []
+    for k, f in enumerate(FUMACAS):
+        qs, x0, y0 = quadros_fumaca(f)
+        w_, h_ = folha_grade(qs, saida / f"f2_fumaca_{k}.png")
+        fumacas.append({"chave": f"f2_fumaca_{k}", "camada": f["camada"], "x": x0, "y": y0, "w": w_, "h": h_, "n": len(qs)})
     ceu_fumaca().imagem().save(saida / "ceu_fumaca.png", optimize=True)
     d = dados_fase()
+    d["fumacas"] = fumacas
     d["camadas"] = {"jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp}, "meio": {"base": 192, "fator": fm},
-                    "longe": {"base": 160, "fator": fl}, "frente": {"base": 216, "fator": ff},
+                    "longe": {"base": 160, "fator": fl}, "borda": {"base": 160, "fator": fl}, "frente": {"base": 216, "fator": ff},
                     "fumaca": {"de": 300, "ate": 1100}}
     pasta = raiz / "assets/fases"
     pasta.mkdir(parents=True, exist_ok=True)
@@ -1512,17 +1568,29 @@ def previa(saida, cams=(0, 560, 1150)):
     """Monta telas do trecho em várias posições da câmera para mostrar a mudança do fundo."""
     from PIL import Image
     import cenario as cn
+    FUMACAS.clear()
     jogo, topo = camada_jogo()
     perto, fp = camada_perto()
     meio, fm = camada_meio()
-    longe, fl = camada_longe()
+    longe, borda_l, fl = camada_longe()
+    fumacas = [(f, *quadros_fumaca(f, n=1)) for f in FUMACAS]
     ceu1, ceu2 = cn.ceu().imagem(), ceu_fumaca().imagem()
     ims = []
     for cam in cams:
         o = Image.new("RGBA", (548, 308))
         mistura = min(1, max(0, (cam - 300) / 800))
         o.alpha_composite(Image.blend(ceu1, ceu2, mistura), (0, 0))
-        for im, base, fat in ((longe.imagem(), 160, fl), (meio.imagem(), 192, fm), (perto.imagem(), 194, fp)):
+        camadas = {"longe": (longe, 160, fl), "meio": (meio, 192, fm)}
+        def fum(nome):
+            c, base, fat = camadas[nome]
+            for f, qs, x0, y0 in fumacas:
+                if f["camada"] == nome:
+                    o.alpha_composite(qs[0].imagem(), (x0 - int(cam * fat), base + DY - c.h + y0))
+        for im, base, fat, antes in ((longe.imagem(), 160, fl, None), (None, 160, fl, "longe"), (borda_l.imagem(), 160, fl, None),
+                                     (None, 192, fm, "meio"), (meio.imagem(), 192, fm, None), (perto.imagem(), 194, fp, None)):
+            if antes:
+                fum(antes)
+                continue
             o.alpha_composite(im, (-int(cam * fat), base + DY - im.height))
         o.alpha_composite(jogo.imagem(), (-cam, topo + DY))
         ims.append(o)

@@ -279,6 +279,36 @@ def golfada(k, W=64, H=32):
     return t
 
 
+def gota(k, w=14, h=12, semente=0):
+    """Gota grossa de vômito para o jato (como o do Metal Slug 3): bola molhada que
+    estica e encolhe a cada quadro, com reflexo branco, miolo amarelado de bile, um
+    pedaço boiando, a cauda pingando para trás e respingos em volta."""
+    t = Tela(w, h)
+    cx, cy = w * 0.58, h * 0.5
+    estica = (1.0, 1.18, 0.88)[k % 3]
+    rx, ry = w * 0.3 * estica, h * 0.34 / estica
+    corpo = t.elipse(cx, cy, rx, ry)
+    cauda = t.capsula(cx - rx * 0.6, cy + 0.3, cx - rx * 1.6, cy + (0.8, 0.2, 1.2)[k % 3], ry * 0.55, ry * 0.25)
+    m = corpo | cauda
+    hx, hy = cx - rx * 0.35, cy - ry * 0.45
+    d = np.hypot((t.xx - hx) / (rx * 1.1), (t.yy - hy) / (ry * 1.1))
+    v = np.clip(1.0 - d / 1.5, 0, 0.999)
+    rampa = ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz"]
+    n = (v * len(rampa)).astype(int)
+    t.px[m] = np.array([IDX[c] for c in rampa])[n[m]]
+    t.chapado(t.elipse(cx + rx * 0.15, cy + ry * 0.2, rx * 0.45, ry * 0.35) & corpo, "amarelo_claro" if k % 2 else "alien_brilho")
+    t.ponto(hx, hy, "branco")
+    t.ponto(hx + 1, hy, "alien_brilho")
+    t.ponto(cx + rx * 0.3, cy + ry * 0.1, "couro")
+    rng = np.random.default_rng(semente + k)
+    for _ in range(3):
+        x, y = rng.uniform(0, w * 0.4), rng.uniform(0, h)
+        if not m[int(y), int(x)]:
+            t.ponto(x, y, "alien_luz")
+    t.contorno("alien_profundo")
+    return t
+
+
 if __name__ == "__main__":
     from PIL import Image
     from motor import RAIZ

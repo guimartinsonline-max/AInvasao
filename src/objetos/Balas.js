@@ -28,6 +28,7 @@ export class Balas {
       if (tipo.explode) this.explodir(bala);
       else if (tipo.porIdade) cena.efeitos.fumaca(bala.x, bala.y);
       else cena.efeitos.impacto(bala.x, bala.y, tipo.impacto);
+      if (tipo.respingo) cena.efeitos.gosma(bala.x, bala.y, 10);
       this.recolher(bala);
     }, (bala, solido) => !umLado(solido) || bala.body.velocity.y > 0);
     cena.physics.add.overlap(this.grupo, alvos, (bala, alvo) => {

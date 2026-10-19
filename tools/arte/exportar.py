@@ -141,7 +141,8 @@ folha([d[n] for n in ["parado", "atira", "panico", "anda1", "anda2", "anda3", "a
 import lampiao_zumbi as lz  # noqa: E402
 folha(lz.folha(), SAIDA / "lampiao_zumbi.png")
 folha([lz.golfada(k) for k in range(3)], SAIDA / "golfada.png")
-folha([lz.golfada(k, W=20, H=12) for k in range(3)], SAIDA / "vomito.png")
+folha([lz.gota(k, 14, 12) for k in range(3)], SAIDA / "vomito.png")
+folha([lz.gota(k, 22, 18, semente=5) for k in range(3)], SAIDA / "gota_golfada.png")
 
 # Armas (pixel/armas_mao.txt, lidas por tools/arte/armas.py) e efeitos de tiro (tools/arte/efeitos_tiro.py).
 import efeitos_tiro as ef  # noqa: E402

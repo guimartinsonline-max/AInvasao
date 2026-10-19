@@ -163,6 +163,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.refemAtivo = this.temRefem;
     if (this.refemImg) this.refemImg.setVisible(true);
     this.rendeuTentou = false;
+    this.esperaChao = false;
+    if (this.poca) this.poca.setVisible(false);
     this.contaTropa = 0;
     this.distraido = this.comecaDistraido;
     this.proximoZ = 0;
@@ -391,21 +393,6 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       cena.time.delayedCall(3300, () => this.renascer());
       return;
     }
-    if (morte === 'costas') {
-      // Papo-amarelo: o tiro derruba de costas, deslizando no chão.
-      this.setFrame(this.q.morte);
-      this.body.setVelocity(lado * 90, -140).setDragX(260);
-      cena.tweens.add({ targets: this, rotation: -lado * Math.PI / 2 * (this.flipX ? -1 : 1), duration: 260 });
-      ef.parar(80);
-      ef.tremer(0.006, 140);
-      this.gritar();
-      cena.time.delayedCall(900, () => {
-        cena.tweens.add({ targets: this, alpha: 0, duration: 200, yoyo: true, repeat: 2,
-          onComplete: () => { this.setVisible(false); this.body.enable = false; } });
-      });
-      cena.time.delayedCall(2600, () => this.renascer());
-      return;
-    }
     if (morte === 'derrete') {
       // Raio desintegrador: fica verde, treme e vira gosma no lugar.
       this.setFrame(this.q.morte).setTint(P.alien).setTintMode(Phaser.TintModes.FILL);
@@ -423,24 +410,59 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       cena.time.delayedCall(2600, () => this.renascer());
       return;
     }
-    // Chumbo do bacamarte arremessa longe; explosão manda alto girando.
-    const longe = morte === 'arremessa';
-    this.setFrame(this.q.morte);
-    this.body.checkCollision.none = true;
-    this.body.setVelocity(lado * (longe ? 240 : forte ? 150 : 80), longe ? -200 : forte ? -320 : -220);
-    this.body.setAngularVelocity(lado * (forte || longe ? 900 : 500));
+    // Morte como no Metal Slug: o tiro dá o tranco, ele grita de braço para o alto e é
+    // jogado para trás (chumbo e Papo-amarelo mais longe; explosão manda alto girando),
+    // cai no chão de verdade, quica, fica estirado um tempo e só então some piscando.
+    const longe = morte === 'arremessa' || morte === 'costas';
+    this.setFrame(this.q.morte).setRotation(0);
+    this.body.checkCollision.none = false;
+    this.body.setDragX(0);
+    this.body.setVelocity(lado * (longe ? 170 : forte ? 120 : 70), longe ? -170 : forte ? -330 : -150);
+    this.body.setAngularVelocity(forte ? lado * 760 : 0);
+    this.lado = lado;
+    this.morreuEm = cena.time.now;
+    this.esperaChao = true;
     ef.parar(forte ? 90 : 60);
-    ef.tremer(0.006, 140);
+    ef.tremer(forte ? 0.006 : 0.003, 120);
     this.gritar();
+    // Garantia: se não achar o chão (caiu num buraco), some depois de um tempo.
+    this.sumirEm = cena.time.now + 3200;
+  }
 
-    cena.time.delayedCall(420, () => {
-      if (this.cfg.alien) ef.gosma(this.x, this.y - 16, 36);
-      else ef.poeira(this.x, this.y, 10);
-      ef.faisca(this.x, this.y - 16, 6);
-      this.setVisible(false);
-      this.body.enable = false;
+  // Bateu no chão depois de morrer: fica estirado (quadro caído), quica, solta poeira
+  // e sangue (ou gosma), a poça cresce e depois de um tempo ele pisca e some.
+  cairMorto() {
+    const cena = this.scene;
+    const ef = cena.efeitos;
+    this.esperaChao = false;
+    this.body.setAngularVelocity(0);
+    this.setRotation(0);
+    const caido = this.q.facada ? this.q.facada[1] : this.q.morte;
+    this.setFrame(caido);
+    // Corpo baixo: a caixa de colisão vira a de quem está deitado.
+    this.body.setVelocity(this.body.velocity.x * 0.35, -60).setDragX(260);
+    ef.poeira(this.x, this.y, 8);
+    ef.poeiraPasso(this.x + this.direcao * 10, this.y, this.direcao < 0);
+    ef.tremer(0.002, 60);
+    if (this.cfg.alien) ef.gosma(this.x, this.y - 6, 14);
+    else ef.sangue(this.x, this.y - 6, 10);
+    if (!this.poca) this.poca = cena.add.image(0, 0, 'poca').setDepth(7).setVisible(false);
+    cena.time.delayedCall(260, () => {
+      if (this.vivo) return;
+      this.poca.setPosition(Math.round(this.x + this.direcao * 6), Math.round(this.y) - 1).setVisible(true).setAlpha(1)
+        .setScale(0.2, 0.5).setTint(this.cfg.alien ? P.alien_medio : 0xffffff);
+      cena.tweens.add({ targets: this.poca, scaleX: 0.8, scaleY: 0.8, duration: 700, ease: 'Quad.easeOut' });
     });
-    cena.time.delayedCall(2600, () => this.renascer());
+    cena.time.delayedCall(1700, () => this.piscarESumir());
+  }
+
+  piscarESumir() {
+    const cena = this.scene;
+    if (this.vivo || !this.visible) return;
+    cena.tweens.add({ targets: this, alpha: 0, duration: 90, yoyo: true, repeat: 4,
+      onComplete: () => { this.setVisible(false); this.body.enable = false; this.setAlpha(1); } });
+    if (this.poca) cena.tweens.add({ targets: this.poca, alpha: 0, duration: 700, delay: 300, onComplete: () => this.poca.setVisible(false) });
+    cena.time.delayedCall(1000, () => this.renascer());
   }
 
   // Viu o colega cair do lado: às vezes um medroso larga tudo e foge da tela.
@@ -508,7 +530,19 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       this.refemImg.setPosition(Math.round(this.x + d * 10), Math.round(this.y)).setFlipX(d < 0)
         .setOrigin((d > 0 ? REFEM.peX : REFEM.largura - REFEM.peX) / REFEM.largura, REFEM.peY / REFEM.altura).setFrame(Math.floor(t / 160) % 3);
     }
-    if (!this.vivo) return;
+    if (!this.vivo) {
+      // Morto voando: espera bater no chão para ficar estirado.
+      if (this.esperaChao && this.body.enable) {
+        if (t - this.morreuEm > 140 && this.body.blocked.down) this.cairMorto();
+        else if (t > this.sumirEm) {
+          this.esperaChao = false;
+          this.setVisible(false);
+          this.body.enable = false;
+          this.renascer();
+        }
+      }
+      return;
+    }
     const cena = this.scene;
     if (this.caindo) {
       if (this.body.blocked.down) {
@@ -911,8 +945,8 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     }
     if (cfg.acao === 'contaminado') {
       // Golfada de vômito em arco: estufa, joga a cabeça para a frente e solta.
-      this.fimEstado = t + 520;
-      cena.balasInimigas.lancarVomito(x, y, this.direcao, Math.abs(j.x - this.x));
+      this.fimEstado = t + 650;
+      cena.balasInimigas.lancarVomito(x, y, this.direcao, Math.abs(j.x - this.x), this);
       cena.efeitos.gosma(x, y, 6);
       this.falar('BLUÉÉÉ!', 500);
       return;

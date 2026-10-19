@@ -18,7 +18,9 @@ export class BalasInimigas {
     cena.physics.add.collider(this.dinamites, solidos, (d) => this.explodirDinamite(d),
       (d, s) => !(s.body && s.body.checkCollision.down === false));
     cena.physics.add.overlap(this.dinamites, jogador.corpo, (a, b) => this.explodirDinamite(a === jogador.corpo ? b : a));
-    this.dinamites.maxSize = 10;
+    this.dinamites.maxSize = 40;
+    // Poças de vômito no chão (somem devagar).
+    this.pocas = [];
     this.grupo = cena.physics.add.group({ defaultKey: 'raio', maxSize: 24, allowGravity: false });
     cena.physics.add.overlap(this.grupo, solidos, (bala) => {
       if (!bala.active) return;
@@ -46,20 +48,48 @@ export class BalasInimigas {
     d.body.setAngularVelocity(direcao * 720);
   }
 
-  // Vômito do soldado contaminado: golfada em arco que espirra no chão.
-  lancarVomito(x, y, direcao, distancia) {
+  // Vômito do contaminado, como no Metal Slug 3: um jato contínuo de gotas em arco
+  // (meio segundo de golfada), que cai em cima do Lampião e espirra no chão.
+  lancarVomito(x, y, direcao, distancia, origem = null) {
     som('arremesso');
-    const d = this.dinamites.get(x, y, 'vomito');
-    if (!d) return;
-    d.setTexture('vomito', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(direcao < 0);
-    d.body.reset(x, y);
-    d.body.setSize(12, 9);
-    d.body.setAngularVelocity(0);
-    d.vomito = true;
-    d.proximaFumaca = 0;
-    // Tempo de voo até o chão (~0,5 s) define a velocidade para cair no Lampião.
-    const vx = Phaser.Math.Clamp(distancia * 1.9, 60, 260);
-    d.body.setVelocity(direcao * vx, -170);
+    // Cada jato só pega o Lampião uma vez (a primeira gota transforma; as outras não matam).
+    const jato = (this.jatos = (this.jatos || 0) + 1);
+    const n = 9;
+    for (let k = 0; k < n; k++) {
+      this.cena.time.delayedCall(k * 50, () => {
+        if (origem && !origem.vivo) return;
+        const ox = origem ? origem.x + origem.direcao * origem.q.cano[0] : x;
+        const oy = origem ? origem.y - origem.q.cano[1] : y;
+        const d = this.dinamites.get(ox, oy, 'vomito');
+        if (!d) return;
+        d.setTexture('vomito', k % 3).setActive(true).setVisible(true).setDepth(14).setFlipX(direcao < 0).setRotation(0);
+        d.body.reset(ox, oy);
+        d.body.setSize(8, 7);
+        d.body.setAngularVelocity(0);
+        d.vomito = true;
+        d.jato = jato;
+        d.proximaFumaca = 0;
+        // Tempo de voo até o chão (~0,5 s) define a velocidade para cair no Lampião;
+        // o jato varia um pouco a força (as gotas fazem um arco grosso, não uma fila).
+        const forca = 0.85 + Math.sin(k * 1.7) * 0.12 + k * 0.025;
+        const vx = Phaser.Math.Clamp(distancia * 1.9 * forca, 50, 270);
+        d.body.setVelocity(direcao * vx, -150 - Math.sin(k * 2.3) * 25);
+      });
+    }
+  }
+
+  // Poça verde no chão onde o vômito caiu; some devagar.
+  pocaVomito(x, y) {
+    let p = this.pocas.find((q) => !q.visible);
+    if (!p) {
+      if (this.pocas.length >= 10) p = this.pocas.shift();
+      else p = this.cena.add.image(0, 0, 'poca').setDepth(7);
+      this.pocas.push(p);
+    }
+    this.cena.tweens.killTweensOf(p);
+    p.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(0.95).setScale(0.25, 0.6).setTint(0x3fcf8e);
+    this.cena.tweens.add({ targets: p, scaleX: 0.55, scaleY: 0.7, duration: 300 });
+    this.cena.tweens.add({ targets: p, alpha: 0, delay: 1800, duration: 900, onComplete: () => p.setVisible(false) });
   }
 
   // Rojão do soldado: sai inclinado para cima, cai em arco e explode no chão.
@@ -149,11 +179,13 @@ export class BalasInimigas {
     d.body.stop();
     d.body.reset(-100, -100);
     if (d.vomito) {
-      // Espirra gosma no chão (ou no Lampião) sem explodir.
+      // Espirra gosma no chão (ou no Lampião) sem explodir, e deixa poça.
       d.vomito = false;
-      cena.efeitos.gosma(x, y - 2, 18);
+      cena.efeitos.gosma(x, y - 2, 8);
+      if (y > 150) this.pocaVomito(x, cena.chaoAbaixo(x, y - 10) - 1);
       const j = this.jogador;
-      if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < 22 && Math.abs(j.pe - 18 - y) < 26) {
+      if (!j.morto && !j.invulneravel && j.jatoQuePegou !== d.jato && Math.abs(j.x - x) < 22 && Math.abs(j.pe - 18 - y) < 26) {
+        j.jatoQuePegou = d.jato;
         if (j.zumbificar) j.zumbificar();
         else j.morrer(j.x - x);
       }
@@ -212,7 +244,7 @@ export class BalasInimigas {
       if (d.active && d.vomito) {
         // Pinga gosma pelo caminho e tomba para onde vai.
         d.setRotation(Math.atan2(d.body.velocity.y, Math.abs(d.body.velocity.x)) * (d.flipX ? -1 : 1));
-        d.setFrame(Math.floor(agora / 90) % 3);
+        d.setFrame(Math.floor(agora / 70 + d.x) % 3);
         if (agora > d.proximaFumaca) {
           d.proximaFumaca = agora + 70;
           this.cena.efeitos.gosma(d.x, d.y, 1);
