@@ -99,6 +99,8 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Vida dos chefes +40%:** biplano 100 (artilheiro 14); trem: metralhadoras 42, chaminé 36, torre 48, porta 56. O biplano decola rápido (engasga ~1 s e taxia ~2 s) e não leva dano antes da partida.
 - **Arena do trem com giraus de carga** em dois níveis (`GIRAUS_ARENA` em `fase1.py`): do alto, o tiro reto alcança a chaminé e a torre. Bravo, o trem avança só 44 px (não encosta nos giraus).
 - **Trem redesenhado no nível do Metal Slug** (`trem.py`): cabine com janelas acesas e o maquinista em contraluz, placa "07" de latão, escada e lanterna; caldeira com reflexo, cintas, saia blindada, corrimão, canos de cobre com flanges, válvulas vermelhas, bomba de ar, sino, apito, arame farpado e sacos; farol grande, placa redonda, estribo e limpa-trilhos listrados; rodas com contrapeso e manivelas. Vagão com janelas acesas e a tropa, ninho de metralhadora de sacos, caixotes, tambor, lona, letreiro e truques com molas. Chaminé com cintas e tela de faíscas; torre com canhão de freio de boca, artilheiro espiando e flâmula. Vapor saindo dos cilindros e da válvula.
+- **Barril de querosene detalhado** (`objetos.py`): cilindro com luz de lado, aros salientes, tampa com bujão e respiro, losango de inflamável, tinta descascada, ferrugem, amassado e mancha na base; furado esguicha querosene.
+- **Projéteis em arco** (dinamite, rojão, obus, carvão do trem, bomba do biplano) atravessam plataformas de um lado só: girau e telhado não protegem quem está embaixo nem seguram o tiro do trem.
 - **Transformação** (além do gordo): fica para a fase 3. Recusados: Maria Bonita agora; faixa com o nome da arma pega.
 
 ## Fases (rascunho aprovado)

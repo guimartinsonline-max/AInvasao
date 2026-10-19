@@ -13,7 +13,10 @@ export class BalasInimigas {
     this.cena = cena;
     this.jogador = jogador;
     this.dinamites = cena.physics.add.group({ defaultKey: 'dinamite', maxSize: 8 });
-    cena.physics.add.collider(this.dinamites, solidos, (d) => this.explodirDinamite(d));
+    // Dinamite, rojão, obus, carvão e bomba atravessam plataforma de um lado só
+    // (girau, telhado, toldo): quem está em cima não fica protegido embaixo dela.
+    cena.physics.add.collider(this.dinamites, solidos, (d) => this.explodirDinamite(d),
+      (d, s) => !(s.body && s.body.checkCollision.down === false));
     cena.physics.add.overlap(this.dinamites, jogador.corpo, (a, b) => this.explodirDinamite(a === jogador.corpo ? b : a));
     this.dinamites.maxSize = 10;
     this.grupo = cena.physics.add.group({ defaultKey: 'raio', maxSize: 24, allowGravity: false });
