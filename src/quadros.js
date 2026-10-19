@@ -7,6 +7,8 @@ const QUADROS_LAMPIAO = ['parado', 'atirando', 'corre1', 'corre2', 'corre3', 'co
 
 export const LAMPIAO = { largura: 60, altura: 72, peX: 14, peY: 63 };
 // Lampião gordo (comeu demais): mesmas folhas esticadas 5 px no meio do corpo.
+// Lampião zumbi (tools/arte/lampiao_zumbi.py): mesmo tamanho e pé do Lampião.
+export const ZUMBI = { parado: 0, andar: [1, 2, 3, 4], pulo: 5, golfada: 6 };
 export const LAMPIAO_GORDO = { largura: 65, altura: 72, peX: 16, peY: 63 };
 // Comidas que dão pontos (tools/arte/comidas.py), da mais comum à mais rara.
 export const COMIDAS = { caja: 100, rapadura: 300, queijo: 500, galinha: 800, cuscuz: 1000, buchada: 2000 };
@@ -105,6 +107,8 @@ export const TOUCEIRA = { largura: 14, altura: 10, quantidade: 4 };
 
 // Folhas de efeitos de tiro (tools/arte/efeitos_tiro.py): tamanho do quadro e quantidade.
 export const EFEITOS = {
+  golfada: { largura: 64, altura: 32, quadros: 3 },
+  vomito: { largura: 20, altura: 12, quadros: 3 },
   clarao: { largura: 24, altura: 18, quadros: 3 },
   clarao_g: { largura: 33, altura: 25, quadros: 3 },
   tracer: { largura: 12, altura: 3, quadros: 2 },

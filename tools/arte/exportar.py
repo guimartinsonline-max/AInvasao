@@ -129,6 +129,12 @@ folha([ct.contaminado("parado"), ct.contaminado("vomita"), ct.contaminado("grito
       + [ct.contaminado("morte"), tostar(ct.contaminado("morte")), ajoelhar(sem[0]), deitar(sem[0]),
          deitar(ct.contaminado("grito")), ct.contaminado("morde")] + sem, SAIDA / "contaminado.png")
 ct.cabeca_solta().salvar(SAIDA / "cabeca_contaminado.png")
+# Lampião zumbi (tools/arte/lampiao_zumbi.py): folha, golfada grande (tiro dele) e o
+# vômito pequeno do contaminado, todos animados.
+import lampiao_zumbi as lz  # noqa: E402
+folha(lz.folha(), SAIDA / "lampiao_zumbi.png")
+folha([lz.golfada(k) for k in range(3)], SAIDA / "golfada.png")
+folha([lz.golfada(k, W=20, H=12) for k in range(3)], SAIDA / "vomito.png")
 
 # Armas (pixel/armas_mao.txt, lidas por tools/arte/armas.py) e efeitos de tiro (tools/arte/efeitos_tiro.py).
 import efeitos_tiro as ef  # noqa: E402

@@ -28,6 +28,7 @@ export function carregarSprites(cena) {
   cena.load.image('maria_bonita', s('maria_bonita'));
   cena.load.image('chapeu', s('chapeu'));
   cena.load.image('cabeca_contaminado', s('cabeca_contaminado'));
+  cena.load.spritesheet('lampiao_zumbi', s('lampiao_zumbi'), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
   cena.load.spritesheet('jumento', s('jumento'), { frameWidth: 72, frameHeight: 60 });
   cena.load.spritesheet('retrato', s('retrato'), { frameWidth: 26, frameHeight: 21 });
   cena.load.spritesheet('retrato_gordo', s('retrato_gordo'), { frameWidth: 30, frameHeight: 21 });
@@ -69,9 +70,6 @@ export function gerarSprites(cena) {
   g.destroy();
 
   // Raio verde do xeremita.
-  // Golfada de vômito do soldado contaminado (voa em arco).
-  texturaDeTexto(cena, 'vomito', ['..9!!9..', '.9!??!9.', '9!?*?!!9', '9!!?!d!9', '.9!!!!9.', '..999...'],
-    { '*': 'alien_brilho', '?': 'alien_luz', '!': 'alien', 9: 'alien_esc', d: 'couro' });
   texturaDeTexto(cena, 'raio', ['..0!??*.', '90!?*WW*', '..0!??*.'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
   gerarItens(cena);
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });

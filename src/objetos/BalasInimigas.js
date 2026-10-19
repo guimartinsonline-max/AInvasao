@@ -53,11 +53,12 @@ export class BalasInimigas {
     if (!d) return;
     d.setTexture('vomito', 0).setActive(true).setVisible(true).setDepth(14).setFlipX(direcao < 0);
     d.body.reset(x, y);
-    d.body.setSize(7, 6);
+    d.body.setSize(12, 9);
     d.body.setAngularVelocity(0);
     d.vomito = true;
     d.proximaFumaca = 0;
-    const vx = Phaser.Math.Clamp(distancia * 1.1, 60, 200);
+    // Tempo de voo até o chão (~0,5 s) define a velocidade para cair no Lampião.
+    const vx = Phaser.Math.Clamp(distancia * 1.9, 60, 260);
     d.body.setVelocity(direcao * vx, -170);
   }
 
@@ -152,7 +153,7 @@ export class BalasInimigas {
       d.vomito = false;
       cena.efeitos.gosma(x, y - 2, 18);
       const j = this.jogador;
-      if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < 14 && Math.abs(j.pe - 14 - y) < 24) {
+      if (!j.morto && !j.invulneravel && Math.abs(j.x - x) < 22 && Math.abs(j.pe - 18 - y) < 26) {
         if (j.zumbificar) j.zumbificar();
         else j.morrer(j.x - x);
       }
@@ -211,6 +212,7 @@ export class BalasInimigas {
       if (d.active && d.vomito) {
         // Pinga gosma pelo caminho e tomba para onde vai.
         d.setRotation(Math.atan2(d.body.velocity.y, Math.abs(d.body.velocity.x)) * (d.flipX ? -1 : 1));
+        d.setFrame(Math.floor(agora / 90) % 3);
         if (agora > d.proximaFumaca) {
           d.proximaFumaca = agora + 70;
           this.cena.efeitos.gosma(d.x, d.y, 1);

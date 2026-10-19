@@ -1,4 +1,4 @@
-import { LAMPIAO, LAMPIAO_GORDO, COMIDAS } from '../quadros.js';
+import { LAMPIAO, LAMPIAO_GORDO, COMIDAS, ZUMBI } from '../quadros.js';
 import { BOCAS } from '../maos.js';
 import { ARMAS } from '../armas.js';
 import { som } from '../som.js';
@@ -23,6 +23,12 @@ const MORTE = 1900; // ms da animação de morte até renascer
 const ENGORDA = 6; // comidas seguidas para ficar gordo
 const DIGERE = 9000; // ms para a barriga baixar uma comida
 const TEMPO_GORDO = 25000; // ms gordo até emagrecer
+// Zumbi (vômito do contaminado, como no Metal Slug 3): lento, pulo alto e mole,
+// sem arma nem granada, só a golfada. Uma segunda pancada mata; só comida cura.
+const ZUMBI_VEL = 0.55;
+const ZUMBI_PULO = 1.12;
+const ZUMBI_FLUTUA = -420; // gravidade a menos no ar (cai devagar)
+const ZUMBI_CADENCIA = 650;
 
 export class Jogador {
   constructor(cena, x, y) {
@@ -85,6 +91,7 @@ export class Jogador {
         this.cena.efeitos.sangue(this.x, this.pe - 6, 10);
       }
       if (v.texture.key.endsWith('_gordo')) v.setTexture(v.texture.key.slice(0, -6));
+      if (v.texture.key === 'lampiao_zumbi') v.setTexture('lampiao');
       v.setFrame(LAMPIAO[quadro]);
       // Cai de costas: a cabeça vai para o lado de onde ele voou.
       const d = this.direcaoMorte;
@@ -121,7 +128,7 @@ export class Jogador {
     this.memoriaPulo = c.apertou('pular') ? MEMORIA_PULO : this.memoriaPulo - dt;
 
     // Agachar.
-    const querAgachar = this.noChao && c.estado.baixo;
+    const querAgachar = this.noChao && c.estado.baixo && !this.zumbi;
     if (querAgachar !== this.agachado) {
       this.agachado = querAgachar;
       this.ajustarAltura(this.agachado ? ALTURA_AGACHADO : ALTURA_EM_PE);
@@ -130,7 +137,9 @@ export class Jogador {
     // Correr.
     if (c.eixoX !== 0) this.direcao = c.eixoX;
     // Gordo anda mais devagar.
-    corpo.setVelocityX(c.eixoX * (this.agachado ? VEL_AGACHADO : VEL_CORRER) * (this.gordo ? 0.7 : 1));
+    corpo.setVelocityX(c.eixoX * (this.agachado ? VEL_AGACHADO : VEL_CORRER) * (this.gordo ? 0.7 : 1)
+      * (this.zumbi ? ZUMBI_VEL : 1));
+    corpo.setGravityY(this.zumbi && !this.noChao ? ZUMBI_FLUTUA : 0);
 
     // Pular, com tolerância de beirada e memória do botão.
     if (this.memoriaPulo > 0 && this.beirada > 0) {
@@ -140,16 +149,28 @@ export class Jogador {
         this.agachado = false;
         this.ajustarAltura(ALTURA_EM_PE);
       }
-      corpo.setVelocityY(VEL_PULO * (this.gordo ? 0.86 : 1));
+      corpo.setVelocityY(VEL_PULO * (this.gordo ? 0.86 : 1) * (this.zumbi ? ZUMBI_PULO : 1));
       som('pulo');
       this.cena.efeitos.poeira(this.x, this.pe, 6);
       this.cena.efeitos.poeiraPasso(this.x, this.pe);
       this.esticar(0.75, 1.3);
     }
-    if (!c.estado.pular && corpo.velocity.y < CORTE_PULO) corpo.setVelocityY(CORTE_PULO);
+    if (!c.estado.pular && corpo.velocity.y < CORTE_PULO && !this.zumbi) corpo.setVelocityY(CORTE_PULO);
 
     // Atirar.
     this.desdeTiro += dt;
+    if (this.zumbi) {
+      // Zumbi: tiro e granada soltam a golfada.
+      this.golfando = (this.golfando || 0) - dt;
+      if ((c.apertou('atirar') || c.apertou('granada') || c.estado.atirar) && this.desdeTiro >= ZUMBI_CADENCIA) {
+        this.desdeTiro = 0;
+        this.golfar();
+      }
+      this.miraCima = false;
+      this.miraBaixo = false;
+      this.animar(dt);
+      return;
+    }
     const apertou = c.apertou('atirar');
     const arma = ARMAS[this.arma];
     // Semiautomática (pistola): só atira ao apertar, um tiro por toque.
@@ -227,6 +248,8 @@ export class Jogador {
     this.desdeMorte = 0;
     this.caiuEm = 0;
     this.emagrecer(true);
+    this.zumbi = false;
+    this.corpo.body.setGravityY(0);
     this.bateu = false;
     // O chapéu voa da cabeça girando e cai do lado.
     this.chapeu.setPosition(this.x, this.pe - 44).setVisible(true).setAlpha(1).setRotation(0);
@@ -239,9 +262,68 @@ export class Jogador {
     cena.time.delayedCall(MORTE, () => this.renascer());
   }
 
+  // Vômito do contaminado acertou: vira zumbi. Já zumbi, a segunda pancada mata.
+  zumbificar() {
+    if (this.montaria && !this.morto) {
+      this.montaria.levarDano();
+      return;
+    }
+    if (this.morto || this.invulneravel) return;
+    if (this.zumbi) {
+      this.morrer();
+      return;
+    }
+    const cena = this.cena;
+    this.zumbi = true;
+    this.emagrecer(true);
+    if (this.agachado) {
+      this.agachado = false;
+      this.ajustarAltura(ALTURA_EM_PE);
+    }
+    cena.events.emit('arma', 'VIROU ZUMBI!');
+    som('grito');
+    cena.efeitos.gosma(this.x, this.pe - 30, 30);
+    cena.efeitos.tremer(0.006, 200);
+    cena.efeitos.parar(120);
+    // Meio segundo de folga para não levar outra golfada em seguida.
+    this.invulneravel = true;
+    cena.time.delayedCall(700, () => { if (!this.morto) this.invulneravel = false; });
+  }
+
+  // Comida cura o zumbi na hora.
+  curar() {
+    if (!this.zumbi) return;
+    this.zumbi = false;
+    this.corpo.body.setGravityY(0);
+    this.cena.events.emit('arma', 'CUROU!');
+    this.cena.efeitos.faisca(this.x, this.pe - 30, 12);
+    this.cena.efeitos.poeira(this.x, this.pe, 8);
+  }
+
+  // Golfada do zumbi: estufa e solta uma onda de vômito que atravessa a fila.
+  golfar() {
+    const cena = this.cena;
+    const d = this.direcao;
+    this.golfando = 320;
+    som('arremesso');
+    const x = this.x + d * 34;
+    const y = this.pe - 38;
+    const b = cena.balas.disparar(x, y, d > 0 ? 0 : Math.PI, 'golfada');
+    if (b) b.setDepth(15);
+    cena.efeitos.gosma(this.x + d * 20, y, 10);
+    cena.efeitos.tremer(0.003, 80);
+    if (this.noChao) this.corpo.x -= d * 2;
+  }
+
   // Comeu: pontos no lugar e a barriga enche; muitas seguidas e ele engorda.
   comer(nome, item) {
     const cena = this.cena;
+    if (this.zumbi) {
+      cena.pontuar(COMIDAS[nome] || 100, item.x, item.y - 16);
+      som('comer');
+      this.curar();
+      return;
+    }
     cena.pontuar(COMIDAS[nome] || 100, item.x, item.y - 16);
     som('comer');
     cena.efeitos.faisca(item.x, item.y - 8, 6);
@@ -443,6 +525,23 @@ export class Jogador {
       if (k < 700) quadro = 'espera2';
       else if (k > 1000 && k < 1700) quadro = Math.floor(k / 230) % 2 ? 'espera3' : 'parado';
       else if (k > 2300 && k < 3400) quadro = 'espera1';
+    }
+    if (this.zumbi) {
+      // Zumbi: folha própria, anda devagar arrastando, flutua no pulo, golfada.
+      let z = ZUMBI.parado;
+      if (this.golfando > 0) z = ZUMBI.golfada;
+      else if (!this.noChao) z = ZUMBI.pulo;
+      else if (corpo.velocity.x !== 0) z = ZUMBI.andar[Math.floor(this.passo / 170) % 4];
+      if (corpo.velocity.x !== 0 && this.noChao && Math.floor(this.passo / 340) !== Math.floor((this.passo - dt) / 340)) {
+        this.cena.efeitos.gosma(this.x + this.direcao * 6, this.pe - 26, 1);
+      }
+      if (v.texture.key !== 'lampiao_zumbi') v.setTexture('lampiao_zumbi');
+      v.setFrame(z);
+      v.setFlipX(this.direcao < 0);
+      const oz = this.direcao > 0 ? LAMPIAO.peX : LAMPIAO.largura - LAMPIAO.peX;
+      v.setOrigin(oz / LAMPIAO.largura, LAMPIAO.peY / LAMPIAO.altura);
+      v.setPosition(Math.round(this.x), Math.round(this.pe));
+      return;
     }
     // Com arma pesada, usa a folha do Lampião segurando aquela arma.
     const folha = (this.arma === 'padrao' ? 'lampiao' : `lampiao_${this.arma}`) + (this.gordo ? '_gordo' : '');

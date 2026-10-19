@@ -65,7 +65,7 @@ export class Balas {
     bala.body.allowGravity = !!cfg.gravidade;
     bala.body.setGravityY(cfg.gravidade ? cfg.gravidade - this.cena.physics.world.gravity.y : 0);
     // A pedra e a chama não giram com a direção; as outras apontam para onde vão.
-    const gira = !cfg.gravidade && !cfg.porIdade && cfg.textura !== 'chumbo';
+    const gira = !cfg.gravidade && !cfg.porIdade && !cfg.plano && cfg.textura !== 'chumbo';
     bala.setRotation(gira ? ang : 0);
     bala.setFlipX(!gira && Math.cos(ang) < -0.1);
     const vertical = gira && Math.abs(Math.sin(ang)) > 0.7;
