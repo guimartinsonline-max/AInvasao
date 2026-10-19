@@ -71,6 +71,11 @@ export function gerarSprites(cena) {
   texturaDeTexto(cena, 'raio', ['..0!??*.', '90!?*WW*', '..0!??*.'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
   gerarItens(cena);
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });
+  // Pedaços de chapa que voam quando um veículo é destroçado (e ficam no chão).
+  const chapa = { S: 'sombra', c: 'cinza_escuro', l: 'cinza', b: 'laranja_fogo' };
+  texturaDeTexto(cena, 'chapa0', ['.lll..', 'lcccS.', 'cccSSS', '.SS...'], chapa);
+  texturaDeTexto(cena, 'chapa1', ['ll.', 'cSl', 'cSS', 'bcS', '.S.'], chapa);
+  texturaDeTexto(cena, 'chapa2', ['.llll...', 'lccccll.', '.SSccccS', '...SSSb.'], chapa);
   // Banana de dinamite do granadeiro, com o pavio aceso.
   texturaDeTexto(cena, 'dinamite', ['.....yW', 'ORRRRo.', 'OTTTTRo', 'ORRRRo.'], { O: 'sombra', R: 'vermelho_esc', T: 'vermelho', o: 'couro_escuro', y: 'amarelo_fogo', W: 'branco' });
   // Infinito da arma padrão no painel de munição.

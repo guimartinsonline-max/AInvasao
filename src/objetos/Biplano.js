@@ -421,6 +421,7 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
     cena.time.delayedCall(700, () => {
       this.setFrame(Q.destruido);
       this.artilheiro.setVisible(false);
+      cena.efeitos.estilhacos(this.x - 30, this.y - 30, 10, 100, this.y);
       cena.efeitos.tremer(0.02, 500);
       cena.efeitos.tabuas(this.x, this.y - 30);
       this.queimando = cena.time.addEvent({
@@ -430,7 +431,13 @@ export class Biplano extends Phaser.Physics.Arcade.Sprite {
           if (Math.random() < 0.5) cena.efeitos.fumacaSobe(x, y - 10);
         },
       });
-      cena.time.delayedCall(10000, () => this.queimando.remove());
+      cena.time.delayedCall(10000, () => {
+        this.queimando.remove();
+        cena.time.addEvent({ delay: 700, repeat: 24, callback: () => {
+          const [x, y] = this.ponto(Phaser.Math.Between(-60, 10), -16);
+          cena.efeitos.fumacaSobe(x, y);
+        } });
+      });
     });
   }
 }

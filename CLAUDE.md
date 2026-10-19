@@ -93,6 +93,8 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 - **Segredos** (`segredos` no `fase1.json`, `src/objetos/Segredos.js`): cacimba (refém escondido), ninho de galinha no telhado (arma), canoa do rio seco (buchada), biruta (granadas). Brilham discreto de vez em quando; abertos dão 1000 e "SEGREDO!".
 - **Entrada de chefe** (`chefe` na onda): música corta, chão treme crescendo, poeira cai, apito (trem) ou motor engasgando (biplano), e a faixa vermelha com CHEFE/SUBCHEFE, nome e título. Depois do subchefe a música da fase volta.
 - **Fim da missão:** o Lampião pula atirando para o alto (montado, a metralhadora do jumento), os reféns salvos chegam correndo, pulam e batem continência ("VIVA O CAPITÃO!") e o bode Fubá passa berrando; depois o placar.
+- **Carcaças destroçadas** (`tools/arte/destrocos.py`): o último quadro de caminhão, blindado e trem não é só queimado: teto amassado, corpo partido com a ponta caída, rasgos (os de cima atravessam, os do meio mostram o escuro de dentro), chapa virada, brasas e pedaços no chão. Biplano (`destrocado()` em `aviao.py`): lona queimada mostrando o esqueleto, cauda partida no chão, asa de cima desabada, hélice de uma pá só. Ao explodir voam pedaços de chapa (`estilhacos` em `src/efeitos.js`) e depois do fogo fica um fio de fumaça.
+- **Jumento sem teletransporte:** a correção de "afundar no chão" só age em afundada de até 8 px; plataforma ou caixote mais alto não puxa mais o jumento para cima.
 - **Transformação** (além do gordo): fica para a fase 3. Recusados: Maria Bonita agora; faixa com o nome da arma pega.
 
 ## Fases (rascunho aprovado)

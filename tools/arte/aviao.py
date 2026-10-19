@@ -232,3 +232,56 @@ def biruta(q=0):
         t.chapado(m & (t.xx >= x0) & (t.xx < x0 + 4), "branco")
     t.contorno("sombra")
     return t
+
+
+def destrocado():
+    """Carcaça do biplano no chão: lona queimada mostrando o esqueleto de cavernas,
+    cauda partida caída na terra, asa de cima desabada em V, hélice com uma pá só,
+    nariz arriado sobre o trem quebrado; fuligem, brasas e pedaços espalhados."""
+    import destrocos as ds
+    from motor import VAZIO
+    t = biplano(4)
+    px = t.px
+    h, w = px.shape
+    # Hélice: some a pá de baixo (fica um toco).
+    px[33:h, 110:118] = np.where(px[33:h, 110:118] >= 0, VAZIO, px[33:h, 110:118])
+    # Lona do meio da fuselagem queimada: só o esqueleto (cavernas e longarinas).
+    yy, xx = np.mgrid[0:h, 0:w]
+    meio = (xx > 30) & (xx < 74) & (yy > 23) & (yy < 38) & (px != VAZIO)
+    esqueleto = meio & (((xx - 30) % 6 == 0) | (np.abs(yy - 25) < 0.6) | (np.abs(yy - 36) < 0.6)
+                        | (np.abs((xx - 30) % 12 - (yy - 24) * 0.85) < 0.6))
+    px[meio & ~esqueleto] = VAZIO
+    px[esqueleto] = IDX["cinza_escuro"]
+    px[esqueleto & ((xx + yy) % 5 == 0)] = IDX["laranja_escuro"]
+    # Asa de cima desabada em V: a metade de trás cai mais (e a ponta encosta na fuselagem).
+    asa = (yy < 15) & (xx > 48) & (xx < 102) & (px != VAZIO)
+    copia = np.where(asa, px, VAZIO)
+    px[asa] = VAZIO
+    for x in range(49, 102):
+        d = int(10 - (x - 49) * 0.12) if x < 74 else int(3 + (x - 74) * 0.05)
+        if 72 <= x <= 75:
+            continue  # quebrada no meio
+        col = copia[:15, x]
+        for y in range(15):
+            if col[y] != VAZIO and y + d < h:
+                px[y + d, x] = col[y]
+    # Cauda partida: tudo à esquerda de x=30 cai torto até a bequilha bater no chão.
+    cauda = px[:, :31].copy()
+    px[:, :31] = VAZIO
+    for x in range(31):
+        d = int(4 + (30 - x) * 0.45)
+        col = cauda[:, x]
+        for y in range(h - 1, -1, -1):
+            if col[y] != VAZIO and y + d < h:
+                px[y + d, x] = col[y]
+    # Nariz arriado: a frente desce 4 px sobre o trem quebrado (a roda fica).
+    roda = (xx > 82) & (xx < 103) & (yy > 40)
+    frente = (xx > 60) & (px != VAZIO) & ~roda
+    copia = np.where(frente, px, VAZIO)
+    px[frente] = VAZIO
+    for y in range(h - 1, -1, -1):
+        for x in range(61, w):
+            if copia[y, x] != VAZIO and y + 4 < h and not roda[y + 4, x]:
+                px[y + 4, x] = copia[y, x]
+    t.px = px
+    return ds.destrocar(t, semente=11, partir=False, afunda=2, rasgos=3, pedacos=6, chassi=0.9)

@@ -128,14 +128,16 @@ export class Jumento {
       b.reset(j.corpo.x, cena.chaoAbaixo(j.x, -60) - 30);
       b.setVelocity(0, 0);
     }
-    // Nunca afunda: se o pé passou do chão que está logo embaixo, volta para cima dele.
-    const chao = cena.chaoAbaixo(j.x, j.pe - 30);
-    if (j.pe > chao + 2 && b.velocity.y >= 0) {
+    // Nunca afunda: se o pé afundou uns poucos pixels no chão, volta para cima dele.
+    // Só corrige afundada pequena; plataforma ou caixote mais alto na frente não é
+    // chão (antes ele "teletransportava" para cima de toldo, sacos e caixotes).
+    const chao = cena.chaoAbaixo(j.x, j.pe - 8);
+    if (j.pe > chao + 2 && j.pe - chao <= 8 && b.velocity.y >= 0) {
       j.corpo.y -= j.pe - chao;
       b.setVelocityY(0);
       b.updateFromGameObject?.();
     }
-    const noChao = b.blocked.down || b.touching.down || chao - j.pe < 3;
+    const noChao = b.blocked.down || b.touching.down || Math.abs(chao - j.pe) < 3;
     this.noAr = noChao ? 0 : (this.noAr || 0) + dt;
     // Descer: baixo + pulo.
     if (c.estado.baixo && c.apertou('pular') && noChao) {
@@ -288,8 +290,9 @@ export class Jumento {
     const s = this.s;
     this.passo += dt;
     s.x += this.direcao * KAMI_VEL * dt / 1000;
-    const chao = cena.chaoAbaixo(s.x, s.y - 30);
-    s.y += Phaser.Math.Clamp(chao - 1 - s.y, -6, 6);
+    // Segue o chão: desce de beirada, sobe só degrau pequeno (nada de pular para cima de plataforma).
+    const chao = cena.chaoAbaixo(s.x, s.y - 8);
+    s.y += Phaser.Math.Clamp(chao - 1 - s.y, -3, 6);
     s.setFlipX(this.direcao < 0).setFrame(6 + (Math.floor(this.passo / 70) % 2));
     this.posicionarMg();
     // Pavio aceso na sela soltando faísca e poeira atrás das patas.

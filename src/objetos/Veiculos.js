@@ -159,6 +159,7 @@ class Veiculo extends Phaser.Physics.Arcade.Sprite {
     cena.time.delayedCall(n * 140 - 100, () => {
       this.setFrame(this.q.destruido);
       cena.efeitos.tremer(0.016, 400);
+      cena.efeitos.estilhacos(this.x, this.y - this.q.altura / 2, 9, this.q.largura * 0.7, this.y);
       this.queimando = cena.time.addEvent({
         delay: 140, loop: true, callback: () => {
           const x = this.x + Phaser.Math.Between(-this.q.largura / 3, this.q.largura / 3);
@@ -167,7 +168,11 @@ class Veiculo extends Phaser.Physics.Arcade.Sprite {
         },
       });
       // A carcaça queima um tempo e se apaga.
-      cena.time.delayedCall(9000, () => this.queimando.remove());
+      cena.time.delayedCall(9000, () => {
+        this.queimando.remove();
+        // Apagou: fica soltando um fio de fumaça.
+        cena.time.addEvent({ delay: 700, repeat: 24, callback: () => cena.efeitos.fumacaSobe(this.x + Phaser.Math.Between(-20, 20), this.y - 24) });
+      });
     });
     this.aoDestruir?.();
   }

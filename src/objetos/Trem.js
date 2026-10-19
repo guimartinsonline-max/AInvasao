@@ -341,6 +341,8 @@ export class TremBlindado {
     cena.time.delayedCall(14 * 170, () => {
       this.loco.setFrame(16);
       this.vagao.setFrame(16);
+      cena.efeitos.estilhacos(this.loco.x + TREM.loco.largura / 2, this.chao - 50, 14, TREM.loco.largura * 0.8, this.chao);
+      cena.efeitos.estilhacos(this.vagao.x + TREM.vagao.largura / 2, this.chao - 40, 8, TREM.vagao.largura * 0.7, this.chao);
       for (const p of Object.values(this.partes)) p.setVisible(false);
       cena.efeitos.tremer(0.02, 600);
       cena.cameras.main.flash(200, 255, 230, 180);

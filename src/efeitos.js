@@ -138,6 +138,33 @@ export class Efeitos {
     this.lascasEm.explode(10, x, y);
   }
 
+  // Veículo destroçado: pedaços de chapa voam girando, quicam e ficam no chão um tempo.
+  estilhacos(x, y, n = 8, largura = 60, chao = 194) {
+    const cena = this.cena;
+    for (let k = 0; k < n; k++) {
+      const p = cena.add.image(x + Phaser.Math.Between(-largura / 2, largura / 2), y - Phaser.Math.Between(0, 20),
+        `chapa${k % 3}`).setDepth(15).setFlipX(Math.random() < 0.5);
+      const vx = Phaser.Math.Between(-150, 150);
+      const alto = Phaser.Math.Between(40, 110);
+      const ate = chao - 1 - Phaser.Math.Between(0, 3);
+      const fx = p.x + vx * 0.9;
+      cena.tweens.add({ targets: p, x: fx, duration: 900, ease: 'Linear' });
+      cena.tweens.add({ targets: p, angle: Phaser.Math.Between(-720, 720), duration: 900 });
+      cena.tweens.add({
+        targets: p, y: p.y - alto, duration: 330, ease: 'Quad.easeOut',
+        onComplete: () => cena.tweens.add({
+          targets: p, y: ate, duration: 570, ease: 'Quad.easeIn',
+          onComplete: () => {
+            // Quique no chão e fica deitado.
+            this.poeira(p.x, ate, 2);
+            cena.tweens.add({ targets: p, y: ate - 5, duration: 110, yoyo: true, onComplete: () => p.setAngle(Math.round(p.angle / 180) * 180) });
+            cena.time.delayedCall(Phaser.Math.Between(5000, 8000), () => cena.tweens.add({ targets: p, alpha: 0, duration: 600, onComplete: () => p.destroy() }));
+          },
+        }),
+      });
+    }
+  }
+
   // Cinza de quem morreu queimado.
   cinzas(x, y) {
     this.cinzasEm.explode(26, x, y);
