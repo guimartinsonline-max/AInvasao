@@ -63,7 +63,7 @@ const TIPOS = {
 // Inimigo comum: anda até o Lampião, para a uma distância e atira.
 // Ao morrer voa ou derrete de forma cômica; no campo de treino renasce.
 export class Inimigo extends Phaser.Physics.Arcade.Sprite {
-  // opcoes.escudo: soldado da Volante com escudo de tábuas, que segura os tiros de frente.
+  // opcoes.escudo: soldado da Volante com escudo de chapa de aço, que segura os tiros de frente.
   constructor(cena, x, y, tipo, opcoes = {}) {
     const q = INIMIGOS[tipo];
     super(cena, x, y, tipo, q.parado);
@@ -114,12 +114,14 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.vidaEscudo -= dano;
     this.escudo.setTint(P.branco).setTintMode(Phaser.TintModes.FILL);
     cena.time.delayedCall(50, () => this.escudo.clearTint());
+    // Chapa de aço: faísca e ricochete em vez de lasca de madeira.
     cena.efeitos.impacto(x, y, 'comum');
-    cena.efeitos.lascas(x, y);
+    cena.efeitos.faisca(x, y, 6);
     if (this.vidaEscudo <= ESCUDO / 2) this.escudo.setFrame(1);
     if (this.vidaEscudo <= 0) {
       this.escudo.setVisible(false);
-      cena.efeitos.tabuas(this.escudo.x, this.escudo.y - 13);
+      cena.efeitos.estilhacos(this.escudo.x, this.escudo.y - 15, 4, 12, this.y);
+      cena.efeitos.faisca(this.escudo.x, this.escudo.y - 15, 10);
       this.grito.setText('MEU ESCUDO!').setPosition(this.x, this.y - 54).setVisible(true).setAlpha(1);
       cena.tweens.killTweensOf(this.grito);
       cena.tweens.add({ targets: this.grito, alpha: 0, delay: 700, duration: 300 });
@@ -310,7 +312,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       // O escudo cai no chão quando o soldado morre.
       this.vidaEscudo = 0;
       this.escudo.setVisible(false);
-      ef.tabuas(this.escudo.x, this.escudo.y - 13);
+      ef.estilhacos(this.escudo.x, this.escudo.y - 15, 3, 12, this.y);
     }
     if (morte === 'fogo') {
       // Vira carvão, fica parado um instante e desmancha em cinza.
@@ -468,7 +470,10 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     }
     if (this.escudo && this.escudo.visible) {
       // O escudo vai na frente do corpo, na altura da barriga.
-      this.escudo.setPosition(Math.round(this.x + this.direcao * 9), Math.round(this.y)).setFlipX(this.direcao < 0);
+      // Balança um pixel no passo e dá o tranco quando ele atira pela seteira.
+      const passo = this.q.andar.indexOf(this.frame.name) % 2 === 1 ? -1 : 0;
+      const tranco = this.estado === 'atirando' ? -1 : 0;
+      this.escudo.setPosition(Math.round(this.x + this.direcao * (10 + tranco)), Math.round(this.y + passo + 1)).setFlipX(this.direcao < 0);
     }
     if (this.refemAtivo) {
       // Romeiro agarrado na frente, se debatendo.

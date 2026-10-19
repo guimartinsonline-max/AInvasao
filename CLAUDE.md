@@ -60,7 +60,7 @@ Na reta final, a Volante é dominada pelos alienígenas e o comandante pede tré
 ## Inimigos e refém
 
 - **Caricatos, igual ao Metal Slug, mas no porte do Lampião** (cabeça do tamanho da dele, nada absurdo): olhos e nariz exagerados na medida, poses cômicas. Desenhados em `tools/arte/caricatos.py` (gera os `.txt` em `tools/arte/pixel/`).
-- **Soldado da Volante:** quepe, narigão, bigodão, barriga; pânico com suor; variante com escudo de tábuas que segura tiros de frente (granada e peixeira quebram).
+- **Soldado da Volante:** quepe, narigão, bigodão, barriga; pânico com suor; variante com **escudo de chapa de aço** (`escudo()` em `objetos.py`, 16x30): oliva gasto mostrando o aço nas quinas, aro rebitado, visor, seteira vazada por onde passa o cano do fuzil, estrela pintada, riscos e amassados; a mão do soldado agarra a borda; balança no passo e dá tranco no tiro; tiro nele solta faísca e, arrebentado, voa em pedaços de chapa. Segura tiros de frente (granada e peixeira quebram).
 - **Outros soldados:** granadeiro (dinamite em arco), metralhador (rajada de 4, 5 de vida), sargento do facão (corre e golpeia), soldado de rojão (rojão em arco de longe).
 - **Distraídos:** soldados sentados cochilando (Zz) até ver o Lampião ou levar tiro; pulam de susto com "!?".
 - **Saem de esconderijo:** nas ondas, pulam de buracos, de trás dos sacos de areia e do lajedo (`salta:x` em `fase1.json`).
