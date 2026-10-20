@@ -33,9 +33,10 @@ OMBRO_TRAS = (11, 22)
 
 QUADROS = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4", "corre5", "corre6",
            "pulo", "agachado", "mira_cima", "susto", "arremesso", "facada", "facada1", "mira_baixo", "recarga",
-           "morte1", "morte2", "morte3", "espera1", "espera2", "espera3"]
+           "morte1", "morte2", "morte3", "espera1", "espera2", "espera3", "parado2"]
+# parado2: respiração do parado (alterna com "parado").
 # Espera (parado um tempo, como no Metal Slug): bocejo, olha para trás, ajeita o chapéu suando.
-ROSTO = {"espera1": "boceja", "espera2": "olha", "espera3": "suor", "parado": "serio", "agachado": "serio", "susto": "susto", "mira_baixo": "baixo", "mira_cima": "cima"}
+ROSTO = {"parado2": "serio", "espera1": "boceja", "espera2": "olha", "espera3": "suor", "parado": "serio", "agachado": "serio", "susto": "susto", "mira_baixo": "baixo", "mira_cima": "cima"}
 # Braço de trás erguido atirando a granada (por cima do ombro, como no Metal Slug).
 ARREMESSO = {"cotovelo": (4, 15), "mao": (5, 3)}
 
@@ -268,6 +269,8 @@ def quadro(nome, arma, bocas=None):
     bx, by = ar.BOCA[arma]
     pose = POSES[arma]
     g, dy, rosto = base(nome)
+    if nome == "parado2":
+        dy += 1  # respirando: o corpo desce 1 px sobre as pernas paradas
 
     if nome.startswith("morte"):
         return quadro_morte(nome)
