@@ -60,7 +60,7 @@ export function carregarSprites(cena) {
   cena.load.spritesheet('casa_vila_0', s('casa_vila_0'), { frameWidth: 130, frameHeight: 84 });
   cena.load.spritesheet('casa_vila_1', s('casa_vila_1'), { frameWidth: 110, frameHeight: 72 });
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
-  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje']) {
+  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje', 'f1_ceu', 'f1_nuvens']) {
     cena.load.image(nome, s(nome));
   }
   // Camadas da fase 1, em pedaços.

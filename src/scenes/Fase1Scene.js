@@ -48,11 +48,11 @@ export class Fase1Scene extends CenaJogo {
 
   criarFundo() {
     const d = this.dados.camadas;
-    this.add.image(0, 0, 'ceu').setOrigin(0).setScrollFactor(0).setDepth(-10);
+    this.add.image(0, 0, 'f1_ceu').setOrigin(0).setScrollFactor(0).setDepth(-10);
     const repete = (chave, y, fator) => [this.add.tileSprite(0, y, LARGURA, this.textures.get(chave).source[0].height, chave)
       .setOrigin(0).setScrollFactor(0).setDepth(-8), fator];
-    this.nuvens = repete('nuvens', 6, 0.03);
-    this.camadas = [this.nuvens, repete('serras', DY - 32, 0.08), repete('paredoes', 46 + DY, 0.2)];
+    this.nuvens = repete('f1_nuvens', 6, 0.03);
+    this.camadas = [this.nuvens];
     this.ventoNuvens = 0;
     // Camadas pintadas da fase, cada uma andando numa velocidade (parallax).
     // Camadas pintadas da fase (em pedaços lado a lado), cada uma numa velocidade (parallax).
@@ -63,6 +63,9 @@ export class Fase1Scene extends CenaJogo {
         this.add.image(k * PEDACO, base - h + DY, img).setOrigin(0).setScrollFactor(fator, 0).setDepth(prof);
       }
     };
+    // Serras e paredão pintados inteiros para a fase (sem emenda de repetição).
+    pintada('f1_serras', d.serras.base, d.serras.fator, -7);
+    pintada('f1_paredao', d.paredao.base, d.paredao.fator, -6);
     pintada('f1_meio', d.meio.base, d.meio.fator, -3);
     pintada('f1_perto', d.perto.base, d.perto.fator, -2);
     pintada('f1_frente', d.frente.base, d.frente.fator, 25);

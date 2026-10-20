@@ -909,21 +909,23 @@ def camada_jogo():
     t = Tela(LARGURA_FASE, alt)
     rng = np.random.default_rng(1)
     y = lambda wy: wy - topo  # noqa: E731
+    import caatinga_detalhe as ca
     # Enfeites atrás das plataformas: capim, xique-xique, pedras, caveira.
     for x in range(0, LARGURA_FASE, 9):
         if rng.random() < 0.55:
-            c = capim(semente=x, seco=True)
+            c = ca.capim(int(rng.integers(12, 20)), int(rng.integers(8, 14)), semente=x, seco=True)
             colar(t, c, x + rng.integers(-3, 3), y(CHAO) - c.h + 1)
     # Chão de terra batida; no leito do rio, lama seca rachada.
     import fase1_extra as ext
-    t.colar(chao(LARGURA_FASE, 26, semente=3), 0, y(CHAO) - 2)
+    t.colar(ca.chao_caatinga(LARGURA_FASE, 26, semente=3), 0, y(CHAO) - 2)
     # Lama rachada do leito misturando aos poucos na terra batida (sem corte reto).
     colar_suave(t, ext.chao_rachado(6840 - 5980, 26, semente=8), 5980, y(CHAO) - 2, borda=70, semente=8)
     yc = y(CHAO) - 1  # linha do chão na camada
     for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050, 3870, 6860, 7260, 7800):
-        assentar(t, xiquexique(semente=x), x, yc)
+        assentar(t, ca.xiquexique(int(rng.integers(26, 38)), semente=x), x, yc)
     for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850, 3000, 3640, 6200, 6620, 7450, 7850)):
-        assentar(t, pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=k + 20), x, yc, afundar=2)
+        assentar(t, ca.pedra(int(rng.integers(18, 34)), int(rng.integers(11, 18)), semente=k + 20,
+                             rampa=ca.PEDRA if k % 2 else ca.PEDRA_Q), x, yc, afundar=2)
     assentar(t, cranio_boi(), 1880, yc)
     assentar(t, cranio_boi(), 2540, yc)
     # Forquilhas secas (refém pendurado no galho), buracos e fogueiras.
@@ -942,7 +944,7 @@ def camada_jogo():
         assentar(t, peca, x, yc)
     # Lajedos e barranco (sólidos).
     for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10)], range(7)):
-        lj = lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
+        lj = ca.lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
         sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
     # Barrancos do rio seco onde a ponte apoia (terra em camadas, muro de pedra, viga).
@@ -1022,7 +1024,7 @@ def camada_perto():
     grandes, mandacarus, cerca do curral, cata-vento e pedras grandes."""
     fator = 0.75
     W = int(LARGURA_FASE * fator + 548)
-    alt = 112
+    alt = 160
     base = alt - 2
     t = Tela(W, alt)
     rng = np.random.default_rng(2)
@@ -1030,30 +1032,40 @@ def camada_perto():
     pecas = []
     import fase1_extra as ext
     import veiculos as vc
-    for k, wx in enumerate((20, 330, 560, 1000, 1500, 2050, 2400, 2700, 3000, 6000, 7700)):
-        pecas.append((lx(wx), arvore(int(rng.integers(64, 84)), semente=k + 100)))
+    import caatinga_detalhe as ca
+    for k, wx in enumerate((20, 330, 560, 1000, 1500, 2050, 2400, 2700, 3000, 6000, 7700, 250, 1250, 1800, 2280)):
+        pecas.append((lx(wx), ca.arvore(int(rng.integers(96, 138)), semente=k + 100, seca=float(rng.uniform(0.15, 0.6)),
+                                        folhas=rng.random() > 0.2)))
     for k, wx in enumerate((150, 460, 880, 1240, 1880, 2250, 2600, 2950, 3820, 6820, 7600)):
-        pecas.append((lx(wx), mandacaru(int(rng.integers(36, 56)), semente=k + 200, bracos=int(rng.integers(1, 4)))))
-    for k, wx in enumerate((270, 1120, 2150)):
-        pecas.append((lx(wx), pedra(int(rng.integers(34, 52)), int(rng.integers(20, 30)), semente=k + 300)))
-    pecas.append((lx(700), casa_taipa(124, 86, semente=5)))
-    pecas.append((lx(700) + 128, pote_barro(5)))
-    pecas.append((lx(700) - 14, pote_barro(6, 12)))
-    pecas.append((lx(1480), cerca(110, semente=9)))
+        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(60, 92)), semente=k + 200, bracos=int(rng.integers(1, 4)))))
+    for k, wx in enumerate((270, 1120, 2150, 640, 1700)):
+        pecas.append((lx(wx), ca.pedra(int(rng.integers(44, 70)), int(rng.integers(26, 40)), semente=k + 300,
+                                       rampa=ca.PEDRA if k % 2 else ca.PEDRA_Q)))
+    # Moitas e xique-xiques enchendo o pé do plano de trás (nada de chão vazio).
+    xx_ = 0
+    while xx_ < W - 40:
+        if rng.random() < 0.7:
+            pecas.append((xx_, ca.moita(int(rng.integers(30, 56)), int(rng.integers(16, 26)), semente=xx_,
+                                        seca=float(rng.uniform(0.3, 0.8)))))
+        else:
+            pecas.append((xx_, ca.xiquexique(int(rng.integers(26, 40)), semente=xx_ + 1)))
+        xx_ += int(rng.integers(26, 70))
+    pecas.append((lx(700), ca.casa_taipa(160, 104, semente=5)))
+    pecas.append((lx(1480), ca.cerca_varas(110, 34, semente=9)))
     pecas.append((lx(1590), cata_vento(78)))
-    pecas.append((lx(2460), casa_taipa(100, 70, semente=8)))
+    pecas.append((lx(2460), ca.casa_taipa(130, 92, semente=8)))
     # Vila: mais casas atrás, uma ao lado da outra.
     for k, (wx, w_, h_) in enumerate(((3150, 96, 66), (3300, 80, 58), (3560, 104, 70), (3760, 88, 60))):
-        pecas.append((lx(wx), casa_taipa(w_, h_, semente=40 + k, quebrada=k % 2 == 1)))
+        pecas.append((lx(wx), ca.casa_taipa(w_ + 20, h_ + 16, semente=40 + k, quebrada=k % 2 == 1, alpendre=False)))
     # Vila alta: a igreja matriz e casas atrás do casario.
     pecas.append((lx(4300), ext.capela(110, 110, semente=7)))
     for k, (wx, w_, h_) in enumerate(((3950, 90, 62), (4120, 84, 70), (4520, 96, 66), (4700, 80, 58))):
-        pecas.append((lx(wx), casa_taipa(w_, h_, semente=60 + k, quebrada=k % 2 == 0)))
+        pecas.append((lx(wx), ca.casa_taipa(w_ + 20, h_ + 16, semente=60 + k, quebrada=k % 2 == 0, alpendre=False)))
     # Campo de pouso: hangar ao longe, depósito e mandacarus.
     import vila_campo as vca
     pecas.append((lx(5500), vca.tanque_gasolina(5)))
     for k, wx in enumerate((4950, 5380, 5700, 5900)):
-        pecas.append((lx(wx), mandacaru(int(rng.integers(36, 56)), semente=k + 220, bracos=2)))
+        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(56, 84)), semente=k + 220, bracos=2)))
     # Rio seco: carnaúbas na beira.
     for k, wx in enumerate((6080, 6180, 6330, 6480, 6620, 6740)):
         pecas.append((lx(wx), ext.carnauba(int(rng.integers(70, 96)), semente=k + 60)))
@@ -1110,7 +1122,7 @@ def camada_meio():
     (O disco que cai no fim passa atrás dela, animado no jogo.)"""
     fator = 0.45
     W = int(LARGURA_FASE * fator + 548)
-    alt = 64
+    alt = 90
     t = Tela(W, alt)
     rng = np.random.default_rng(3)
     # Morros: faixa ondulada com volume suave.
@@ -1122,18 +1134,17 @@ def camada_meio():
     textura_morro(t, morro, alto, rng)
     # Caatinga miúda e espalhada: arbustos em tufos, algumas árvores secas sem folha.
     x = 0
+    import caatinga_detalhe as ca
     while x < W:
-        h = int(rng.integers(10, 26))
-        seca = rng.random() < 0.35
-        a = arvore(h, semente=int(x), folhas=not seca)
-        if not seca:
-            # Folhagem mais acinzentada, de seca, vista de longe.
-            troca = {IDX["mandacaru_luz"]: IDX["areia_media"], IDX["mandacaru"]: IDX["caatinga_media"],
-                     IDX["caatinga"]: IDX["caatinga_media"]}
-            for de, para in troca.items():
-                a.px[a.px == de] = para
+        h = int(rng.integers(20, 40))
+        seca = rng.random() < 0.3
+        if rng.random() < 0.15:
+            a = ca.mandacaru(int(h * 0.9), semente=int(x), bracos=2)
+        else:
+            a = ca.arvore(h, semente=int(x), folhas=not seca, seca=0.45)
+        ca.nevoa(a, 0.32)
         colar(t, a, x, alto[min(W - 1, x)] - a.h + 4)
-        x += int(rng.integers(6, 30))
+        x += int(rng.integers(10, 34))
     casinha = casa_taipa(40, 30, semente=12, quebrada=False)
     colar(t, casinha, int(900 * fator), alto[int(900 * fator)] - 26)
     # A vila vista de longe: casinhas juntas no morro.
@@ -1179,7 +1190,15 @@ def exportar(saida, raiz):
     frente, ff = camada_frente()
     # Cada camada vai em pedaços de até 2048 px (o iPhone não aceita textura larga demais).
     pedacos = {}
-    for nome, c in (("f1_jogo", jogo), ("f1_perto", perto), ("f1_meio", meio), ("f1_frente", frente)):
+    import caatinga_detalhe as ca
+    import cenario as cn
+    import rocha as rc
+    ca.ceu_dia().imagem().save(saida / "f1_ceu.png", optimize=True)
+    ca.nuvens_cumulus().imagem().save(saida / "f1_nuvens.png", optimize=True)
+    serras = cn.serras(200, int(LARGURA_FASE * 0.08 + 548))
+    paredao = ca.paredao(int(LARGURA_FASE * 0.2 + 548))
+    for nome, c in (("f1_jogo", jogo), ("f1_perto", perto), ("f1_meio", meio), ("f1_frente", frente),
+                    ("f1_serras", serras), ("f1_paredao", paredao)):
         im = c.imagem()
         n = (im.width + PEDACO - 1) // PEDACO
         for k in range(n):
@@ -1193,8 +1212,9 @@ def exportar(saida, raiz):
         "export const PEDACO = " + str(PEDACO) + ";\nexport const PEDACOS = " + json.dumps(pedacos) + ";\n")
     dados = dict(FASE)
     dados["camadas"] = {
-        "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp},
+        "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp},  # perto: 160 de altura
         "meio": {"base": 192, "fator": fm}, "frente": {"base": 216, "fator": ff},
+        "serras": {"base": 168, "fator": 0.08}, "paredao": {"base": 176, "fator": 0.2},
     }
     pasta = raiz / "assets/fases"
     pasta.mkdir(parents=True, exist_ok=True)
