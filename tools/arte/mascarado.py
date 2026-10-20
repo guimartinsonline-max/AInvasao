@@ -118,7 +118,7 @@ if __name__ == "__main__":
     d = pixel.ler("volante.txt")
     ims = []
     for n in ("parado", "atira", "panico", "anda2", "morte", "sentado1"):
-        q = rp.repintar_tela(d[n])
+        q = d[n]
         ims += [q.imagem(), mascarar(q).imagem()]
     W = 52 * len(ims)
     o = Image.new("RGBA", (W, 46), (176, 142, 102, 255))

@@ -15,7 +15,8 @@ import pixel  # noqa: E402
 from motor import IDX, VAZIO, Tela  # noqa: E402
 
 PELE = [IDX[c] for c in ("pele_sombra", "pele_escura", "pele_media", "pele", "pele_luz", "pele_clara", "pele_brilho")]
-CHAPEU = [IDX[c] for c in ("areia_clara", "areia", "areia_media", "terra", "vermelho", "sombra", "areia_luz")]
+CHAPEU = [IDX[c] for c in ("areia_clara", "areia", "areia_media", "terra", "vermelho", "sombra", "areia_luz",
+                            "terra_escura", "terra_media")]
 FITAS = [IDX[c] for c in ("amarelo_fogo", "mandacaru", "ceu", "vermelho")]
 JALECO = {"areia_clara": "branco", "areia_luz": "cinza_claro", "areia": "cinza_claro", "areia_media": "cinza_luz",
           "terra_escura": "cinza", "terra_media": "cinza_medio", "terra": "cinza_medio", "barro": "cinza_escuro"}
@@ -58,7 +59,7 @@ def cientista(q, cru=None):
     # Careca brilhante com tufos brancos espetados dos lados e atrás.
     hx, hy = cx, topo + 1
     careca = t.elipse(hx, hy + 1, 5.2, 4.0) & (t.yy <= topo + 2)
-    t.cel(careca, ["pele_sombra", "pele_media", "pele", "pele_luz"], sombra=1)
+    t.cel(careca, ["pele_media", "pele", "pele_luz", "pele_clara", "pele_brilho"], sombra=1)
     t.ponto(hx - 1.5, hy - 1.5, "pele_brilho")
     for (dx, dy, ang) in ((-6, 1, -1), (-7, 3, -1), (6, 2, 1), (5, 0, 1), (-5, -1, -1)):
         x, y = hx + dx, hy + dy
@@ -83,7 +84,7 @@ def folha():
     ordem = ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
              "corre1", "corre2", "corre3", "corre4", "pendurado1", "pendurado2"]
     import repintar as rp
-    return [cientista(rp.repintar_tela(d[n]), d[n]) for n in ordem]
+    return [cientista(d[n], d[n]) for n in ordem]
 
 
 if __name__ == "__main__":

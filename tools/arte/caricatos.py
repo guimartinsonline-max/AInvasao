@@ -222,7 +222,7 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0
         membro(t, (12, 25), (15, 31), (22, 31), 2.2, 2.0, FARDA, -1)
 
     # Mochila de lona nas costas com o cobertor enrolado em cima, preso por correias.
-    if braco is None and tipo != "rojao":
+    if braco is None and MOCHILA and tipo not in ("rojao", "oficial", "facao"):
         mo = t.retangulo(4, 21 + pulo, 7, 10) | t.elipse(7.5, 30 + pulo, 3.5, 2.5)
         sombrear(t, mo, ["sombra", "terra_escura", "terra", "terra_media", "barro", "areia_media"])
         t.linha(4, 25 + pulo, 10, 25 + pulo, "terra_escura")
@@ -257,6 +257,25 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0
             t.chapado(t.retangulo(16 + k * 2.2, 25, 1.6, 1.5), cor)
             t.chapado(t.elipse(16.8 + k * 2.2, 27.5, 0.9, 0.9), "amarelo_claro")
         cel(t, t.elipse(12, 23.5, 3.2, 1.6), ["ouro_escuro", "amarelo_fogo", "amarelo_claro"], sombra=0)
+    if tipo == "metralhador":
+        # Fita de balas de latão atravessada no peito, do ombro ao quadril.
+        for k in range(9):
+            x, y = 10 + k * 1.2, 23.5 + k * 1.1
+            if t.px[int(y), int(x)] != VAZIO:
+                t.ponto(x, y, "ouro_escuro" if k % 2 else "amarelo_fogo")
+                t.ponto(x + 1, y, "couro_escuro")
+                if k % 2 == 0:
+                    t.ponto(x, y - 1, "amarelo_claro")
+    if tipo == "oficial":
+        # Talabarte de couro (cinto de oficial) cruzando o peito, com a fivela dourada.
+        for k in range(10):
+            t.ponto(12 + k, 23 + k * 0.95, "couro_medio")
+            t.ponto(12 + k, 24 + k * 0.95, "couro_escuro")
+        t.ponto(17, 28, "amarelo_claro")
+    if tipo == "facao":
+        # Bainha do facão pendurada no quadril de trás.
+        sombrear(t, t.capsula(8, 33, 4, 41, 1.2), COURO)
+        t.ponto(8, 33, "amarelo_fogo")
     if tipo == "granadeiro":
         # Bananas de dinamite presas na cartucheira.
         for k in range(4):
@@ -937,6 +956,9 @@ REFEM = {
 }
 
 
+MOCHILA = True  # o contaminado usa a Volante sem a mochila (o tumor ocupa o ombro)
+
+
 def gravar(arquivo, quadros):
     pixel.salvar(arquivo, {n: f() for n, f in quadros.items()})
 
@@ -950,4 +972,8 @@ if __name__ == "__main__":
     gravar("facao.txt", FACAO)
     gravar("rojao.txt", ROJAO)
     gravar("oficial.txt", OFICIAL)
+    MOCHILA = False
+    gravar("volante_sm.txt", {k: v for k, v in VOLANTE.items() if k in ("parado", "atira", "panico", "anda1", "anda2",
+                                                                       "anda3", "anda4", "morte")})
+    MOCHILA = True
     print("volante.txt, xeremita.txt e refem.txt atualizados")

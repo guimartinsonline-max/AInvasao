@@ -65,6 +65,21 @@ def repintar(g, alvo, materiais=LAMPIAO, inteiro=False):
         nivel = np.clip(np.round(v * (k - 1)), 0, k - 1).astype(int)
         # Tira pixel solto: fica com o nível da maioria dos vizinhos do mesmo material.
         nivel = _limpar(nivel, m)
+        # Como no Metal Slug: a beirada que encosta no contorno em cima ou à esquerda acende
+        # forte; a que encosta embaixo ou à direita afunda (miolo de sombra).
+        o = (a == "O") | (a == ".")
+        cima = np.zeros_like(m)
+        cima[1:] = o[:-1]
+        esq = np.zeros_like(m)
+        esq[:, 1:] = o[:, :-1]
+        baixo = np.zeros_like(m)
+        baixo[:-1] = o[1:]
+        dir_ = np.zeros_like(m)
+        dir_[:, :-1] = o[:, 1:]
+        luz_b = m & (cima | esq) & (nivel >= (k - 1) * 0.35)
+        nivel[luz_b] = np.minimum(k - 1, nivel[luz_b] + (2 if nome != "calca" else 1))
+        somb_b = m & (baixo | dir_) & ~(cima | esq)
+        nivel[somb_b] = np.maximum(0, nivel[somb_b] - 1)
         cores = np.array(list(rampa))[nivel]
         novo[m] = cores[m]
         if nome == "couro":

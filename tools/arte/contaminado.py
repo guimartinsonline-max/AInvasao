@@ -36,7 +36,7 @@ MANGA = ["caatinga_esc", "caatinga_media", "caatinga", "mandacaru", "mandacaru_l
 def base(nome):
     """Quadro da Volante sem o fuzil e sem as mãos dele (x >= 23 do peito para baixo)."""
     import repintar as rp
-    t = rp.repintar_tela(pixel.ler("volante.txt")[nome])
+    t = pixel.ler("volante_sm.txt")[nome]
     t.px[23:33, 22:] = VAZIO
     # Fecha o contorno do peito onde a arma encostava.
     cheio = t.px != VAZIO
@@ -305,7 +305,7 @@ def cabeca_solta():
 def previa(saida):
     from PIL import Image
     import repintar as rp
-    sold = rp.repintar_tela(pixel.ler("volante.txt")["parado"]).imagem()
+    sold = pixel.ler("volante_sm.txt")["parado"].imagem()
     ims = [sold] + [contaminado(p).imagem() for p in ("parado", "vomita", "morde")] + \
           [contaminado("anda", k).imagem() for k in (0, 2)]
     W = sum(i.width for i in ims) + 8 * (len(ims) + 1)

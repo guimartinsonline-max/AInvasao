@@ -50,7 +50,7 @@ def arremesso_base():
     """Quadro de arremesso do Lampião com o fuzil padrão."""
     g, dy, _ = base("parado")
     braco_arremesso(g, dy)
-    for y, x, txt in lp.TRONCO + lp.FUZIL_FRENTE:
+    for y, x, txt in lp.TRONCO + lp.BORNAL + lp.FUZIL_FRENTE:
         lp.pintar(g, y + dy, x, txt)
     for k, txt in enumerate(lp.ROSTOS["grito"]):
         lp.pintar(g, 8 + k + dy, 7, txt)
@@ -139,6 +139,8 @@ def cabeca(g, dy, rosto, baixa=0):
     """baixa: cabeça curvada para a frente e para baixo (olhando o chão)."""
     for y, x, txt in lp.TRONCO:
         lp.pintar(g, y + dy, x, txt)
+    for y, x, txt in lp.BORNAL:
+        lp.pintar(g, y + dy, x, txt)
     for k, txt in enumerate(lp.ROSTOS[rosto]):
         lp.pintar(g, 8 + k + dy + baixa, 7 + baixa, txt)
     sobe = 0
@@ -209,6 +211,8 @@ def quadro_morte(nome):
     lp.perna(g, (16, qy), (1, 5), (2, 9) if nome == "morte2" else (5, 4), atras=False)
     braco(g, (OMBRO_TRAS[0], OMBRO_TRAS[1] + dy), (8, 14 + dy), (7, 6 + dy), escurecer=1)
     for y, x, txt in lp.TRONCO:
+        lp.pintar(g, y + dy, x, txt)
+    for y, x, txt in lp.BORNAL:
         lp.pintar(g, y + dy, x, txt)
     cabelo(g, dy)
     for k, txt in enumerate(lp.ROSTOS["morto" if nome == "morte2" else "morto2"]):

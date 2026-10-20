@@ -22,7 +22,7 @@ CHAPEU = [  # 24 colunas, colocado em x=3: meia-lua com as pontas para cima
     ".OhgO..OOgghhgOO..OhgfO.",
     "..OgfOOgghhhhhggOOhgAfO.",
     "..OgffgghhhhhhhggfgAHAdO",
-    "...OsffddAdddAddddffAdsO",
+    "...OsHfAdHdAdHdAdHfAAdsO",
     "....OOsssssssssssssssOO.",
     "......OOOOOOOOOOOOOOO...",
 ]
@@ -185,6 +185,62 @@ TRONCO = [  # (linha, x, texto)
     (30, 6, "OssssGAGssssssssO"),
     (31, 6, "OdfdfAAAfdfdfdfdO"),
 ]
+
+def _equipar_tronco():
+    """Cartucheiras cruzadas no peito (balas de latão com brilho), cinturão de balas,
+    punhal de cabo de osso no cinto e o bornal bordado pendurado no quadril."""
+    linhas = {y: [x, list(t)] for y, x, t in TRONCO}
+
+    def por(y, x, ch):
+        x0, l = linhas[y]
+        i = x - x0
+        if 0 < i < len(l) - 1 and l[i] not in "O":
+            l[i] = ch
+    # Camisa lisa (o repintar dá o volume), depois as duas cartucheiras cruzadas: a de
+    # trás é só a tira de couro; a da frente tem a beirada clara, a tira e as balas de
+    # latão enfileiradas com a ponta brilhando.
+    for y, (x0, l) in linhas.items():
+        if 21 <= y <= 29:
+            for i, ch in enumerate(l):
+                if ch not in "OTUERi" and 0 < i < len(l) - 1:
+                    l[i] = "y"
+
+    def tira(xa, xb, frente):
+        for y in range(21, 30):
+            x = round(xa + (xb - xa) * (y - 21) / 8)
+            if frente:
+                por(y, x - 1, "S")
+                por(y, x, "A" if y % 2 else "G")
+                por(y, x + 1, "Q")
+                por(y, x + 2, "I")
+                if y % 2:
+                    por(y - 1, x, "H")
+            else:
+                por(y, x, "Q")
+                por(y, x + 1, "I")
+    # (a de trás fica escondida pelo braço na maioria das poses)
+    tira(19, 11, True)
+    # Cinturão de balas e o punhal.
+    linhas[31][1] = list("OsHsAsGAGsAsHsAsO")
+    for y, ch in ((27, "v"), (28, "C"), (29, "C")):
+        por(y, 19, ch)
+        por(y, 20, "c" if y > 27 else "C")
+    por(30, 19, "A")
+    por(30, 20, "A")
+    return [(y, x, "".join(l)) for y, (x, l) in sorted(linhas.items())]
+
+
+TRONCO = _equipar_tronco()
+# Bornal bordado (vermelho, amarelo e verde) no quadril de trás, por cima do contorno.
+BORNAL = [
+    (28, 2, "OOOOOO"),
+    (29, 1, "OiuuuyO"),
+    (30, 1, "OuTAkTO"),
+    (31, 1, "OyAkTAO"),
+    (32, 1, "OuTAkyO"),
+    (33, 1, "OyttteO"),
+    (34, 2, "OTOTOO"),
+]
 BRACO_FRENTE = [  # braço da frente segurando o fuzil na altura do quadril
     (21, 15, "OyytO"),
     (22, 15, "OyyttwO"),
@@ -322,6 +378,8 @@ def quadro(rosto="grito", pernas="parado", mira="frente"):
         for y, x, txt in FUZIL_CIMA_ATRAS:
             pintar(g, y + dy, x, txt)
     for y, x, txt in TRONCO + (FUZIL_FRENTE if mira == "frente" else []):
+        pintar(g, y + dy, x, txt)
+    for y, x, txt in BORNAL:
         pintar(g, y + dy, x, txt)
     for k, txt in enumerate(ROSTOS[rosto]):
         pintar(g, 8 + k + dy, 7, txt)
