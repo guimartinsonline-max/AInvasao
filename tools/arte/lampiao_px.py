@@ -158,15 +158,13 @@ ROSTOS = {  # 20 colunas, colocado em x=7, começando na linha 7
     ],
 }
 
-def _oculos(r):
-    """Aro de ouro em volta da lente (só nos rostos de olho aberto)."""
-    if "B" not in r[3]:
-        return r
+def _olho(r):
+    """Sem óculos: a lente azul vira o branco do olho (pupila e contorno ficam)."""
     r = [list(l) for l in r]
-    for y, x in ((2, 11), (2, 12), (2, 13), (2, 14), (3, 11), (3, 15), (4, 11), (4, 15),
-                 (5, 12), (5, 13), (5, 14), (3, 10)):
-        if r[y][x] == "O":
-            r[y][x] = "A" if (y, x) in ((2, 11), (2, 12)) else "G"
+    for y in range(2, 6):
+        for x in range(9, 17):
+            if r[y][x] == "B":
+                r[y][x] = "W"
     return ["".join(l) for l in r]
 
 
@@ -180,7 +178,7 @@ ROSTOS["boceja"] = [_S[0], _S[1], _S[2], _S[3].replace("OOBWBO", "455555"), _S[4
                     "........OOOOOOO....."]
 ROSTOS["olha"] = [_S[0], _S[1], _S[2], _S[3].replace("OOBWBO", "OOWBBO"), _S[4].replace("OBKBO", "OKBBO")] + _S[5:]
 ROSTOS["suor"] = list(_S)
-ROSTOS = {k: _oculos(v) for k, v in ROSTOS.items()}
+ROSTOS = {k: _olho(v) for k, v in ROSTOS.items()}
 
 # ---------------------------------------------------------------- tronco
 TRONCO = [  # (linha, x, texto)
@@ -243,18 +241,7 @@ def _equipar_tronco():
 
 
 TRONCO = _equipar_tronco()
-# Bornal bordado (vermelho, amarelo e verde) no quadril de trás, por cima do contorno.
-BORNAL = [
-    (28, 2, "OOOOOO"),
-    (29, 1, "OTTTTEO"),
-    (30, 1, "OTTATEO"),
-    (31, 1, "OTAHAEO"),
-    (32, 1, "OTTATEO"),
-    (33, 1, "OAEAEAO"),
-    (34, 1, "OuyyytO"),
-    (35, 1, "OyttteO"),
-    (36, 2, "OOOOO"),
-]
+BORNAL = []  # sem bornal (pedido do Guilherme, 20/10)
 BRACO_FRENTE = [  # braço da frente segurando o fuzil na altura do quadril
     (21, 15, "OyytO"),
     (22, 15, "OyyttwO"),
