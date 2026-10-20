@@ -71,7 +71,7 @@ export function gerarSprites(cena) {
   g.destroy();
 
   // Raio verde do xeremita.
-  texturaDeTexto(cena, 'raio', ['..0!??*.', '90!?*WW*', '..0!??*.'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
+  texturaDeTexto(cena, 'raio', ['...90!!?*...', '.90!??**WW*.', '90!?*WWWWW*?', '.90!??**WW*.', '...90!!?*...'], { '*': 'alien_brilho', W: 'branco', '?': 'alien_luz', '!': 'alien', 0: 'alien_medio', 9: 'alien_esc' });
   gerarItens(cena);
   texturaDeTexto(cena, 'capsula', ['ee'], { e: 'amarelo_fogo' });
   // Pedaços de chapa que voam quando um veículo é destroçado (e ficam no chão).

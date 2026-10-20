@@ -66,7 +66,7 @@ def tracer(k, cores=("laranja_fogo", "amarelo_fogo", "branco")):
 
 
 
-def bala_grossa(k, w=20, h=7, cores=("vermelho_medio", "laranja_fogo", "amarelo_fogo", "amarelo_claro", "branco")):
+def bala_grossa(k, w=18, h=8, cores=("vermelho_medio", "laranja_fogo", "amarelo_fogo", "amarelo_claro", "branco")):
     """Bala grossa estilo Metal Slug (metralhadora pesada): projétil ovalado brilhante
     com núcleo branco e rastro de fogo que pisca (2 quadros)."""
     t = Tela(w, h)
@@ -86,24 +86,13 @@ def bala_grossa(k, w=20, h=7, cores=("vermelho_medio", "laranja_fogo", "amarelo_
 
 def bala_inimiga(k):
     """Bala dos fuzis inimigos: oval laranja bem visível com rastro (maior que a pistola)."""
-    return bala_grossa(k, 14, 5, ("vermelho_esc", "vermelho_medio", "laranja_fogo", "amarelo_fogo", "amarelo_claro"))
+    return bala_grossa(k, 12, 7, ("vermelho_esc", "vermelho_medio", "laranja_fogo", "amarelo_fogo", "amarelo_claro"))
 
 
 def bala_pesada(k):
-    """Bala da metralhadora do blindado: projétil grosso e brilhante com rastro
-    de fogo comprido que pisca (2 quadros)."""
-    t = Tela(26, 8)
-    comp = 18 if k == 0 else 14
-    x0 = 20 - comp
-    t.chapado(t.capsula(x0, 4, 20, 4, 0.8, 2.6), "vermelho_medio")
-    t.chapado(t.capsula(x0 + 4, 4, 20, 4, 0.5, 2.0), "laranja_fogo")
-    t.chapado(t.capsula(x0 + 9, 4, 21, 4, 0.4, 1.5), "amarelo_fogo")
-    t.chapado(t.elipse(21, 4, 4, 3), "amarelo_fogo")
-    t.chapado(t.elipse(22, 4, 3, 2), "amarelo_claro")
-    t.chapado(t.elipse(22.5, 4, 1.6, 1.1), "branco")
-    if k == 1:
-        t.pontos([(x0 + 2, 2), (x0 + 6, 6)], "laranja_fogo")
-    return t
+    """Bala da metralhadora do blindado e do trem: a maior das balas, grossa e curta,
+    vermelha e brilhante com rastro de fogo (2 quadros)."""
+    return bala_grossa(k, 22, 10, ("vermelho_esc", "vermelho_medio", "laranja_fogo", "amarelo_fogo", "branco"))
 
 
 def obus(k):
