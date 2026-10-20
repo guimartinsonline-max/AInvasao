@@ -78,7 +78,7 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
 ## 7. Regras por categoria
 
 ### Personagens jogáveis
-- Atarracados, inclinados para a frente, base agachada e pernas abertas com o joelho dobrado. **Cabeça ~1/4 da altura** (cerca de 10x11 px num corpo de 40 px; pedido do Guilherme em 20/10, cabeça grande ficava "oversized"), tronco largo ocupando o meio do corpo, mãos e botas grandes. Referência pronta: `tools/arte/gente.py`.
+- Atarracados, inclinados para a frente, base agachada e pernas abertas com o joelho dobrado. **Cabeça ~1/4 da altura** (cerca de 10x11 px num corpo de 40 px; pedido do Guilherme em 20/10, cabeça grande ficava "oversized"), tronco largo ocupando o meio do corpo, mãos e botas grandes. Referência pronta: `tools/arte/gente.py`; Lampião em `tools/arte/lampiao_ms.py` e a Volante em `tools/arte/volante_ms.py`.
 - **O rosto é o mais importante:** pelo menos neutro, grito, dor, olhando para cima, olhando para baixo, suor, bocejo.
 - Cada arma com o seu jeito de segurar (quadril, ombro, cintura, uma mão).
 - Acessórios do cangaço lidos de longe: chapéu de couro com a meia-lua e moedas, cartucheiras de latão, bornal bordado, punhal. Não encher de detalhe pequeno que vira ruído.

@@ -17,31 +17,31 @@ LAMPIAO.corrida = ['corre1', 'corre2', 'corre3', 'corre4', 'corre5', 'corre6'];
 // Boca do cano em relação ao pé (x para a frente, y para cima).
 LAMPIAO.cano = { frente: [29, 15], agachado: [29, 10], cima: [10, 45] };
 // Mão erguida no quadro de arremesso da granada.
-LAMPIAO.maoGranada = [-9, 42];
+LAMPIAO.maoGranada = [-8, 43];
 
 // Inimigos pixel a pixel (tools/arte/pixel/*.txt), ordem de tools/arte/exportar.py.
 // Caricatos (tools/arte/caricatos.py): o quadro 7 é a morte e o 8 é o tostado (queimado).
 const ANDAR = [3, 4, 5, 6];
 export const INIMIGOS = {
   volante: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
-    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 17] },
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 21] },
   xeremita: { largura: 52, altura: 46, peX: 17, peY: 45, corpoL: 14, corpoA: 38,
     parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [23, 16] },
   // Variações da Volante: granadeiro (dinamite), metralhador (rajada) e sargento do facão.
   granadeiro: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
-    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [0, 38] },
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [-1, 42] },
   metralhador: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
-    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 16] },
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [28, 17] },
   facao: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
-    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [24, 20] },
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [26, 25] },
   // Soldado do lança-rojão (o tubo no ombro, rente ao olho).
   rojao: { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 14, corpoA: 36,
-    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [38, 31] },
+    parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [23, 30] },
 };
 // Soldados da Volante sentados cochilando (distraídos): quadros 9 e 10.
 // Oficial da Volante: espada erguida dando ordem, pistola, chora fugindo.
 INIMIGOS.oficial = { largura: 52, altura: 46, peX: 14, peY: 45, corpoL: 16, corpoA: 36,
-  parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [33, 19] };
+  parado: 0, atira: 1, panico: 2, morte: 7, tostado: 8, andar: ANDAR, cano: [19, 25] };
 // Soldado de máscara contra gás (fase 2, tools/arte/mascarado.py): quadros da Volante comum.
 INIMIGOS.mascarado = { ...INIMIGOS.volante };
 for (const tipo of ['volante', 'granadeiro', 'metralhador', 'facao', 'rojao', 'oficial', 'mascarado']) {

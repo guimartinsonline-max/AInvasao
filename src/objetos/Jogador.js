@@ -259,7 +259,7 @@ export class Jogador {
     this.corpo.body.setGravityY(0);
     this.bateu = false;
     // O chapéu voa da cabeça girando e cai do lado.
-    this.chapeu.setPosition(this.x, this.pe - 44).setVisible(true).setAlpha(1).setRotation(0);
+    this.chapeu.setPosition(this.x, this.pe - 37).setVisible(true).setAlpha(1).setRotation(0);
     this.chapeuVel = { x: lado * Phaser.Math.Between(40, 70), y: -260, giro: lado * 9 };
     // Voa para trás: vira de frente para quem atirou (a cabeça cai do lado de lá).
     this.direcaoMorte = -lado;

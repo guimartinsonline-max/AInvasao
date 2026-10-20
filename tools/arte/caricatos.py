@@ -964,14 +964,12 @@ def gravar(arquivo, quadros):
 
 
 if __name__ == "__main__":
-    gravar("volante.txt", VOLANTE)
     gravar("xeremita.txt", XEREMITA)
     # refem.txt sai do npcs.py (gente.py, corpo do Metal Slug).
-    gravar("granadeiro.txt", GRANADEIRO)
-    gravar("metralhador.txt", METRALHADOR)
-    gravar("facao.txt", FACAO)
-    gravar("rojao.txt", ROJAO)
-    gravar("oficial.txt", OFICIAL)
+    # Soldados da Volante: volante_ms.py (padrão novo, 20/10). O volante_sm.txt (base do
+    # contaminado) continua saindo do desenho antigo daqui.
+    import volante_ms
+    print("bocas da Volante:", volante_ms.gravar())
     MOCHILA = False
     gravar("volante_sm.txt", {k: v for k, v in VOLANTE.items() if k in ("parado", "atira", "panico", "anda1", "anda2",
                                                                        "anda3", "anda4", "morte")})
