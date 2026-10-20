@@ -111,7 +111,8 @@ folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura",
 import inimigos as ini  # noqa: E402
 folha([ini.disco(0), ini.disco(1)], SAIDA / "disco.png")
 folha([ini.feixe(0, h=160), ini.feixe(1, h=160)], SAIDA / "feixe.png")
-folha([ini.bode(n) for n in ("parado", "mastiga", "abduzido", "anda1", "anda2", "anda3", "anda4")], SAIDA / "bode.png")
+import npcs  # noqa: E402
+folha([npcs.bode(n) for n in ("parado", "mastiga", "abduzido", "anda1", "anda2", "anda3", "anda4")], SAIDA / "bode.png")
 folha([pg.maria_bonita()], SAIDA / "maria_bonita.png")
 folha([pg.alien(), pg.alien({"olho": "fechado"})], SAIDA / "alien.png")
 # Aliens da fase 2 (tools/arte/aliens.py). Mesma ordem dos inimigos (parado, atira, grito,
@@ -191,8 +192,8 @@ for arma in la.ar.ARMAS:
         folha([engordar(q) for q in la.folha_da_arma(arma)], SAIDA / f"lampiao_{arma}_gordo.png")
 import fase1  # noqa: E402
 import fase1_extra as fx  # noqa: E402
-folha([fx.urubu(q) for q in range(3)], SAIDA / "urubu.png")
-folha([fx.galinha(q) for q in range(6)], SAIDA / "galinha.png")
+folha([npcs.urubu(q) for q in range(3)], SAIDA / "urubu.png")
+folha([npcs.galinha(q) for q in range(6)], SAIDA / "galinha.png")
 folha([fx.galinha_assada()], SAIDA / "comida_galinha.png")
 folha([fx.roupa(q) for q in range(3)], SAIDA / "roupa.png")
 folha([fx.varal(q) for q in range(2)], SAIDA / "varal.png")

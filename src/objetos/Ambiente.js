@@ -6,8 +6,8 @@ import { som } from '../som.js';
 // As explosões do Lampião avisam pelo evento 'explosao' da cena (x, y, raio).
 
 export const AMBIENTE = {
-  urubu: { largura: 26, altura: 18 },
-  galinha: { largura: 16, altura: 15 },
+  urubu: { largura: 28, altura: 20 },
+  galinha: { largura: 18, altura: 17 },
   roupa: { largura: 12, altura: 12 },
   varal: { largura: 70, altura: 40 },
   ponte_seg: { largura: 139, altura: 60 },
@@ -61,7 +61,7 @@ export class Galinha extends Phaser.Physics.Arcade.Sprite {
     cena.add.existing(this);
     cena.physics.add.existing(this);
     this.setOrigin(0.5, 1).setDepth(8);
-    this.body.setSize(10, 10).setOffset(3, 5);
+    this.body.setSize(10, 10).setOffset(4, 7);
     this.vivo = true;
     this.persegue = false; // o buscapé não vai atrás de galinha
     this.direcao = Math.random() < 0.5 ? -1 : 1;

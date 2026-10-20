@@ -966,7 +966,7 @@ def gravar(arquivo, quadros):
 if __name__ == "__main__":
     gravar("volante.txt", VOLANTE)
     gravar("xeremita.txt", XEREMITA)
-    gravar("refem.txt", REFEM)
+    # refem.txt sai do npcs.py (gente.py, corpo do Metal Slug).
     gravar("granadeiro.txt", GRANADEIRO)
     gravar("metralhador.txt", METRALHADOR)
     gravar("facao.txt", FACAO)

@@ -1054,8 +1054,10 @@ def exportar(saida, raiz):
     folha([lampada(q) for q in range(3)], saida / "lampada.png")
     folha([bandeira(q) for q in range(4)], saida / "bandeira.png")
     folha([plataforma_elevador()], saida / "plataforma_elevador.png")
-    import cientista as ci
-    folha(ci.folha(), saida / "cientista.png")
+    import pixel
+    d = pixel.ler("cientista.txt")  # tools/arte/npcs.py
+    folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
+                          "corre1", "corre2", "corre3", "corre4", "pendurado1", "pendurado2"]], saida / "cientista.png")
     d = dados_fase()
     d["fumacas"] = fumacas
     d["fogos"] = fogos
