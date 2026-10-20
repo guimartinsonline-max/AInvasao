@@ -113,6 +113,11 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
 - Rodas girando de verdade, com poeira.
 
 ### Cenários
+- **Jeito do Metal Slug (aprovado em 20/10, referência `tools/arte/amostra_cenario.py`):**
+  - **Cenário sem contorno.** Só luz e sombra. Linha escura em volta é só de personagem, inimigo, veículo e item: é isso que faz o boneco saltar na frente do fundo.
+  - **Uma cor de ambiente por cena.** Tudo puxa para a mesma luz (sertão de tarde: ocre quente, sombra arroxeada; selva: oliva; noite: azul). Cacto, árvore, telha e pedra entram nesse tom, nada de cor viva solta. Rampas da cena `amb_*`.
+  - **Formas grandes com textura dentro:** casa ocupando metade da altura da tela, telha canal em fileiras, reboco caído mostrando a trama, rachadura, lasca, pedra encaixada no chão. Poucas peças grandes em vez de muitas pequenas.
+  - **Fundo enevoado** (pouco contraste, mais claro) fechando o horizonte, e **camada de frente** escura (capim, xique-xique) nos cantos.
 - Nível mínimo: o da barraca LAB (`tools/arte/base_detalhe.py`).
 - **Cores do cenário (padrão novo, 20/10):** o cenário é pintado com as cores antigas e o `exportar.py` passa no fim o `tools/arte/cenario_ms.py`, que troca cada uma pela irmã saturada `cen_<nome>` da paleta (terra mais quente e viva, sombra fria, luz quente; céu e telha só um pouco) e acende a beirada de cima-esquerda das peças das camadas de perto, escurecendo a de baixo-direita. Peça nova de cenário continua usando as cores antigas no desenho: a passada cuida do resto. Para incluir um PNG novo de cenário na passada, ponha o nome em `PREFIXOS`/`AVULSOS` do `cenario_ms.py`.
 - Camadas: céu, fundo distante (mais claro e de menor contraste, `nevoa()`), meio, perto, chão de jogo, frente (1,1 de parallax). **Fundo cheio até o alto.**

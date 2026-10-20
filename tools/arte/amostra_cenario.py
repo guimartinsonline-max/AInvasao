@@ -101,23 +101,24 @@ def ceu(t):
 
 # ---------------- chapada ao longe (névoa) ----------------
 def chapada(t):
-    """Mesas de arenito ao longe: topo aceso, paredão em colunas com luz da esquerda,
-    estratos horizontais e tálus na base. Pouco contraste (névoa)."""
-    # duas fileiras: a de trás mais clara
+    """Mesas de arenito ao longe: topo aceso, face de cada mesa clara na esquerda e
+    escura na direita, veios verticais de chuva, estratos e tálus. Pouco contraste (névoa)."""
     for fileira, (base_topo, amp, sem, desl) in enumerate(((108, 16, 3, 0.10), (138, 12, 6, 0.0))):
         perfil = base_topo + amp * ruido(40, sem, 1, W)[0]
-        degraus = np.round(perfil / 10) * 10                     # mesas de topo chato
-        topo = ndimage.uniform_filter1d(degraus, 3)
+        topo = np.round(perfil / 10) * 10                        # mesas de topo chato
         m = YY >= topo[None, :]
-        # quinas: onde o topo sobe para a direita a face pega luz (lado esquerdo das mesas)
-        dt = np.gradient(ndimage.uniform_filter1d(degraus, 7))
-        face = np.cumsum(np.where(dt > 0.3, 1, 0)) % 2
-        col = ruido(2.5, sem + 1, 1, W)[0]
-        luz = 0.58 + 0.10 * col[None, :] + 0.08 * ruido(3, sem + 2)
-        luz += 0.12 * (np.sin(XX / 11.0 + col[None, :]) > 0.6)              # colunas
-        luz = np.where((YY - topo[None, :]) % 17 < 2, luz - 0.16, luz)          # estratos
+        # trechos de mesmo topo = uma mesa; posição dentro dela dá a luz da face
+        corte = np.r_[0, np.flatnonzero(np.diff(topo)) + 1, W]
+        u = np.zeros(W)
+        for a, b in zip(corte[:-1], corte[1:]):
+            u[a:b] = (np.arange(b - a) + 0.5) / (b - a)
+        veio = ndimage.gaussian_filter(np.random.default_rng(sem).random((H, W)), (9, 0.7))
+        veio = (veio - veio.mean()) / veio.std()
+        luz = 0.62 + 0.22 * np.clip(0.25 - u, 0, 1)[None, :] * 4 * 0.25 - 0.20 * (u > 0.82)[None, :]
+        luz = luz + 0.07 * veio
+        luz = np.where((YY - topo[None, :]) % 17 < 2, luz - 0.14, luz)          # estratos
         luz = np.where(YY < topo[None, :] + 3, 0.95, luz)                       # borda de cima
-        luz -= 0.22 * np.clip((YY - topo[None, :] - 40) / 40, 0, 1)             # tálus mais escuro
+        luz -= 0.20 * np.clip((YY - topo[None, :] - 45) / 40, 0, 1)             # tálus
         luz += desl
         t.pinta(m, "longe", quantiza_limpo(np.clip(luz, 0, 0.999), 6))
 
@@ -254,7 +255,7 @@ def galho(t, x, y, ang, comp, larg, prof, sem):
     for (px, py, r) in pts:
         m = np.hypot(XX - px, YY - py) <= r
         nx = (XX - px) / max(r, 0.5)
-        luz = 0.45 - 0.45 * nx + 0.08 * ruido(0.8, sem)
+        luz = 0.48 - 0.45 * nx + 0.14 * np.sin((XX - px) * 2.2 + (YY - py) * 0.3)
         t.pinta(m, "madeira", np.clip(luz, 0, 0.999))
     if prof > 0:
         for d in (-0.5, 0.45):
@@ -265,15 +266,23 @@ def galho(t, x, y, ang, comp, larg, prof, sem):
 def arvore(t, x, chao):
     galho(t, x, chao, -np.pi / 2 - 0.15, 56, 7.5, 3, 51)
     galho(t, x + 2, chao - 30, -np.pi / 2 + 0.7, 40, 3.5, 2, 77)
-    # copa em tufos (folhinha miúda da caatinga), luz cima-esquerda
-    for cx, cy, r in ((x - 30, chao - 104, 17), (x + 2, chao - 122, 21), (x + 32, chao - 108, 16),
-                      (x - 8, chao - 96, 13), (x + 52, chao - 84, 11)):
-        d = np.hypot(XX - cx, (YY - cy) * 1.25) / r
-        borda = d + 0.18 * ruido(1.2, cx)
-        m = borda < 1
-        nx, ny = (XX - cx) / r, (YY - cy) / r
-        luz = 0.55 - 0.35 * nx - 0.45 * ny + 0.18 * ruido(1.0, cy)
-        t.pinta(m, "verde", quantiza_limpo(np.clip(luz, 0, 0.999), 7))
+    # copa em cachos: muitos tufos pequenos, cada um com luz própria (cima-esquerda),
+    # os de trás mais escuros. Assim lê como folhagem, não como mancha.
+    rng = np.random.default_rng(5)
+    nuvens = ((x - 30, chao - 104, 17), (x + 2, chao - 122, 21), (x + 32, chao - 108, 16),
+              (x - 8, chao - 96, 13), (x + 52, chao - 84, 11))
+    tufos = []
+    for cx, cy, r in nuvens:
+        for _ in range(int(r * 1.3)):
+            a = rng.uniform(0, 2 * np.pi); d = r * np.sqrt(rng.uniform(0, 1))
+            tufos.append((cx + d * np.cos(a), cy + d * np.sin(a) * 0.8, rng.uniform(3.5, 6.5)))
+    tufos.sort(key=lambda p: p[1] - p[0] * 0.3)  # de trás (baixo-direita) para a frente
+    for k, (cx, cy, r) in enumerate(tufos):
+        d = np.hypot(XX - cx, (YY - cy) * 1.2) / r
+        m = d < 1
+        lz = 0.62 - 0.35 * (XX - cx) / r - 0.45 * (YY - cy) / r
+        lz -= 0.25 * (1 - k / len(tufos))  # os de trás no escuro
+        t.pinta(m, "verde", np.clip(lz, 0.02, 0.999))
 
 
 def mandacaru(t, x, chao, alt=78):
@@ -300,11 +309,20 @@ def mandacaru(t, x, chao, alt=78):
 def chao(t):
     topo = CHAO - 2 + (1.5 * ruido(8, 60, 1, W)[0]).round()
     m = YY >= topo[None, :]
-    luz = 0.62 + 0.10 * ruido(2, 61) - 0.25 * np.clip((YY - CHAO) / 24, 0, 1)
-    luz = np.where(YY < topo[None, :] + 2, 0.86, luz)
-    # trilha de pé e sulcos
-    luz = np.where((np.abs(ruido(0.8, 62)) > 2.1) & (YY > CHAO + 4), 0.25, luz)
+    luz = 0.64 - 0.30 * np.clip((YY - CHAO) / 24, 0, 1) + 0.05 * ruido(6, 61)
+    luz = np.where(YY < topo[None, :] + 2, 0.88, luz)
     t.pinta(m, "terra", quantiza_limpo(np.clip(luz, 0, 0.999), 8))
+    rng = np.random.default_rng(63)
+    # pedras encaixadas no chão em corte: cada uma com topo aceso, base escura e sombra
+    for _ in range(70):
+        px = rng.uniform(0, W); py = rng.uniform(CHAO + 2, H + 2)
+        rx = rng.uniform(2.5, 7) * (1 + (py - CHAO) / 30); ry = rx * rng.uniform(0.45, 0.7)
+        d = np.hypot((XX - px) / rx, (YY - py) / ry) + 0.12 * ruido(0.8, int(px))
+        sombra = (np.hypot((XX - px - 1.5) / rx, (YY - py - 1.5) / ry) < 1) & (YY > py)
+        t.img[sombra & m] = (t.img[sombra & m] * 0.7).astype(np.uint8)
+        pm = d < 1
+        lz = 0.55 - 0.35 * (XX - px) / rx - 0.5 * (YY - py) / ry
+        t.pinta(pm, "terra", quantiza_limpo(np.clip(lz, 0, 0.999), 8))
     # lajedo: placas grandes de arenito aflorando, com face de cima clara, frente e racha
     for (lx, lw, lh) in ((20, 70, 10), (118, 44, 7), (448, 96, 13)):
         top = CHAO - lh
@@ -314,17 +332,21 @@ def chao(t):
         canto = (XX - lx < 3) & (YY > top + 4 + (XX - lx))
         mf &= ~canto
         t.pinta(mt, "terra", np.clip(0.9 + 0.08 * ruido(1, lx), 0, 0.999))
-        luz = 0.5 + 0.10 * ruido(1.5, lx + 1) - 0.18 * ((YY - top) / (lh + 6))
+        luz = 0.52 + 0.08 * np.sin((XX - lx) / 3.0) - 0.18 * ((YY - top) / (lh + 6))
         racha = (np.abs(XX - lx - lw * 0.37 - 3 * np.sin(YY / 3.0)) < 0.8)
         luz = np.where(racha, 0.12, luz)
         luz = np.where(XX > lx + lw - 6, luz - 0.15, luz)
+        luz = np.where((YY - top) % 5 == 0, luz - 0.08, luz)  # camadas do arenito
         t.pinta(mf, "terra", np.clip(luz, 0, 0.999))
-    # pedras grandes soltas (sem contorno: base escura e topo aceso)
-    for (px, py, rx, ry) in ((90, CHAO - 2, 9, 6), (224, CHAO, 6, 4), (470, CHAO - 13, 7, 5)):
-        d = np.hypot((XX - px) / rx, (YY - py) / ry)
-        m = (d < 1) & (YY <= py + 1)
-        luz = 0.55 - 0.35 * (XX - px) / rx - 0.45 * (YY - py) / ry + 0.1 * ruido(1, px)
-        t.pinta(m, "terra", quantiza_limpo(np.clip(luz, 0, 0.999), 8))
+    # tufos de capim seco no pé das coisas (folhas finas, ponta clara)
+    for _ in range(40):
+        cx = rng.uniform(0, W); alt = rng.uniform(4, 9)
+        for k in range(5):
+            ang = -np.pi / 2 + (k - 2) * 0.35
+            for s_ in range(int(alt)):
+                px, py = int(cx + np.cos(ang) * s_), int(CHAO + np.sin(ang) * s_)
+                if 0 <= px < W and 0 <= py < H:
+                    t.img[py, px] = RGB["terra"][min(7, 3 + int(4 * s_ / alt))]
 
 
 def sombras_contato(t, faixas):
