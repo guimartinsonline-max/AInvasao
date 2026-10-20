@@ -341,9 +341,13 @@ def camada_jogo():
     colar_organico(t, f2.chao_vidro(LARGURA - 1520, 26, semente=17), 1520, y(CHAO) - 2, borda=110, semente=5)
     pecas = []
     rng = np.random.default_rng(7)
+    import base_detalhe as bd
 
-    def por(peca, x, afundar=1, base=None):
-        pecas.append((x, peca, afundar, base))
+    def por(peca, x, afundar=1, base=None, novo=False):
+        pecas.append((x, peca, afundar, novo))
+
+    # Cerca de arame farpado fechando a base por trás (fica atrás de tudo).
+    por(bd.cerca(LARGURA - 100, semente=5, placas=(("ÁREA MILITAR", 60), ("PERIGO", 1500))), 20, 1, novo=True)
 
     # A) entrada: cancela quebrada caída, sacos, placa, barraca da tropa, torre e gerador.
     por(f1.sacos_detalhados(4, 2, semente=3), 110)
@@ -354,7 +358,7 @@ def camada_jogo():
     por(gerador_pad(), GERADORES[0][0] - 27, 0)
     por(poste_lampadas(58, 1), 395)
     # B) laboratório, jaulas, quarentena, segunda torre.
-    por(barraca_grande(120, 62, semente=12, tipo="laboratorio"), LAB_X - 60)
+    por(bd.barraca_lab(semente=12), LAB_X - 98, 1, novo=True)
     for (x, _a) in JAULAS:
         por(jaula_base(40), x - 20, 0)
     por(f1.sacos_detalhados(3, 2, semente=6), 770)
@@ -368,14 +372,23 @@ def camada_jogo():
     por(guindaste(3), GUINDASTE_X - 26)
     por(f1.sacos_detalhados(4, 3, semente=8), 1545)
     por(elevador(2), ELEVADOR_X - 46)
-    for x, p, afundar, _b in pecas:
-        f1.assentar(t, p, int(x), yc, afundar=afundar)
+    # Peças novas (base_detalhe) já vêm pintadas na hora certa: o anoitecer pula os pixels delas.
+    fixo = np.zeros(t.px.shape, bool)
+    for x, p, afundar, novo in pecas:
+        f1.sombra_contato(t, int(x) + p.w / 2, yc + 1, p.w * (0.9 if novo else 1.05))
+        y0 = yc - p.h + afundar
+        m = p.px != VAZIO
+        sub = t.px[max(0, y0):y0 + p.h, int(x):int(x) + p.w]
+        mm = m[max(0, -y0):, :sub.shape[1]][:sub.shape[0]]
+        sub[mm] = p.px[max(0, -y0):, :sub.shape[1]][:sub.shape[0]][mm]
+        fixo[max(0, y0):y0 + p.h, int(x):int(x) + p.w][mm] = novo
     # A noite vai caindo: escurece a camada em faixas, mais forte para a direita.
     for x0 in range(0, LARGURA, 40):
         faixa = Tela(min(40, LARGURA - x0), alt)
         faixa.px = t.px[:, x0:x0 + 40].copy()
         anoitecer(faixa, hora(x0 + 20) * 0.85)
-        t.px[:, x0:x0 + 40] = faixa.px
+        sel = ~fixo[:, x0:x0 + 40]
+        t.px[:, x0:x0 + 40][sel] = faixa.px[sel]
     # Luz das lâmpadas e da janela do sarilho no chão (amarela, morna).
     for x in (430, 520, 680, 800, 1140, 1230):
         luz_no_chao(t, x, yc + 4, 30, 6, semente=x)
