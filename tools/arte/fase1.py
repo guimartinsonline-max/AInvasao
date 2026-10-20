@@ -967,28 +967,28 @@ def camada_jogo():
     assentar(t, cerca_farpada(90, 3), 2860, yc)
     # ---- Vila de taipa: casas e capela (os soldados saem pelas portas), cruzeiro.
     # (As duas casas da vila são sprites à parte: a explosão arranca o telhado.)
-    assentar(t, ext.capela(96, 112, semente=3), 3420, yc + 1)
-    assentar(t, ext.cruzeiro(), 3590, yc)
+    assentar(t, ca.capela(110, 130, semente=3), 3425, yc + 1)  # porta no centro do corpo: x 3468
+    assentar(t, ca.cruzeiro(), 3585, yc)
     for x, peca in ((3200 - 30, pote_barro(7)), (3400, cabacas()), (3800 + 40, pilao()), (3560, pote_barro(8, 12))):
         assentar(t, peca, x, yc)
     # ---- Vila alta: casario de platibanda colado, toldos de bodega, casinha baixa no fim.
     import vila_campo as vca
     for k, (x, w_, h_, cor, sac) in enumerate(VILA_ALTA):
-        assentar(t, vca.sobrado(w_, h_, cor, semente=50 + k, sacada=sac), x, yc)
+        assentar(t, ca.sobrado(w_, h_, cor, semente=50 + k, sacada=sac), x, yc)
     for x, w_ in TOLDOS:
-        assentar(t, vca.toldo(w_, CHAO - 152, semente=x), x, yc)
+        assentar(t, ca.toldo(w_, CHAO - 152, semente=x), x, yc)
     cx_, cw_, ch_ = CASINHA_FIM
-    assentar(t, casa_taipa(cw_, ch_, semente=88, quebrada=False), cx_, yc)
+    assentar(t, ca.casa_taipa(cw_, ch_, semente=88, quebrada=False, alpendre=False), cx_, yc)
     assentar(t, sacos_detalhados(4, 3, 3), 4290 - 3, yc, afundar=3)
     for x, peca in ((3880, pote_barro(9)), (4110, cabacas()), (4360, pilao()), (4600, pote_barro(10, 12)),
                     (4596, roda_carroca(8))):
         assentar(t, peca, x, yc)
     # ---- Campo de pouso: hangar, marcas de pneu, balizas, tanque de gasolina, cerca e trincheira.
-    assentar(t, vca.hangar(150, 96, semente=4), HANGAR_X, yc + 1)
+    assentar(t, ca.hangar(150, 96, semente=4), HANGAR_X, yc + 1)
     vca.marcas_pneu(t, HANGAR_X + 60, 5960, yc - 6, semente=3)
     for x in range(5110, 5600, 96):
-        assentar(t, vca.baliza(x), x, yc + 1)
-    assentar(t, vca.tanque_gasolina(2), 5600, yc)
+        assentar(t, ca.baliza(x), x, yc + 1)
+    assentar(t, ca.tanque_gasolina(2), 5600, yc)
     assentar(t, sacos_detalhados(4, 3, 4), 5700 - 3, yc, afundar=3)
     assentar(t, cerca_farpada(90, 6), 5890, yc)
     for x in (4870, 5080, 5620, 5940):
@@ -998,14 +998,15 @@ def camada_jogo():
     assentar(t, cranio_boi(), 6490, yc)
     # (A ponte é feita de pedaços à parte que a granada quebra.)
     # ---- Acampamento da Volante: barracas, torre de vigia, mastro, munição.
-    assentar(t, ext.barraca(84, 44, semente=1), 6840, yc + 1)
+    import base_detalhe as bd_
+    assentar(t, ca.para_dia(bd_.barraca("tropa", semente=31)), 6882 - bd_.PORTA_BARRACA, yc + 1)
     assentar(t, ext.caixas_municao(3, 1), 7075, yc)  # atrás da barricada, de onde a Volante se abastece
     sa2 = sacos_detalhados(4, 3, 2)
     for sx_ in (7000, 7500):
         assentar(t, sa2, sx_ - 3, yc, afundar=3)
-    tv = ext.torre_vigia(98, 40)
-    colar(t, tv, 7130, y(CHAO) - tv.h + 1)
-    assentar(t, ext.barraca(84, 44, semente=2), 7280, yc + 1)
+    tv = ca.para_dia(bd_.torre_holofote(CHAO - 116 + 14, semente=5))
+    colar(t, tv, 7130 - 6, y(CHAO) - tv.h + 1)
+    assentar(t, ca.para_dia(bd_.barraca("tropa", semente=32)), 7322 - bd_.PORTA_BARRACA, yc + 1)
     assentar(t, ext.mastro(110), 7430, yc)
     assentar(t, ext.caixas_municao(2, 2), 7188, yc)  # munição ao pé da torre de vigia
     # ---- Arena do trem: giraus de carga da estação (um baixo e um alto) com sacos e caixas.
@@ -1058,20 +1059,21 @@ def camada_perto():
     for k, (wx, w_, h_) in enumerate(((3150, 96, 66), (3300, 80, 58), (3560, 104, 70), (3760, 88, 60))):
         pecas.append((lx(wx), ca.casa_taipa(w_ + 20, h_ + 16, semente=40 + k, quebrada=k % 2 == 1, alpendre=False)))
     # Vila alta: a igreja matriz e casas atrás do casario.
-    pecas.append((lx(4300), ext.capela(110, 110, semente=7)))
+    pecas.append((lx(4300), ca.capela(124, 146, semente=7)))
     for k, (wx, w_, h_) in enumerate(((3950, 90, 62), (4120, 84, 70), (4520, 96, 66), (4700, 80, 58))):
         pecas.append((lx(wx), ca.casa_taipa(w_ + 20, h_ + 16, semente=60 + k, quebrada=k % 2 == 0, alpendre=False)))
     # Campo de pouso: hangar ao longe, depósito e mandacarus.
     import vila_campo as vca
-    pecas.append((lx(5500), vca.tanque_gasolina(5)))
+    pecas.append((lx(5500), ca.tanque_gasolina(5)))
     for k, wx in enumerate((4950, 5380, 5700, 5900)):
         pecas.append((lx(wx), ca.mandacaru(int(rng.integers(56, 84)), semente=k + 220, bracos=2)))
     # Rio seco: carnaúbas na beira.
     for k, wx in enumerate((6080, 6180, 6330, 6480, 6620, 6740)):
-        pecas.append((lx(wx), ext.carnauba(int(rng.integers(70, 96)), semente=k + 60)))
+        pecas.append((lx(wx), ca.carnauba(int(rng.integers(84, 120)), semente=k + 60)))
     # Acampamento: barracas enfileiradas e um caminhão parado.
+    import base_detalhe as bd_
     for k, wx in enumerate((6900, 7060, 7360, 7550)):
-        pecas.append((lx(wx), ext.barraca(70, 38, semente=k + 10, aberta=k % 2 == 0)))
+        pecas.append((lx(wx), ca.para_dia(bd_.barraca_pequena(60, 34, k + 10, bd_.OLIVA, k % 2 == 0))))
     pecas.append((lx(7220), vc.caminhao(0)))
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
         colar(t, p, x, base - p.h + 2)
@@ -1142,14 +1144,33 @@ def camada_meio():
             a = ca.mandacaru(int(h * 0.9), semente=int(x), bracos=2)
         else:
             a = ca.arvore(h, semente=int(x), folhas=not seca, seca=0.45)
-        ca.nevoa(a, 0.32)
+        ca.nevoa(a, 0.2)
         colar(t, a, x, alto[min(W - 1, x)] - a.h + 4)
         x += int(rng.integers(10, 34))
-    casinha = casa_taipa(40, 30, semente=12, quebrada=False)
-    colar(t, casinha, int(900 * fator), alto[int(900 * fator)] - 26)
+    # Trilha de terra clara subindo e descendo os morros, pedras e cercas de varas ao longe.
+    fase_t = 0.0
+    for x in range(W):
+        fase_t += 0.004
+        yt = int(alto[x] + 6 + (math.sin(fase_t * 3) * 0.5 + 0.5) * 14)
+        if yt < alt - 1 and morro[yt, x]:
+            t.px[yt, x] = IDX["areia_luz"]
+            t.px[min(alt - 1, yt + 1), x] = IDX["areia_media"]
+    for _ in range(W // 55):
+        xx = int(rng.integers(0, W - 30))
+        p = ca.pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=xx, rampa=ca.PEDRA_Q)
+        ca.nevoa(p, 0.2)
+        colar(t, p, xx, alto[xx] + int(rng.integers(4, 20)) - p.h + 4)
+    for _ in range(W // 300):
+        xx = int(rng.integers(0, W - 70))
+        c = ca.cerca_varas(int(rng.integers(40, 70)), 14, semente=xx)
+        ca.nevoa(c, 0.25)
+        colar(t, c, xx, alto[xx] + 10 - c.h)
+    casinha = ca.nevoa(ca.casa_taipa(56, 40, semente=12, quebrada=False, alpendre=False), 0.2)
+    colar(t, casinha, int(900 * fator), alto[int(900 * fator)] - 36)
     # A vila vista de longe: casinhas juntas no morro.
     for k, wx in enumerate((3200, 3260, 3330, 3420, 3500, 3980, 4060, 4200, 4330, 4480)):
-        c = casa_taipa(int(rng.integers(26, 40)), int(rng.integers(20, 30)), semente=70 + k, quebrada=False)
+        c = ca.nevoa(ca.casa_taipa(int(rng.integers(40, 56)), int(rng.integers(30, 40)), semente=70 + k, quebrada=False,
+                                   alpendre=False), 0.2)
         xx = int(wx * fator)
         colar(t, c, xx, alto[min(W - 1, xx)] - c.h + 5)
     return t, fator

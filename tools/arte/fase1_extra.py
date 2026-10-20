@@ -472,9 +472,11 @@ def destelhar(t, h):
     return t
 
 
-def casa_vila(w, h, semente, quebrada, destelhada=False):
-    c = f.casa_taipa(w, h, semente=semente, quebrada=quebrada)
-    return destelhar(c, h) if destelhada else c
+def casa_vila(w, h, semente, quebrada, destelhada=False, porta_x=None):
+    """Casa da vila no nível novo (caatinga_detalhe.casa_taipa); a explosão tira as telhas."""
+    import caatinga_detalhe as ca
+    c = ca.casa_taipa(w, h, semente=semente, quebrada=quebrada, alpendre=False, porta_x=porta_x)
+    return ca.destelhar(c, h) if destelhada else c
 
 
 def ponte_segmento(w, alt=48, quebrada=False, semente=0):

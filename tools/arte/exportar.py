@@ -197,8 +197,11 @@ folha([fx.galinha_assada()], SAIDA / "comida_galinha.png")
 folha([fx.roupa(q) for q in range(3)], SAIDA / "roupa.png")
 folha([fx.varal(q) for q in range(2)], SAIDA / "varal.png")
 for k, (_x, w_, h_, sem, buraco) in enumerate(fase1.FASE["casas"]):
-    folha([fx.casa_vila(w_, h_, sem, buraco), fx.casa_vila(w_, h_, sem, buraco, destelhada=True)], SAIDA / f"casa_vila_{k}.png")
-folha([fx.ponte_segmento(fase1.FASE["ponte"][3], semente=2), fx.ponte_segmento(fase1.FASE["ponte"][3], quebrada=True, semente=2)],
+    px_ = 38 if k == 0 else None  # porta da primeira casa: onde os soldados saem (porta:3098)
+    folha([fx.casa_vila(w_, h_, sem, buraco, porta_x=px_), fx.casa_vila(w_, h_, sem, buraco, destelhada=True, porta_x=px_)],
+          SAIDA / f"casa_vila_{k}.png")
+import caatinga_detalhe as cad  # noqa: E402
+folha([cad.ponte_segmento(fase1.FASE["ponte"][3], semente=2), cad.ponte_segmento(fase1.FASE["ponte"][3], quebrada=True, semente=2)],
       SAIDA / "ponte_seg.png")
 import trem as tr  # noqa: E402
 import blindagem as bl  # noqa: E402

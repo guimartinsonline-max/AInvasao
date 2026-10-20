@@ -261,7 +261,7 @@ def pedra(w=40, h=26, semente=0, rampa=PEDRA, liquen=True, plana=False):
 
 
 # ------------------------------------------------------------------ casa de taipa
-def casa_taipa(w=150, h=104, semente=0, quebrada=True, alpendre=True):
+def casa_taipa(w=150, h=104, semente=0, quebrada=True, alpendre=True, porta_x=None):
     """Casa de taipa do sertão: parede de barro com reboco caindo e a trama de varas
     aparecendo, caiação gasta na frente, barra de terra embaixo, telhado de telha canal
     (cada telha com a luz em cima e a boca escura), cumeeira, beiral com sombra, porta
@@ -300,7 +300,7 @@ def casa_taipa(w=150, h=104, semente=0, quebrada=True, alpendre=True):
                                                     IDX["cinza_medio"], VAZIO)
     t.px[parede & (t.yy < beiral + 3)] = IDX["cinza_escuro"]
     # --- porta de tábuas
-    pa = px0 + int((px1 - px0) * 0.58)
+    pa = px0 + int((px1 - px0) * 0.58) if porta_x is None else int(porta_x - 9)
     pw, ph = 18, 34
     porta = t.retangulo(pa, chao - ph, pw, ph)
     for k, x in enumerate(range(pa, pa + pw, 4)):
@@ -314,7 +314,7 @@ def casa_taipa(w=150, h=104, semente=0, quebrada=True, alpendre=True):
         t.ponto(pa - 1, y, "couro_profundo")
         t.ponto(pa + pw, y, "couro_profundo")
     # --- janela com a folha aberta
-    ja = px0 + 12
+    ja = px0 + 12 if (porta_x is None or porta_x > px0 + 50) else px1 - 30
     jw, jh = 16, 15
     jy = beiral + 12
     t.chapado(t.retangulo(ja, jy, jw, jh), "sombra")
@@ -674,5 +674,588 @@ def moita(w=40, h=22, semente=0, seca=0.5):
         L = rng.uniform(5, h * 0.8)
         t.linha(x0, h - 3, x0 + math.cos(a) * L, h - 3 - math.sin(a) * L, "cinza_escuro")
     t.px[(t.yy > h - 2) & (t.px != VAZIO)] = IDX["caatinga_esc"]
+    contornar(t)
+    return t
+
+
+
+def destelhar(t, h):
+    """A explosão arranca as telhas: sobram os caibros roliços e as ripas, umas telhas
+    penduradas na beirada e o escuro de dentro da casa."""
+    beiral = int(h * 0.36)
+    rng = np.random.default_rng(7)
+    telha = {IDX[c] for c in TELHA} | {IDX["caatinga_media"]}
+    for y in range(0, beiral + 2):
+        for x in range(t.w):
+            if t.px[y, x] in telha and not (y > beiral - 3 and rng.random() < 0.55):
+                t.px[y, x] = VAZIO
+    # O vão da casa aparece por trás dos caibros.
+    ys, xs = np.where(t.px != VAZIO)
+    x0, x1 = xs.min() + 8, xs.max() - 8
+    vao = t.poligono([(x0, beiral), (x0 + 10, 6), (x1 - 10, 6), (x1, beiral)]) & (t.px == VAZIO)
+    t.px[vao] = IDX["marrom_noite"]
+    for x in range(int(x0), int(x1), 7):
+        cilindro(t, x, 5, x - 6, beiral + 1, 1.0, 1.0, rampa=MAD, semente=x, rachas=0, nos=0)
+    for y in range(9, beiral, 6):
+        t.linha(x0 + 2, y, x1 - 2, y, "couro_escuro")
+        t.linha(x0 + 2, y - 1, x1 - 2, y - 1, "couro_medio")
+    cilindro(t, x0 + 8, 5, x1 - 8, 5, 1.3, 1.3, rampa=MAD, semente=3, rachas=1, nos=0)
+    for _ in range(4):
+        x = rng.uniform(x0, x1)
+        e = t.elipse(x, beiral + rng.uniform(1, 4), 2.4, 1.2)
+        pintar(t, e, 0.6 + 0 * t.yy, TELHA)
+    contornar(t)
+    return t
+
+
+def capela(w=110, h=130, semente=0):
+    """Capela do sertão caiada: frontão em volutas com a cruz de ferro no alto, torre
+    sineira de um lado com o sino de bronze, porta em arco de duas folhas almofadadas,
+    óculo redondo, cornijas em relevo, cunhais, caiação descascando mostrando o tijolo,
+    barra suja de barro, telhado de telha canal aparecendo atrás e degraus de pedra."""
+    t = Tela(w, h)
+    rng = np.random.default_rng(semente)
+    chao = h - 1
+    corpo_x0, corpo_x1 = 6, w - 30
+    cx = (corpo_x0 + corpo_x1) / 2
+    torre_x0, torre_x1 = w - 30, w - 4
+    top_corpo = 46
+    # Telhado atrás do frontão.
+    tel = t.poligono([(corpo_x0 + 4, top_corpo + 6), (cx, top_corpo - 6), (corpo_x1 - 4, top_corpo + 6)])
+    pintar(t, tel, 0.55 + ((t.xx % 6) < 3) * 0.12, TELHA)
+    # Torre sineira.
+    torre = t.retangulo(torre_x0, 16, torre_x1 - torre_x0, chao - 16)
+    pintar(t, torre, 0.62 - (t.xx - torre_x0) / 40 + ruido(h, w, (2, 5), semente) * 0.04, CAL)
+    arco = t.retangulo(torre_x0 + 6, 26, 14, 14) | t.elipse(torre_x0 + 13, 26, 7, 6)
+    t.chapado(arco, "sombra")
+    t.chapado(t.retangulo(torre_x0 + 7, 30, 12, 9) & arco, "marrom_noite")
+    sino = t.elipse(torre_x0 + 13, 32, 4, 4) | t.retangulo(torre_x0 + 9, 32, 8, 5)
+    pintar(t, sino, 0.85 - ((t.xx - torre_x0 - 9) / 10) - (t.yy - 28) / 20,
+           ["couro_profundo", "couro", "ouro_escuro", "amarelo_fogo", "amarelo_claro"])
+    t.linha(torre_x0 + 13, 26, torre_x0 + 13, 28, "cinza_escuro")
+    coruch = t.poligono([(torre_x0 - 1, 17), (torre_x0 + 13, 4), (torre_x1 + 1, 17)])
+    pintar(t, coruch, 0.6 + ((t.xx % 6) < 3) * 0.1, TELHA)
+    t.linha(torre_x0 + 13, 4, torre_x0 + 13, 0, "cinza_escuro")
+    t.linha(torre_x0 + 11, 1, torre_x0 + 15, 1, "cinza_escuro")
+    # Corpo com o frontão de volutas.
+    fr = (t.retangulo(corpo_x0, top_corpo, corpo_x1 - corpo_x0, chao - top_corpo + 1) |
+          t.poligono([(corpo_x0 + 6, top_corpo), (cx - 14, top_corpo - 14), (cx, top_corpo - 22),
+                      (cx + 14, top_corpo - 14), (corpo_x1 - 6, top_corpo)]) |
+          t.elipse(corpo_x0 + 8, top_corpo - 2, 5, 4) | t.elipse(corpo_x1 - 8, top_corpo - 2, 5, 4))
+    v = 0.66 + ruido(h, w, (2, 5), semente + 1) * 0.04 - (t.xx - corpo_x0) / 200
+    pintar(t, fr, v, CAL)
+    # Cornijas e cunhais em relevo (linha clara em cima, sombra embaixo).
+    for y in (top_corpo, top_corpo + 2, chao - 30):
+        t.linha(corpo_x0, y, corpo_x1, y, "branco")
+        t.linha(corpo_x0, y + 1, corpo_x1, y + 1, "cinza")
+    for x in (corpo_x0 + 1, corpo_x1 - 3):
+        for y in range(top_corpo + 3, chao - 4, 6):
+            t.chapado(t.retangulo(x, y, 3, 5), "cinza_claro")
+            t.linha(x, y + 5, x + 2, y + 5, "cinza")
+    # Cruz de ferro no topo e o óculo.
+    t.chapado(t.retangulo(cx - 0.6, top_corpo - 33, 1.6, 12), "sombra")
+    t.chapado(t.retangulo(cx - 3.5, top_corpo - 29, 7.4, 1.6), "sombra")
+    ocx, ocy = cx, top_corpo - 6
+    t.chapado(t.elipse(ocx, ocy, 5, 5), "cinza")
+    t.chapado(t.elipse(ocx, ocy, 3.6, 3.6), "azul_sombra")
+    t.chapado(t.elipse(ocx - 1, ocy - 1, 1.4, 1.4), "ceu_claro")
+    for a in range(0, 360, 45):
+        r = math.radians(a)
+        t.ponto(ocx + math.cos(r) * 2.6, ocy + math.sin(r) * 2.6, "cinza_escuro")
+    # Porta em arco com duas folhas almofadadas (os soldados saem por ela).
+    pw, ph = 22, 36
+    pa = cx - pw / 2
+    arco_p = t.retangulo(pa - 2, chao - ph, pw + 4, ph) | t.elipse(cx, chao - ph, pw / 2 + 2, 8)
+    t.chapado(arco_p, "cinza_claro")
+    porta = t.retangulo(pa, chao - ph + 2, pw, ph - 2) | t.elipse(cx, chao - ph + 2, pw / 2, 7)
+    pintar(t, porta, 0.5 + ruido(h, w, (3, 0.4), semente + 2) * 0.08 - (t.xx > cx) * 0.12, MAD)
+    t.linha(cx, chao - ph - 4, cx, chao, "marrom_noite")
+    for (x0, x1) in ((pa + 2, cx - 2), (cx + 2, pa + pw - 2)):
+        for (y0, y1) in ((chao - ph + 4, chao - 20), (chao - 17, chao - 3)):
+            t.linha(x0, y0, x1, y0, "couro_luz")
+            t.linha(x0, y1, x1, y1, "couro_profundo")
+            t.linha(x0, y0, x0, y1, "couro_luz")
+            t.linha(x1, y0, x1, y1, "couro_profundo")
+    t.ponto(cx - 2, chao - 18, "amarelo_fogo")
+    t.ponto(cx + 2, chao - 18, "amarelo_fogo")
+    # Janelas altas em arco nas laterais do corpo.
+    for jx in (corpo_x0 + 12, corpo_x1 - 20):
+        jm = t.retangulo(jx, chao - 52, 8, 14) | t.elipse(jx + 4, chao - 52, 4, 3)
+        t.chapado(jm, "sombra")
+        t.linha(jx + 4, chao - 54, jx + 4, chao - 39, "couro_escuro")
+        t.linha(jx, chao - 46, jx + 7, chao - 46, "couro_escuro")
+    # Caiação descascando: tijolo aparecendo em manchas.
+    caido = (fr | torre) & (ruido(h, w, (3, 5), semente + 3) > 1.1) & (t.yy > top_corpo + 4)
+    caido &= ~arco_p
+    pintar(t, caido, 0.4 + ((t.yy.astype(int) % 4) == 0) * -0.2 + ((t.xx.astype(int) + (t.yy.astype(int) // 4) * 3) % 8 == 0) * -0.2,
+           ["couro_profundo", "vermelho_esc", "couro", "laranja_escuro", "couro_claro"])
+    # Barra de barro e escorridos do beiral.
+    barra = (fr | torre) & (t.yy > chao - 9 + ruido(h, w, (1, 4), semente + 4) * 2)
+    pintar(t, barra, 0.5 + ruido(h, w, 0.6, semente + 5) * 0.06, TAIPA)
+    for _ in range(10):
+        x = int(rng.uniform(corpo_x0 + 3, torre_x1 - 3))
+        y0 = top_corpo + 3 if x < corpo_x1 else 18
+        for d in range(int(rng.integers(6, 20))):
+            if (fr | torre)[min(h - 1, y0 + d), x] and rng.random() < 0.85:
+                t.ponto(x, y0 + d, "cinza")
+    # Degraus de pedra.
+    for k in range(3):
+        dg = t.retangulo(pa - 6 + k * 2, chao - 2 - k * 2 + 2, pw + 12 - k * 4, 2)
+        pintar(t, dg, 0.7 - k * 0.05 + 0 * t.yy, PEDRA)
+    contornar(t)
+    return t
+
+
+def cruzeiro(h=76, semente=0):
+    """Cruzeiro de aroeira na pracinha: cruz de toras com as pontas cortadas, amarrada
+    com corda e fitas de promessa, sobre a base de pedras empilhadas com ex-votos, velas e
+    o pote de água benta."""
+    t = Tela(40, h)
+    chao = h - 1
+    rng = np.random.default_rng(semente)
+    for k in range(5):
+        x = 6 + (k % 3) * 9 + (k // 3) * 4
+        y = chao - (k // 3) * 6
+        e = t.elipse(x + 4, y - 3, 6, 4)
+        pintar(t, e, 0.8 - ((t.xx - x) + (t.yy - y + 6)) / 14, PEDRA)
+    cilindro(t, 20, chao - 8, 20, 2, 2.6, 2.3, rampa=MAD, semente=semente, rachas=2, nos=1, topo_cortado=True)
+    cilindro(t, 6, 18, 34, 18, 2.0, 2.0, rampa=MAD, semente=semente + 1, rachas=1, nos=0)
+    bd.amarracao(t, 20, 18, 2.8)
+    for k, cor in enumerate(("vermelho", "amarelo_fogo", "ceu", "mandacaru", "branco")):
+        x = 11 + k * 4
+        for d in range(int(rng.integers(5, 12))):
+            t.ponto(x + math.sin(d / 2) * 0.8, 20 + d, cor)
+    for x in (10, 30):
+        t.chapado(t.retangulo(x, chao - 12, 2, 4), "branco")
+        t.ponto(x + 0.5, chao - 13, "amarelo_fogo")
+    t.chapado(t.retangulo(23, chao - 10, 5, 4), "lona_n5" if False else "cinza_claro")  # ex-voto de cera
+    contornar(t)
+    return t
+
+
+# ------------------------------------------------------------------ vila alta
+LETREIROS = ["BODEGA", "FARMÁCIA", "BARBEARIA", "ARMAZÉM", "CORREIO", "PADARIA", "ALFAIATE"]
+
+
+def esquadria_nova(t, x, y, w, h, pint, semente, tipo="porta", aberta=False):
+    """Porta de duas folhas almofadadas com bandeira em leque e verga em relevo, ou
+    janela de veneziana com peitoril, verga e (às vezes) grade de ferro."""
+    rng = np.random.default_rng(semente)
+    # Verga em relevo por cima (sombra embaixo dela).
+    t.chapado(t.retangulo(x - 3, y - 4, w + 6, 2), "branco")
+    t.chapado(t.retangulo(x - 3, y - 2, w + 6, 1), "cinza")
+    if tipo == "porta":
+        arco = t.elipse(x + w / 2, y + w / 2, w / 2, w / 2) & (t.yy < y + w / 2)
+        vao = t.retangulo(x, y + w / 2, w, h - w / 2) | arco
+        t.chapado(vao, "marrom_noite")
+        t.chapado(arco, "azul_sombra")
+        t.chapado(arco & (t.yy < y + w / 4), "ceu_medio")
+        for k in range(4):
+            a = math.pi * (0.2 + k * 0.2)
+            t.linha(x + w / 2, y + w / 2, x + w / 2 + math.cos(a) * w / 2, y + w / 2 - math.sin(a) * w / 2, "sombra")
+        t.chapado(t.retangulo(x, y + w / 2, w, 1), "sombra")
+        if aberta:
+            fw = max(3, int(w * 0.3))
+            fol = t.retangulo(x, y + w / 2 + 1, fw, h - w / 2 - 1)
+            pintar(t, fol, 0.7 - (t.xx - x) / 8, pint)
+            t.chapado(t.retangulo(x + fw, y + w / 2 + 1, 2, h - w / 2 - 1), "sombra")
+        else:
+            for lado in (0, 1):
+                fx_ = x + lado * w / 2
+                fol = t.retangulo(fx_ + 0.5, y + w / 2 + 1, w / 2 - 1, h - w / 2 - 1)
+                pintar(t, fol, 0.62 - lado * 0.12 + ruido(t.h, t.w, (3, 0.4), semente) * 0.05, pint)
+                for yy in (y + w / 2 + 4, y + h - 9):
+                    alm = t.retangulo(fx_ + 1.5, yy, w / 2 - 3, 5) & fol
+                    t.px[alm] = IDX[pint[1]]
+                    t.linha(fx_ + 1.5, yy, fx_ + w / 2 - 2, yy, pint[0])
+                    t.linha(fx_ + 1.5, yy + 4, fx_ + w / 2 - 2, yy + 4, pint[-1])
+            t.ponto(x + w / 2 + 1, y + h * 0.6, "amarelo_fogo")
+            t.ponto(x + w / 2 - 2, y + h * 0.6, "amarelo_fogo")
+    else:
+        t.chapado(t.retangulo(x - 1, y - 1, w + 2, h + 2), "sombra")
+        for lado in (0, 1):
+            fx_ = x + lado * w / 2
+            fol = t.retangulo(fx_, y, w / 2, h)
+            pintar(t, fol, 0.62 - lado * 0.1 + 0 * t.yy, pint)
+            for yy in range(int(y) + 2, int(y + h) - 1, 2):
+                t.linha(fx_ + 1, yy, fx_ + w / 2 - 1, yy, pint[0])
+        if rng.random() < 0.4:
+            for xx in range(int(x) + 1, int(x + w), 3):
+                t.linha(xx, y, xx, y + h - 1, "sombra")
+            t.linha(x, y + h / 2, x + w - 1, y + h / 2, "sombra")
+        t.chapado(t.retangulo(x - 2, y + h + 1, w + 4, 2), "branco")
+        t.chapado(t.retangulo(x - 2, y + h + 3, w + 4, 1), "cinza")
+        if rng.random() < 0.5:
+            # Vaso com planta no peitoril.
+            pt = t.retangulo(x + w / 2 - 2.5, y + h - 3, 5, 4)
+            pintar(t, pt, 0.7 - (t.xx - x) / 20, TELHA)
+            for k in range(5):
+                tufo(t, x + w / 2 - 3 + k * 1.5, y + h - 5, 1.6, FOLHA, semente + k)
+
+
+def sobrado(w, h, cor="azul", semente=0, sacada=False, frontao=True):
+    """Casa de platibanda do sertão (mesmo desenho base da vila_campo.sobrado, no nível
+    novo): fachada pintada com degradê de luz e manchas desbotadas, reboco caído mostrando
+    o adobe, barra suja, platibanda com cornija, frisos e almofadas em relevo, pináculos,
+    sombra da cornija na parede, portas e janelas com verga e peitoril, letreiro pintado
+    na parede, lampião de parede, bica de água com o escorrido, sacada de ferro batido."""
+    import vila_campo as vc
+    t = Tela(w, h)
+    rng = np.random.default_rng(semente)
+    cores = vc.FACHADAS[cor]
+    P = vc.PLATIBANDA
+    parede = t.retangulo(1, P - 2, w - 2, h - P + 2)
+    v = 0.62 - (t.xx / w) * 0.18 + ruido(h, w, (3, 6), semente) * 0.05
+    v = v + (ruido(h, w, 4.0, semente + 9) > 1.0) * 0.15
+    pintar(t, parede, v, cores)
+    vc.adobe_caido(t, parede, semente, acima=P + 8)
+    barra = parede & (t.yy > h - 14)
+    esc = vc.FACHADAS["ocre" if cor != "ocre" else "verde"]
+    pintar(t, barra, 0.5 - (t.xx / w) * 0.12 + ruido(h, w, (1, 3), semente + 3) * 0.06, esc)
+    suja = barra & (t.yy > h - 6 + ruido(h, w, (1, 3), semente + 4) * 1.5)
+    pintar(t, suja, 0.4 + 0 * t.yy, TAIPA)
+    t.chapado(t.retangulo(1, h - 15, w - 2, 1), "sombra")
+    # Sombra da cornija na parede.
+    t.px[parede & (t.yy < P + 3) & (t.yy >= P)] = IDX[cores[1]]
+    t.px[parede & (t.yy < P + 1.5) & (t.yy >= P)] = IDX[cores[0]]
+    # Platibanda.
+    plat = t.retangulo(0, 0, w, P)
+    pintar(t, plat, 0.62 - (t.xx / w) * 0.15 + 0 * t.yy, cores)
+    t.chapado(t.retangulo(0, 0, w, 1.5), cores[-1])
+    t.chapado(t.retangulo(0, 1.5, w, 1), cores[1])
+    t.chapado(t.retangulo(0, P - 3, w, 1), cores[-1])
+    t.chapado(t.retangulo(0, P - 2, w, 1), cores[-2])
+    t.chapado(t.retangulo(0, P - 1, w, 1), "sombra")
+    n = max(2, w // 26)
+    for k in range(n):
+        ax = 4 + k * (w - 8) / n
+        aw = (w - 8) / n - 4
+        t.chapado(t.retangulo(ax, 4, aw, 4), cores[1])
+        t.linha(ax, 4, ax + aw - 1, 4, cores[0])
+        t.linha(ax, 4, ax, 7, cores[0])
+        t.linha(ax, 7, ax + aw - 1, 7, cores[-1])
+    for px_ in (1, w - 5):
+        pin = t.elipse(px_ + 2, -0.5, 2.2, 2)
+        t.chapado(pin, cores[-1])
+    # Bica de água e o escorrido escuro descendo.
+    bx_ = int(rng.uniform(8, w - 8))
+    t.chapado(t.retangulo(bx_, P - 3, 2, 3), "couro")
+    for d in range(int(rng.integers(12, 30))):
+        y = P + d
+        if y < h - 14 and parede[y, bx_]:
+            t.ponto(bx_ + (d % 3 == 0), y, cores[1])
+    # Portas e janelas.
+    pint = vc.PINTURA[vc.ESQUADRIA[cor]]
+    n_vaos = max(2, int(w // 34))
+    passo = w / n_vaos
+    porta_k = []
+    for k in range(n_vaos):
+        cx = passo * (k + 0.5)
+        if k % 2 == 0 or n_vaos == 2 and k == 0:
+            pw, ph = 14, min(40, h - P - 10)
+            esquadria_nova(t, cx - pw / 2, h - ph - 1, pw, ph, pint, semente + k, "porta", aberta=rng.random() < 0.35)
+            porta_k.append((cx, h - ph - 1))
+        else:
+            esquadria_nova(t, cx - 6, h - 38, 12, 14, pint, semente + k, "janela")
+        if h > 96:
+            esquadria_nova(t, cx - 5, P + 8, 10, 16, pint, semente + 30 + k, "janela")
+    # Letreiro pintado na parede em cima de uma porta.
+    if porta_k and rng.random() < 0.8:
+        nome = LETREIROS[semente % len(LETREIROS)]
+        lw = bd.largura_texto(nome)
+        cx, py = porta_k[0]
+        ly = py - 14 if h <= 96 else P + 2 + 26 - 13
+        lx = int(np.clip(cx - lw / 2, 3, w - lw - 3))
+        if ly > P + 2:
+            t.chapado(t.retangulo(lx - 2, ly - 2, lw + 4, 11), cores[0])
+            bd.letreiro(t, nome, lx, ly, "branco" if cor != "cal" else "vermelho_medio", sombra="sombra")
+    # Lampião de parede num braço de ferro.
+    lx_ = int(passo * 0.98)
+    t.linha(lx_, h - 44, lx_ + 4, h - 46, "sombra")
+    bd.lampiao(t, lx_ + 4, h - 42, aceso=False)
+    if sacada:
+        sy = vc.sacada_y(h)
+        t.chapado(t.retangulo(6, sy, w - 12, 3), "cinza_escuro")
+        t.chapado(t.retangulo(6, sy, w - 12, 1), "cinza_luz")
+        for x in range(8, w - 8, 3):
+            t.linha(x, sy - 8, x, sy - 1, "sombra")
+            if x % 6 == 2:
+                t.ponto(x + 1, sy - 5, "sombra")
+                t.ponto(x - 1, sy - 4, "sombra")
+        t.chapado(t.retangulo(6, sy - 9, w - 12, 1.5), "sombra")
+        t.linha(6, sy - 9, w - 7, sy - 9, "cinza_medio")
+        for x in range(10, w - 10, 12):
+            t.linha(x, sy + 3, x + 3, sy + 7, "sombra")
+    # Rachaduras.
+    for _ in range(3):
+        x, y = rng.uniform(6, w - 6), rng.uniform(P + 2, h - 20)
+        for kk in range(9):
+            x += rng.uniform(-1.2, 1.2)
+            y += 1
+            if 0 <= int(y) < h and parede[int(y), int(x)]:
+                t.ponto(x, y, cores[0])
+    contornar(t)
+    return t
+
+
+def toldo(w=60, alt=42, semente=0):
+    """Toldo de lona listrada da bodega: lona caída entre as varas com dobras, listras
+    vermelhas e cruas desbotadas, bambinela recortada, varas de pau roliço com amarração
+    e o caixote de frutas embaixo. O topo (y=0..3) é plataforma."""
+    t = Tela(w, alt)
+    lona = t.poligono([(0, 0), (w, 0), (w, 8), (0, 5)])
+    xi = t.xx.astype(int)
+    for k, r in enumerate((["vermelho_esc", "vermelho_medio", "vermelho", "laranja_escuro"],
+                           ["terra_media", "areia_media", "areia", "areia_luz", "areia_clara"])):
+        m = lona & (((xi // 6) % 2) == k)
+        v = 0.75 - t.yy / 12 + np.sin(t.xx / 3) * 0.06
+        pintar(t, m, v, r)
+    for x in range(0, w, 6):
+        b = t.elipse(x + 3, 8, 3, 2) & (t.yy > 7)
+        t.chapado(b, "vermelho_esc" if (x // 6) % 2 == 0 else "areia_media")
+        t.ponto(x + 3, 9, "vermelho_medio" if (x // 6) % 2 == 0 else "areia")
+    for x in (2, w - 4):
+        cilindro(t, x + 1, alt - 1, x + 1, 6, 1.2, 1.1, rampa=MAD, semente=x, rachas=0, nos=0)
+        bd.amarracao(t, x + 1, 7, 1.4)
+    cx_ = Tela(18, 12)
+    bd.caixote(cx_, 1, 11, 16, 8, semente=semente, rampa=MAD)
+    for k in range(5):
+        cor = ["laranja_fogo", "amarelo_fogo", "mandacaru", "vermelho"][k % 4]
+        cx_.chapado(cx_.elipse(3 + k * 3, 3.5, 1.8, 1.6), cor)
+        cx_.ponto(2.5 + k * 3, 3, "branco")
+    t.colar(cx_, w // 2 - 9, alt - 12)
+    contornar(t)
+    return t
+
+
+# ------------------------------------------------------------------ peças da base, de dia
+DIA = {
+    "mad_n1": "marrom_noite", "mad_n2": "couro_profundo", "mad_n3": "couro_escuro", "mad_n4": "couro",
+    "mad_n5": "couro_medio", "mad_n6": "couro_luz",
+    "lona_n1": "cinza_escuro", "lona_n2": "cinza_medio", "lona_n3": "cinza", "lona_n4": "cinza_luz",
+    "lona_n5": "cinza_claro", "lona_n6": "branco",
+    "oliva_n1": "sombra", "oliva_n2": "caatinga_esc", "oliva_n3": "caatinga_media", "oliva_n4": "caatinga",
+    "oliva_n5": "mandacaru",
+    "chao_n1": "marrom_noite", "chao_n2": "terra_escura", "chao_n3": "terra", "chao_n4": "terra_media",
+    "chao_n5": "barro", "chao_n6": "areia_media",
+    "corda_n1": "terra_media", "corda_n2": "areia", "corda_n3": "areia_luz",
+}
+
+
+def para_dia(t):
+    """Troca as cores de crepúsculo das peças de base_detalhe pelas de dia."""
+    tab = {IDX[a]: IDX[b] for a, b in DIA.items()}
+    px = t.px.copy()
+    for a, b in tab.items():
+        px[t.px == a] = b
+    t.px = px
+    return t
+
+
+# ------------------------------------------------------------------ campo de pouso
+def hangar(w=150, h=96, semente=0):
+    """Hangar da Aviação Militar: tábuas com mata-junta, telhado de zinco em arco com as
+    ondas da chapa e ferrugem escorrendo, portão aberto com as folhas presas para os
+    lados, lá dentro o escuro com a bancada, a hélice de reserva, pneus e tambores, a
+    estrela pintada na empena e o letreiro AVIAÇÃO MILITAR."""
+    t = Tela(w, h)
+    rng = np.random.default_rng(semente)
+    beiral = 34
+    for k, x in enumerate(range(4, w - 4, 5)):
+        bd.tabua(t, x, beiral - 4, 5, h - beiral + 4, semente=semente + k, rampa=MAD, vertical=True)
+    pw = w * 0.6
+    px_ = (w - pw) / 2
+    vao = t.retangulo(px_, beiral + 4, pw, h - beiral - 4)
+    v = 0.3 - (t.yy - beiral) / 200 + np.clip(1 - np.abs(t.xx - w / 2) / (pw / 2), 0, 1) * 0.15
+    pintar(t, vao, v, ["preto", "marrom_noite", "couro_profundo", "couro_escuro"])
+    # Coisas lá dentro.
+    for k in range(3):
+        tx = px_ + 6 + k * 10
+        tb = t.retangulo(tx, h - 16, 9, 15)
+        pintar(t, tb, 0.2 + np.clip(1 - np.abs((t.xx - tx - 3) / 5), 0, 1) * 0.5, OLIVA_D)
+    cilindro(t, px_ + pw - 14, h - 44, px_ + pw - 9, h - 4, 1.8, 1.2, rampa=MAD, semente=4, rachas=0, nos=0)
+    t.chapado(t.elipse(px_ + pw - 11.5, h - 24, 3, 2), "couro_escuro")  # cubo da hélice
+    for k in range(2):
+        pn = t.elipse(px_ + pw / 2 + 12 + k * 3, h - 7 - k * 2, 6, 6) & ~t.elipse(px_ + pw / 2 + 12 + k * 3, h - 7 - k * 2, 2.5, 2.5)
+        pintar(t, pn, 0.3 + 0 * t.yy, ["preto", "sombra", "cinza_escuro"])
+    t.chapado(t.retangulo(px_ + pw / 2 - 14, h - 24, 24, 2), "couro_medio")
+    for k in range(5):
+        t.ponto(px_ + pw / 2 - 11 + k * 5, h - 26, "cinza_luz")
+    # Folhas do portão.
+    for lado in (-1, 1):
+        fx_ = px_ - 11 if lado < 0 else px_ + pw
+        for k, x in enumerate(range(int(fx_), int(fx_) + 11, 4)):
+            bd.tabua(t, x, beiral + 4, 4, h - beiral - 5, semente=semente + 20 + k + lado, rampa=MAD, vertical=True)
+        t.linha(fx_, h - 6, fx_ + 10, beiral + 10, "couro_profundo")
+        t.linha(fx_ + 1, h - 6, fx_ + 11, beiral + 10, "couro_luz")
+    # Telhado em arco.
+    arco = t.elipse(w / 2, beiral, w / 2, beiral - 2) & (t.yy <= beiral)
+    ang = (t.xx - w / 2) / (w / 2)
+    v = 0.7 - ang * 0.25 - (t.yy - 2) / 120 + np.sin(t.xx * math.pi / 2) * 0.13
+    pintar(t, arco, v, FERRO)
+    ferr = (ruido(h, w, (6, 1.5), semente + 3) > 1.5) & arco
+    pintar(t, ferr, 0.45 + np.sin(t.xx * math.pi / 2) * 0.15, ["couro_profundo", "couro_escuro", "couro", "couro_medio"])
+    for _ in range(16):
+        x = int(rng.integers(6, w - 6))
+        y0 = int(rng.integers(beiral - 12, beiral))
+        for d in range(int(rng.integers(3, 14))):
+            if 0 <= y0 + d < h and t.px[y0 + d, x] != VAZIO:
+                t.ponto(x, y0 + d, ["couro_escuro", "couro", "laranja_escuro"][min(2, d // 5)])
+    t.chapado(t.retangulo(0, beiral, w, 2), "sombra")
+    t.chapado(t.retangulo(0, beiral + 2, w, 2), "couro_profundo")
+    # Estrela na empena e o letreiro.
+    cx, cy = w / 2, beiral - 16
+    est = []
+    for k in range(10):
+        a = -math.pi / 2 + k * math.pi / 5
+        r = 7 if k % 2 == 0 else 3
+        est.append((cx + math.cos(a) * r, cy + math.sin(a) * r))
+    estrela = t.poligono(est) & arco
+    t.chapado(estrela, "amarelo_fogo")
+    t.px[estrela & (ruido(h, w, 1.5, 7) > 0.6)] = IDX["ouro_escuro"]
+    txt = "AVIAÇÃO MILITAR"
+    lw = bd.largura_texto(txt) + 8
+    if lw < w - 8:
+        bd.placa_madeira(t, txt, int(w / 2 - lw / 2), beiral + 4 - 1, pendurada=False, rampa=MAD, cor="branco")
+    contornar(t)
+    return t
+
+
+OLIVA_D = ["sombra", "caatinga_esc", "caatinga_media", "caatinga", "mandacaru"]
+
+
+def tanque_gasolina(semente=0):
+    """Tanque de gasolina deitado em berços de toras: chapa rebitada oliva com o brilho
+    comprido em cima, tampa e escada, letreiro GASOLINA, ferrugem e a mancha no chão."""
+    t = Tela(70, 38)
+    corpo = t.capsula(9, 15, 61, 15, 11)
+    v = 0.25 + np.clip(1 - np.abs(t.yy - 9) / 9, 0, 1) * 0.6
+    pintar(t, corpo, v, OLIVA_D)
+    for x in (20, 35, 50):
+        t.linha(x, 5, x, 25, "caatinga_esc")
+        for y in range(6, 25, 3):
+            t.ponto(x + 1, y, "mandacaru_luz")
+    t.chapado(t.retangulo(30, 2, 6, 3), "cinza_medio")
+    t.linha(30, 2, 35, 2, "cinza_luz")
+    lw = bd.largura_texto("GASOLINA")
+    t.chapado(t.retangulo(35 - lw / 2 - 2, 11, lw + 4, 10), "areia_clara")
+    bd.letreiro(t, "GASOLINA", int(35 - lw / 2), 12, "vermelho", sombra=None)
+    fer = corpo & (ruido(38, 70, 1.2, semente) > 1.5)
+    t.px[fer] = IDX["couro"]
+    for x in (16, 54):
+        cilindro(t, x - 7, 37, x + 7, 37, 2.2, 2.2, rampa=MAD, semente=x, rachas=1, nos=0)
+        bm = t.poligono([(x - 6, 36), (x - 4, 24), (x + 4, 24), (x + 6, 36)])
+        pintar(t, bm, 0.6 - (t.xx - x + 6) / 20, MAD)
+    for k in range(5):
+        t.linha(60 + k * 0.5, 4 + k * 6, 66, 4 + k * 6, "cinza_escuro")
+    t.linha(60, 2, 60, 36, "cinza_medio")
+    t.linha(66, 2, 66, 36, "cinza_medio")
+    contornar(t)
+    return t
+
+
+def baliza(semente=0):
+    """Baliza da pista: tambor meio enterrado listrado de vermelho e branco, com brilho."""
+    t = Tela(12, 13)
+    corpo = t.retangulo(1, 2, 10, 11)
+    v = 0.3 + np.clip(1 - np.abs((t.xx - 4) / 5), 0, 1) * 0.6
+    for k, y in enumerate((2, 5, 8)):
+        faixa = corpo & (t.yy >= y) & (t.yy < y + 3)
+        pintar(t, faixa, v, VERMELHO_D if k % 2 == 0 else CAL)
+    t.chapado(t.elipse(6, 2, 5, 1), "cinza_claro")
+    contornar(t)
+    return t
+
+
+VERMELHO_D = ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_escuro"]
+
+
+# ------------------------------------------------------------------ rio seco
+def carnauba(altura=90, semente=0):
+    """Carnaúba: estipe fino com as bainhas das folhas velhas em escama (a parte de baixo
+    lisa e clara), leque de folhas em palma com os raios abertos, folhas secas penduradas
+    e o cacho de coquinhos."""
+    W = 70
+    t = Tela(W, altura)
+    rng = np.random.default_rng(semente)
+    base = altura - 1
+    cx = W / 2 + rng.uniform(-3, 3)
+    topo = 24
+    incl = rng.uniform(-4, 4)
+    cilindro(t, cx, base, cx + incl, topo, 2.6, 2.2, rampa=CASCA, semente=semente, rachas=0, nos=0)
+    for y in range(topo + 2, int(topo + (base - topo) * 0.55), 3):
+        f_ = (y - topo) / (base - topo)
+        x = cx + incl * (1 - f_)
+        for dx in (-2, 0, 2):
+            t.ponto(x + dx, y + (dx == 0), "couro_escuro")
+            t.ponto(x + dx, y - 1, "couro_medio")
+    # Folhas secas penduradas por baixo da copa.
+    for k in range(5):
+        a = math.pi * (0.55 + k * 0.1)
+        x0, y0 = cx + incl, topo
+        for j in range(16):
+            t.ponto(x0 + math.cos(a) * j * 0.6, y0 + j * 0.9, "barro" if j % 3 else "terra_media")
+    # Leque de folhas: raios saindo do topo em palma.
+    for k in range(19):
+        a = math.pi * (-0.05 + k * 0.061)
+        L = rng.uniform(18, 27)
+        x0, y0 = cx + incl, topo
+        for j in range(int(L)):
+            x = x0 + math.cos(a) * j
+            y = y0 - math.sin(a) * j * 0.8 + (j / L) ** 2 * 4
+            cor = FOLHA[min(5, 2 + (j % 3 == 0) + (k % 2) + (1 if math.cos(a) < 0 else 0))]
+            t.ponto(x, y, cor)
+            t.ponto(x, y + 1, FOLHA[1])
+            if j > 3:
+                # Folíolos do leque: tirinhas caindo dos dois lados do raio.
+                t.ponto(x - math.sin(a), y + 1.5, FOLHA[2])
+                t.ponto(x + math.sin(a) * 0.5, y + 2.2, FOLHA[3] if j % 2 else FOLHA[1])
+    t.chapado(t.elipse(cx + incl + 3, topo + 3, 2.5, 3), "couro_escuro")
+    for k in range(5):
+        t.ponto(cx + incl + 2 + k % 3, topo + 2 + k // 2, "caatinga_esc")
+    contornar(t)
+    return t
+
+
+def ponte_segmento(w, alt=48, quebrada=False, semente=0):
+    """Pedaço da ponte de tábuas do rio seco (o tabuleiro fica em y=12): corrimão de
+    varas amarrado nos mourões, tábuas atravessadas vistas de lado com as pontas e os
+    pregos, viga roliça por baixo, pilares de tora fincados no leito com escoras em X e
+    amarração. Quebrada: o tabuleiro arrancado, tábuas penduradas e lascas."""
+    t = Tela(w, alt + 12)
+    rng = np.random.default_rng(semente)
+    yb = 12
+    pilares = list(range(8, w - 4, 46))
+    for x in pilares:
+        cilindro(t, x + 2, alt + 11, x + 2 + rng.uniform(-1, 1), yb + 4, 2.4, 2.2, rampa=MAD, semente=semente + x,
+                 rachas=2, nos=1)
+    for a, b in zip(pilares[:-1], pilares[1:]):
+        cilindro(t, a + 3, yb + 8, b + 1, alt + 4, 1.1, 1.1, rampa=MAD, semente=a + 1, rachas=0, nos=0, escurecer=0.1)
+        cilindro(t, b + 1, yb + 8, a + 3, alt + 4, 1.1, 1.1, rampa=MAD, semente=a + 2, rachas=0, nos=0, escurecer=0.16)
+        bd.amarracao(t, (a + b) / 2 + 2, (yb + 8 + alt + 4) / 2, 1.6)
+    if quebrada:
+        for x in (4, w - 10):
+            for k in range(3):
+                cilindro(t, x + k * 2, yb + 2, x + k * 2 + rng.uniform(-3, 3), yb + 10 + k * 3, 1.0, 1.0, rampa=MAD,
+                         semente=k + x, rachas=0, nos=0)
+        for x in pilares:
+            t.chapado(t.poligono([(x, yb + 4), (x + 2, yb), (x + 5, yb + 4)]), "couro_claro")
+        contornar(t)
+        return t
+    cilindro(t, 0, yb + 6, w - 1, yb + 6, 1.8, 1.8, rampa=MAD, semente=semente + 3, rachas=1, nos=1)
+    for k, x in enumerate(range(0, w, 4)):
+        bd.tabua(t, x, yb, 4, 5, semente=semente + 50 + k, rampa=MAD, vertical=True)
+        if k % 3 == 0:
+            t.ponto(x + 1, yb + 1, "cinza_luz")
+    t.linha(0, yb, w - 1, yb, "couro_claro")
+    # Corrimão.
+    for x in pilares:
+        cilindro(t, x + 2, yb, x + 2, 1, 1.2, 1.0, rampa=CASCA, semente=x + 7, rachas=0, nos=0, topo_cortado=True)
+    for y in (2, 7):
+        cilindro(t, 0, y + rng.uniform(-0.5, 0.5), w - 1, y + rng.uniform(-0.5, 0.5), 0.9, 0.9, rampa=CASCA,
+                 semente=y + semente, rachas=0, nos=0)
+    for x in pilares:
+        bd.amarracao(t, x + 2, 2, 1.3)
+        bd.amarracao(t, x + 2, 7, 1.3)
     contornar(t)
     return t
