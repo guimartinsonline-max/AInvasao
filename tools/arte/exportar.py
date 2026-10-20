@@ -35,7 +35,8 @@ QUADROS_LAMPIAO = ["parado", "atirando", "corre1", "corre2", "corre3", "corre4",
 desenhos = pixel.ler("lampiao.txt")
 # A folha padrão do Lampião é com a pistola (arma inicial), feita como as das armas pesadas.
 import lampiao_armas as la  # noqa: E402
-folha(la.folha_da_arma("pistola"), SAIDA / "lampiao.png")
+import lampiao_ms as lm  # noqa: E402  (padrão novo, 20/10: corpo do Metal Slug e volume3d)
+folha(lm.folha_da_arma("pistola"), SAIDA / "lampiao.png")
 # Inimigos pixel a pixel (fonte: tools/arte/pixel/volante.txt e xeremita.txt).
 # Inimigos caricatos (fonte: tools/arte/caricatos.py). O último quadro, "tostado",
 # é a morte recolorida de carvão, para quem morre queimado pelo Candeeiro.
@@ -161,12 +162,11 @@ folha([lz.gota(k, 22, 18, semente=5) for k in range(3)], SAIDA / "gota_golfada.p
 
 # Armas (pixel/armas_mao.txt, lidas por tools/arte/armas.py) e efeitos de tiro (tools/arte/efeitos_tiro.py).
 import efeitos_tiro as ef  # noqa: E402
-# Lampião segurando cada arma pesada (tools/arte/lampiao_armas.py), mesma ordem de quadros do lampiao.png.
-import lampiao_armas as la  # noqa: E402
+# Lampião segurando cada arma pesada (tools/arte/lampiao_ms.py), mesma ordem de quadros do lampiao.png.
 for arma in la.ar.ARMAS:
     if arma != "pistola":
-        folha(la.folha_da_arma(arma), SAIDA / f"lampiao_{arma}.png")
-la.gravar_bocas(RAIZ / "src/maos.js")
+        folha(lm.folha_da_arma(arma), SAIDA / f"lampiao_{arma}.png")
+lm.gravar_bocas(RAIZ / "src/maos.js")
 
 
 def engordar_rosto(t):
@@ -186,10 +186,10 @@ def engordar(t, x0=8, x1=20, extra=5):
     return novo
 
 
-folha([engordar(q) for q in la.folha_da_arma("pistola")], SAIDA / "lampiao_gordo.png")
+folha([engordar(q) for q in lm.folha_da_arma("pistola")], SAIDA / "lampiao_gordo.png")
 for arma in la.ar.ARMAS:
     if arma != "pistola":
-        folha([engordar(q) for q in la.folha_da_arma(arma)], SAIDA / f"lampiao_{arma}_gordo.png")
+        folha([engordar(q) for q in lm.folha_da_arma(arma)], SAIDA / f"lampiao_{arma}_gordo.png")
 import fase1  # noqa: E402
 import fase1_extra as fx  # noqa: E402
 folha([npcs.urubu(q) for q in range(3)], SAIDA / "urubu.png")
@@ -237,7 +237,7 @@ for nome in ("cacimba", "ninho", "canoa"):
 import comidas as cm  # noqa: E402
 for nome, (fn, _pts) in cm.COMIDAS.items():
     folha([fn()], SAIDA / f"comida_{nome}.png")
-folha([la.chapeu()], SAIDA / "chapeu.png")
+folha([lm.chapeu_solto()], SAIDA / "chapeu.png")
 # Retratos do painel: sério, gritando, susto, dor, morto.
 folha([la.retrato(r) for r in ("serio", "grito", "susto", "dor", "morto")], SAIDA / "retrato.png")
 folha([engordar_rosto(la.retrato(r)) for r in ("serio", "grito", "susto", "dor", "morto")], SAIDA / "retrato_gordo.png")

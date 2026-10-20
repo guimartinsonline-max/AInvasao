@@ -21,8 +21,9 @@ BORRACHA = ["sombra", "sombra_media", "azul_sombra", "cinza_escuro", "cinza_medi
 LATA = ["sombra", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz", "aco_brilho"]
 LONA = ["caatinga_esc", "caatinga_media", "caatinga", "mandacaru"]
 PELE = {IDX[c] for c in ("pele_sombra", "pele_escura", "pele_media", "pele", "pele_luz", "pele_clara", "pele_brilho",
-                         "rosa_poeira")}
-BIGODE = {IDX["couro_profundo"], IDX["couro_escuro"], IDX["preto"], IDX["branco"]}
+                         "rosa_poeira")} | {IDX[f"carne_{k}"] for k in range(1, 8)}
+BIGODE = {IDX["couro_profundo"], IDX["couro_escuro"], IDX["preto"], IDX["branco"], IDX["negro_1"], IDX["fuba_1"],
+          IDX["fuba_2"], IDX["fuba_3"]}
 
 
 def mascarar(t):
