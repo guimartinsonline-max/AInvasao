@@ -134,17 +134,17 @@ def tronco_forma(t, bx, topo, base, fig=None, voa=0):
     """Tronco em pé e arredondado: peito em barril, ombros redondos, cintura um pouco
     mais fina, costas em curva (nada de caixa nem corcunda)."""
     alt = base - topo
-    m = t.elipse(bx + 0.8, topo + alt * 0.42, 7.2, alt * 0.45)       # peito
-    m |= t.elipse(bx + 0.3, base - alt * 0.22, 6.0, alt * 0.3)       # barriga/cintura
-    m |= t.elipse(bx - 3.2, topo + 3.2, 3.2, 3.0) | t.elipse(bx + 4.6, topo + 3.2, 3.4, 3.0)  # ombros
+    m = t.elipse(bx + 1.8, topo + alt * 0.42, 6.0, alt * 0.45)       # peito
+    m |= t.elipse(bx + 1.4, base - alt * 0.22, 5.0, alt * 0.3)       # barriga/cintura
+    m |= t.elipse(bx - 1.4, topo + 3.2, 2.8, 3.0) | t.elipse(bx + 4.6, topo + 3.2, 3.4, 3.0)  # ombros
     return m
 
 
 def aba_jaleco(t, bx, base, voa=0):
     """Aba do jaleco por cima das coxas (desenhada depois da perna da frente),
     voando para trás na corrida."""
-    m = t.poligono([(bx - 6, base - 4), (bx + 6, base - 4), (bx + 7, base + 6), (bx + 1, base + 6.5),
-                    (bx - 5 - voa * 2.5, base + 5 + voa * 0.5), (bx - 6.5 - voa, base)])
+    m = t.poligono([(bx - 3.5, base - 4), (bx + 6, base - 4), (bx + 7, base + 6), (bx + 1, base + 6.5),
+                    (bx - 3.5 - voa * 2.5, base + 5 + voa * 0.5), (bx - 4.5 - voa, base)])
     sombrear2d(t, m, PELO)
     t.linha(bx + 3, base - 3, bx + 3, base + 6, "pelo_3")  # abertura
     t.ponto(bx - 3, base + 5, "pelo_2")  # barra suja
@@ -173,11 +173,11 @@ def em_pe(fig="romeiro", pose="continencia", passo=0, rosto="feliz"):
     bota(t, pe_t[0] - 2, pe_t[1], -1.2)
     # Braço de trás.
     if pose == "solto":
-        membro(t, (bx - 3, 19 + dy), (bx - 8, 15 + dy), (bx - 10, 9 + dy), 2.3, 2.0, r["braco"], -1.2)
+        membro(t, (bx - 1, 19 + dy), (bx - 8, 15 + dy), (bx - 10, 9 + dy), 2.3, 2.0, r["braco"], -1.2)
         mao(t, bx - 10.5, 8 + dy, -1)
     elif pose == "corre":
         k = [-1, 0, 1, 0][passo]
-        membro(t, (bx - 3, 19 + dy), (bx - 4 - k * 3, 25 + dy), (bx - 2 - k * 5, 27 + dy), 2.3, 2.0, r["braco"], -1.2)
+        membro(t, (bx - 1, 19 + dy), (bx - 3 - k * 3, 25 + dy), (bx - 2 - k * 5, 27 + dy), 2.3, 2.0, r["braco"], -1.2)
         mao(t, bx - 2 - k * 5, 28 + dy, -1)
     # Tronco largo, inclinado para a frente.
     sombrear2d(t, tronco_forma(t, bx, 16 + dy, 32 + dy), r["tronco"])
@@ -190,9 +190,9 @@ def em_pe(fig="romeiro", pose="continencia", passo=0, rosto="feliz"):
     if fig == "cientista":
         aba_jaleco(t, bx, 32 + dy, 2 if pose == "corre" else 0)
     else:
-        t.chapado(t.retangulo(bx - 5, 30 + dy, 11, 1), "osso_2")  # cordão na cintura
+        t.chapado(t.retangulo(bx - 3, 30 + dy, 9, 1), "osso_2")  # cordão na cintura
     # Bornal com alça cruzada.
-    t.linha(bx - 5, 18 + dy, bx + 6, 29 + dy, "fuba_3")
+    t.linha(bx - 3, 18 + dy, bx + 6, 29 + dy, "fuba_3")
     sombrear2d(t, t.elipse(bx + 7, 30 + dy, 3, 3), FUBA)
     t.chapado(t.retangulo(bx + 4, 28 + dy, 6, 1), "fuba_1")
     if pose == "solto":
@@ -255,7 +255,7 @@ def pendurado(fig="romeiro", balanco=0, rosto="chorando"):
     membro(t, (bx - 1, 34), (bx - 2 - b, 39), (bx - 3 - b * 2, 43), 2.8, 2.3, r["calca"], -1.2)
     bota(t, bx - 5 - b * 2, 45, -1.2)
     # Braços: ombro, cotovelo para fora, mãos juntas lá em cima.
-    membro(t, (bx - 4, 21), (bx - 8, 11), (bx - 1, 3), 2.2, 1.9, r["braco"], -1.2)
+    membro(t, (bx - 2, 21), (bx - 7, 11), (bx - 1, 3), 2.2, 1.9, r["braco"], -1.2)
     membro(t, (bx + 5, 21), (bx + 10, 11), (bx + 3, 3), 2.2, 1.9, r["braco"])
     sombrear2d(t, tronco_forma(t, bx, 19, 34), r["tronco"])
     membro(t, (bx + 2, 34), (bx + 3 + b, 39), (bx + 4 + b * 2, 43), 2.8, 2.3, r["calca"])
@@ -264,7 +264,7 @@ def pendurado(fig="romeiro", balanco=0, rosto="chorando"):
         t.linha(bx + 3, 22, bx + 3, 31, "pelo_3")
         aba_jaleco(t, bx, 34)
     else:
-        t.chapado(t.retangulo(bx - 5, 32, 11, 1), "osso_2")
+        t.chapado(t.retangulo(bx - 3, 32, 9, 1), "osso_2")
     cabeca(t, fig, bx + 1, 15, rosto, chapeu=1)
     peito(t, fig, bx + 1, 22)
     mao(t, bx - 0.5, 2.5, -1)
