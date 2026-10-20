@@ -539,6 +539,8 @@ export class Jogador {
       // Grita ao atirar parado.
       quadro = this.desdeTiro < 160 ? 'atirando' : 'parado';
     }
+    // Respirando parado: o corpo sobe e desce 1 px.
+    this.respira = quadro === 'parado' ? (this.respira || 0) + dt : 0;
     // Espera (como no Metal Slug): parado sem mexer em nada uns segundos, olha para
     // trás, ajeita o chapéu suando e boceja; qualquer ação interrompe.
     const quieto = quadro === 'parado' && this.desdeTiro > 800;
@@ -549,6 +551,7 @@ export class Jogador {
       else if (k > 1000 && k < 1700) quadro = Math.floor(k / 230) % 2 ? 'espera3' : 'parado';
       else if (k > 2300 && k < 3400) quadro = 'espera1';
     }
+    if (quadro === 'parado' && Math.floor(this.respira / 450) % 2) quadro = 'parado2';
     if (this.zumbi) {
       // Zumbi: folha própria, anda devagar arrastando, flutua no pulo, golfada.
       let z = ZUMBI.parado;

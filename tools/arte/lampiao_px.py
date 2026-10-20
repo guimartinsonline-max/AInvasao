@@ -20,9 +20,9 @@ CHAPEU = [  # 24 colunas, colocado em x=3: meia-lua com as pontas para cima
     ".OO.................OOO.",
     ".OhO.....OOOOO.....OhgO.",
     ".OhgO..OOgghhgOO..OhgfO.",
-    "..OgfOOgghhhhhggOOhgAfO.",
+    "..OgfOOgghhhhhggOOhgAgO.",
     "..OgffgghhhhhhhggfgAHAdO",
-    "...OsHfAdHdAdHdAdHfAAdsO",
+    "...OsCsVsdsCsVsdsCfgAdsO",
     "....OOsssssssssssssssOO.",
     "......OOOOOOOOOOOOOOO...",
 ]
@@ -158,6 +158,16 @@ ROSTOS = {  # 20 colunas, colocado em x=7, começando na linha 7
     ],
 }
 
+def _olho(r):
+    """Sem óculos: a lente azul vira o branco do olho (pupila e contorno ficam)."""
+    r = [list(l) for l in r]
+    for y in range(2, 6):
+        for x in range(9, 17):
+            if r[y][x] == "B":
+                r[y][x] = "W"
+    return ["".join(l) for l in r]
+
+
 # Rostos da espera (parado um tempo): bocejo, olhando para trás e suando sob o chapéu.
 _S = ROSTOS["serio"]
 ROSTOS["boceja"] = [_S[0], _S[1], _S[2], _S[3].replace("OOBWBO", "455555"), _S[4].replace("OBKBO", "OOOOO"),
@@ -168,6 +178,7 @@ ROSTOS["boceja"] = [_S[0], _S[1], _S[2], _S[3].replace("OOBWBO", "455555"), _S[4
                     "........OOOOOOO....."]
 ROSTOS["olha"] = [_S[0], _S[1], _S[2], _S[3].replace("OOBWBO", "OOWBBO"), _S[4].replace("OBKBO", "OKBBO")] + _S[5:]
 ROSTOS["suor"] = list(_S)
+ROSTOS = {k: _olho(v) for k, v in ROSTOS.items()}
 
 # ---------------------------------------------------------------- tronco
 TRONCO = [  # (linha, x, texto)
@@ -209,19 +220,18 @@ def _equipar_tronco():
         for y in range(21, 30):
             x = round(xa + (xb - xa) * (y - 21) / 8)
             if frente:
-                por(y, x - 1, "S")
-                por(y, x, "A" if y % 2 else "G")
-                por(y, x + 1, "Q")
-                por(y, x + 2, "I")
-                if y % 2:
-                    por(y - 1, x, "H")
+                bala = y % 2 == 1
+                por(y, x - 1, "s")
+                por(y, x, "H" if bala else "d")
+                por(y, x + 1, "G" if bala else "s")
+                por(y, x + 2, "a")
             else:
                 por(y, x, "Q")
                 por(y, x + 1, "I")
     # (a de trás fica escondida pelo braço na maioria das poses)
     tira(19, 11, True)
     # Cinturão de balas e o punhal.
-    linhas[31][1] = list("OsHsAsGAGsAsHsAsO")
+    linhas[31][1] = list("OsAHsAHsGAGsAHsAO")
     for y, ch in ((27, "v"), (28, "C"), (29, "C")):
         por(y, 19, ch)
         por(y, 20, "c" if y > 27 else "C")
@@ -231,16 +241,7 @@ def _equipar_tronco():
 
 
 TRONCO = _equipar_tronco()
-# Bornal bordado (vermelho, amarelo e verde) no quadril de trás, por cima do contorno.
-BORNAL = [
-    (28, 2, "OOOOOO"),
-    (29, 1, "OiuuuyO"),
-    (30, 1, "OuTAkTO"),
-    (31, 1, "OyAkTAO"),
-    (32, 1, "OuTAkyO"),
-    (33, 1, "OyttteO"),
-    (34, 2, "OTOTOO"),
-]
+BORNAL = []  # sem bornal (pedido do Guilherme, 20/10)
 BRACO_FRENTE = [  # braço da frente segurando o fuzil na altura do quadril
     (21, 15, "OyytO"),
     (22, 15, "OyyttwO"),
