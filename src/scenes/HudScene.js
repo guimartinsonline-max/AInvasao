@@ -30,6 +30,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   init(dados) {
+    this.pausado = false; // a cena é reaproveitada: não começa com a pausa de antes
     this.jogador = dados.jogador;
     this.chaveCena = dados.cena || 'Campo';
   }

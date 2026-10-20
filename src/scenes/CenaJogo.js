@@ -28,6 +28,13 @@ export class CenaJogo extends Phaser.Scene {
     this.larguraMundo = largura;
     // A cena é reaproveitada ao recomeçar: tira os ouvintes de explosão da vez anterior.
     this.events.off('explosao');
+    // A instância da cena é a mesma da vez anterior: zera o que sobrou dela (sem isso,
+    // jogar a mesma missão de novo começava pausada, com o Lampião travado, e os textos
+    // de pontos destruídos davam erro ao reaparecer).
+    this.pausado = false;
+    this.textosPontos = null;
+    this.caixotes = null;
+    this.onda = null;
     this.tiros = 0;
     this.acertos = 0;
     this.mortes = 0;
