@@ -11,6 +11,7 @@ export class BootScene extends Phaser.Scene {
     this.load.json('paleta', `assets/paleta.json?v=${VERSAO}`);
     this.load.json('fase1', `assets/fases/fase1.json?v=${VERSAO}`);
     this.load.json('fase2', `assets/fases/fase2.json?v=${VERSAO}`);
+    this.load.json('fase2b', `assets/fases/fase2b.json?v=${VERSAO}`);
     carregarSprites(this);
   }
 

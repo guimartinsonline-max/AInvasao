@@ -289,7 +289,7 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
     this.falar(Phaser.Utils.Array.GetRandom(['CORRE!', 'GRANADAAA!', 'VALEI-ME!']), 600);
   }
   levarDano(dano, origemX, forte = false, morte = null, queima = false) {
-    if (!this.vivo) return;
+    if (!this.vivo || this.preso) return;
     const ef = this.scene.efeitos;
     if (this.distraido) this.acordar();
     if (this.cfg.alien) ef.gosma(this.x, this.y - 22, 4);
@@ -561,6 +561,16 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     if (cena.efeitos.congelado) return;
+    if (this.preso) {
+      // Alien preso na jaula da base: fica se debatendo atrás das grades.
+      this.body.setVelocity(0, 0);
+      const q = this.q;
+      const extra = q.pulsa ?? q.mira;
+      this.setFrame(Math.floor(t / 300) % 3 === 0 && extra !== undefined ? extra : q.andar[Math.floor(t / 180) % q.andar.length]);
+      if (Math.floor(t / 900) % 2) this.virar(-this.direcao);
+      return;
+    }
+    if (this.cacaTodos && this.cacarSoldado(t, dt)) return;
     if (this.estado === 'escalando' || this.estado === 'pulando') {
       this.atravessar(t, dt);
       return;
@@ -728,6 +738,47 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
       && this.body.blocked.down) {
       this.atirar(t);
     }
+  }
+
+  // Alien solto da jaula: ataca quem estiver mais perto, a Volante ou o Lampião. Se a
+  // presa mais perto é um soldado, corre até ele e o pega de perto (NHAC!).
+  // Devolve true quando cuidou do quadro.
+  cacarSoldado(t, dt) {
+    const cena = this.scene;
+    const j = cena.jogador;
+    const dj = j.morto ? Infinity : Math.abs(j.x - this.x);
+    let presa = null;
+    let melhor = Math.min(dj, 170);
+    for (const o of cena.alvos.getChildren()) {
+      if (o === this || !(o instanceof Inimigo) || !o.vivo || o.cfg.alien || o.preso) continue;
+      const d = Math.abs(o.x - this.x);
+      if (d < melhor && Math.abs(o.y - this.y) < 40) {
+        melhor = d;
+        presa = o;
+      }
+    }
+    if (!presa) return false;
+    const dir = presa.x > this.x ? 1 : -1;
+    this.virar(dir);
+    if (melhor > 20) {
+      this.body.setVelocityX(dir * this.cfg.velocidade * 1.8);
+      this.passo += dt;
+      this.setFrame(this.q.andar[Math.floor(this.passo / 120) % this.q.andar.length]);
+      if (presa.estado !== 'panico' && presa.estado !== 'fugindo' && melhor < 90) {
+        presa.estado = 'panico';
+        presa.fimEstado = t + 1200;
+        presa.virar(dir);
+        presa.falar?.('SOCORRO!', 800);
+      }
+    } else if (t > (this.proximaMordida || 0)) {
+      this.proximaMordida = t + 900;
+      this.body.setVelocityX(0);
+      this.setFrame(this.q.atira);
+      this.falar('NHAC!', 600);
+      cena.efeitos.gosma(presa.x, presa.y - 20, 12);
+      presa.levarDano(99, this.x, true);
+    }
+    return true;
   }
 
   // Cena cômica rodando: truco (bate a carta gritando), cozinha (mexe e prova), foto (suspira).

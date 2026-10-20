@@ -139,3 +139,14 @@ export const EFEITOS = {
   granada_g: { largura: 11, altura: 11, quadros: 4 },
   corte_arco: { largura: 34, altura: 40, quadros: 4 },
 };
+
+// Peças vivas do acampamento da base (fase 2, trecho 2; tools/arte/fase2b.py e cientista.py).
+export const BASE = {
+  holofote: { largura: 24, altura: 18 },
+  gerador: { largura: 46, altura: 34 },
+  jaula: { largura: 40, altura: 44 },
+  pedaco_disco: { largura: 56, altura: 40 },
+  lampada: { largura: 6, altura: 8 },
+  bandeira: { largura: 34, altura: 20 },
+  cientista: { largura: 52, altura: 46 },
+};

@@ -13,7 +13,10 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
   // opcoes.pendurado: y do galho; o refém fica pendurado pelas mãos numa corda até
   // um tiro cortar a corda (ou acertar nele).
   constructor(cena, x, y, opcoes = {}) {
-    super(cena, x, y, 'refem', REFEM.amarrado[0]);
+    // opcoes.cientista: o cientista do laboratório da base (mesmos quadros, jaleco e
+    // careca); solto, entrega sempre o Raio Desintegrador.
+    super(cena, x, y, opcoes.cientista ? 'cientista' : 'refem', REFEM.amarrado[0]);
+    this.cientista = !!opcoes.cientista;
     this.galho = opcoes.pendurado || null;
     this.corda = cena.add.graphics().setDepth(7);
     cena.add.existing(this);
@@ -89,7 +92,7 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
     this.body.setVelocityY(-120);
     cena.efeitos.faisca(this.x, this.y - 18, 8);
     cena.efeitos.poeira(this.x, this.y, 6);
-    this.falar('OBRIGADO!');
+    this.falar(this.cientista ? 'EUREKA! TOME ISTO!' : 'OBRIGADO!');
   }
 
   // Altura do sólido logo à esquerda dos pés (0 se o caminho está livre).
@@ -116,7 +119,8 @@ export class Refem extends Phaser.Physics.Arcade.Sprite {
       // O item sai da mão levantada.
       // Arma em 30% das vezes, granadas em 25%; no resto ele só agradece com pontos.
       const r = Math.random();
-      if (r < 0.3) this.scene.soltarItem(this.x + 18, this.y - 26, Phaser.Utils.Array.GetRandom(this.scene.premios));
+      if (this.cientista) this.scene.soltarItem(this.x + 18, this.y - 26, 'desintegrador');
+      else if (r < 0.3) this.scene.soltarItem(this.x + 18, this.y - 26, Phaser.Utils.Array.GetRandom(this.scene.premios));
       else if (r < 0.55) this.scene.soltarItem(this.x + 18, this.y - 26, 'granadas');
       else this.scene.soltarItem(this.x + 18, this.y - 26, this.scene.comidaSorteada());
     }

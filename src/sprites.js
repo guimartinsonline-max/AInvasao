@@ -1,5 +1,5 @@
 import { texturaDeTexto, texturaDesenhada, disco } from './pixelart.js';
-import { TOUCEIRA, LAMPIAO, LAMPIAO_GORDO, COMIDAS, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS, CENAS, AVIAO, SEGREDOS } from './quadros.js';
+import { TOUCEIRA, LAMPIAO, LAMPIAO_GORDO, COMIDAS, INIMIGOS, REFEM, DISCO, FEIXE, BODE, EFEITOS, VEICULOS, CENAS, AVIAO, SEGREDOS, BASE } from './quadros.js';
 import { BOCAS } from './maos.js';
 import { AMBIENTE } from './objetos/Ambiente.js';
 import { TREM } from './objetos/Trem.js';
@@ -29,6 +29,12 @@ export function carregarSprites(cena) {
   cena.load.image('chapeu', s('chapeu'));
   cena.load.image('cabeca_contaminado', s('cabeca_contaminado'));
   for (const c of ['f2_jogo', 'f2_perto', 'f2_meio', 'f2_longe', 'f2_borda', 'f2_frente', 'ceu_fumaca']) cena.load.image(c, s(c));
+  // Fase 2, trecho 2 (acampamento da base): camadas, céus e as peças vivas.
+  for (const c of ['f2b_jogo', 'f2b_perto', 'f2b_meio', 'f2b_longe', 'f2b_borda', 'f2b_frente', 'ceu_tarde', 'ceu_noite',
+    'plataforma_elevador']) cena.load.image(c, s(c));
+  for (const [nome, q] of Object.entries(BASE)) {
+    cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
+  }
   cena.load.spritesheet('lampiao_zumbi', s('lampiao_zumbi'), { frameWidth: LAMPIAO.largura, frameHeight: LAMPIAO.altura });
   cena.load.spritesheet('jumento', s('jumento'), { frameWidth: 72, frameHeight: 60 });
   cena.load.spritesheet('retrato', s('retrato'), { frameWidth: 26, frameHeight: 21 });
