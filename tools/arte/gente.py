@@ -130,6 +130,17 @@ def peito(t, fig, x, y):
 
 
 # ---------------------------------------------------------------- corpo
+def tronco_forma(t, bx, topo, base, fig, voa=0):
+    """Tronco em pé: ombros redondos e largos, peito, cintura um pouco mais fina.
+    Nada de caixa nem corcunda: as costas descem quase retas."""
+    m = t.poligono([(bx - 5, topo + 1), (bx + 6, topo + 1), (bx + 8, topo + 6), (bx + 7, base - 2),
+                    (bx + 5, base), (bx - 5, base), (bx - 6, base - 3), (bx - 6, topo + 5)])
+    m |= t.elipse(bx - 3.5, topo + 3, 3.2, 3) | t.elipse(bx + 4.5, topo + 3, 3.4, 3)
+    if fig == "cientista":  # jaleco desce até a coxa
+        m |= t.poligono([(bx - 6, base - 3), (bx + 7, base - 3), (bx + 7, base + 5), (bx - 6 - voa * 2, base + 4)])
+    return m
+
+
 def em_pe(fig="romeiro", pose="continencia", passo=0, rosto="feliz"):
     """Poses em pé: solto (pula de braço para cima), procura, entrega, continencia,
     corre (passo 0-3)."""
@@ -160,11 +171,7 @@ def em_pe(fig="romeiro", pose="continencia", passo=0, rosto="feliz"):
         membro(t, (bx - 3, 19 + dy), (bx - 4 - k * 3, 25 + dy), (bx - 2 - k * 5, 27 + dy), 2.3, 2.0, r["braco"], -1.2)
         mao(t, bx - 2 - k * 5, 28 + dy, -1)
     # Tronco largo, inclinado para a frente.
-    lean = 1.5
-    tronco = t.elipse(bx + lean, 24 + dy, 7.8, 8.0) | t.elipse(bx, 29 + dy, 7, 4)
-    if fig == "cientista":  # jaleco desce até a coxa e voa na corrida
-        voa = 2 if pose == "corre" else 0
-        tronco |= t.poligono([(bx - 7, 28 + dy), (bx + 7, 28 + dy), (bx + 7, 36 + dy), (bx - 7 - voa * 2, 35 + dy)])
+    tronco = tronco_forma(t, bx, 16 + dy, 32 + dy, fig, 2 if pose == "corre" else 0)
     sombrear2d(t, tronco, r["tronco"])
     if fig == "cientista":
         t.linha(bx + 3, 20 + dy, bx + 3, 35 + dy, "pelo_3")  # abertura do jaleco
@@ -185,7 +192,7 @@ def em_pe(fig="romeiro", pose="continencia", passo=0, rosto="feliz"):
         for x0 in (7, 23):
             sombrear2d(t, t.capsula(x0, CHAO - 1, x0 + 7, CHAO - 2, 1), CORDA)
     # Cabeça (pequena, à frente do tronco).
-    hx, hy = bx + 5 + (1 if pose == "procura" else 0), 12 + dy + (1 if pose == "procura" else 0)
+    hx, hy = bx + 3 + (1 if pose == "procura" else 0), 11 + dy + (1 if pose == "procura" else 0)
     cabeca(t, fig, hx, hy, rosto, chapeu=-2 if pose == "solto" else 0)
     peito(t, fig, bx + 1, 19 + dy)
     # Braço da frente.
@@ -233,23 +240,28 @@ def amarrado(fig="romeiro", balanco=0, pulo=0, rosto="triste"):
 
 
 def pendurado(fig="romeiro", balanco=0, rosto="chorando"):
+    """Pendurado pelas mãos amarradas (a corda até o galho é desenhada no jogo):
+    braços esticados para cima dos lados da cabeça, pernas balançando."""
     t = Tela(W, H)
     r = ROUPA[fig]
     bx, b = 18, balanco
-    membro(t, (bx - 1, 32), (bx - 2 - b, 38), (bx - 3 - b * 2, 42), 2.8, 2.3, r["calca"], -1.2)
-    bota(t, bx - 5 - b * 2, 44, -1.2)
-    tronco = t.elipse(bx, 25, 7.2, 8.4)
+    membro(t, (bx - 1, 34), (bx - 2 - b, 39), (bx - 3 - b * 2, 43), 2.8, 2.3, r["calca"], -1.2)
+    bota(t, bx - 5 - b * 2, 45, -1.2)
+    # Braços: ombro, cotovelo para fora, mãos juntas lá em cima.
+    membro(t, (bx - 4, 21), (bx - 8, 11), (bx - 1, 3), 2.2, 1.9, r["braco"], -1.2)
+    membro(t, (bx + 5, 21), (bx + 10, 11), (bx + 3, 3), 2.2, 1.9, r["braco"])
+    sombrear2d(t, tronco_forma(t, bx, 19, 34, fig), r["tronco"])
     if fig == "cientista":
-        tronco |= t.poligono([(bx - 7, 28), (bx + 7, 28), (bx + 7, 35), (bx - 7, 35)])
-    sombrear2d(t, tronco, r["tronco"])
-    membro(t, (bx + 2, 32), (bx + 3 + b, 38), (bx + 4 + b * 2, 42), 2.8, 2.3, r["calca"])
-    bota(t, bx + 2 + b * 2, 44)
-    membro(t, (bx - 4, 19), (bx - 7, 9), (bx + 1, 1.5), 2.2, 1.9, r["braco"], -1.2)
-    membro(t, (bx + 4, 19), (bx + 9, 9), (bx + 3, 1.5), 2.2, 1.9, r["braco"])
-    cabeca(t, fig, bx + 1, 13, rosto, chapeu=1)
-    peito(t, fig, bx, 19)
-    mao(t, bx + 2, 1.8)
-    sombrear2d(t, t.retangulo(bx, 2, 4.5, 1.4), CORDA)
+        t.linha(bx + 3, 22, bx + 3, 37, "pelo_3")
+    else:
+        t.chapado(t.retangulo(bx - 6, 33, 13, 1), "osso_2")
+    membro(t, (bx + 2, 34), (bx + 3 + b, 39), (bx + 4 + b * 2, 43), 2.8, 2.3, r["calca"])
+    bota(t, bx + 2 + b * 2, 45)
+    cabeca(t, fig, bx + 1, 15, rosto, chapeu=1)
+    peito(t, fig, bx + 1, 22)
+    mao(t, bx - 0.5, 2.5, -1)
+    mao(t, bx + 2.5, 2.5)
+    sombrear2d(t, t.retangulo(bx - 2, 1.5, 6, 1.6), CORDA)  # voltas da corda nos pulsos
     t.contorno("negro_1")
     return t
 
