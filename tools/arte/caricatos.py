@@ -38,25 +38,128 @@ BARBA = ["cinza", "cinza_luz", "cinza_claro", "branco"]
 CORDA = ["terra_escura", "terra_media", "barro", "areia_luz"]
 
 
+# ---------------------------------------------------------------- sombreado no nível novo
+# Cada rampa de 4 tons ganha 6 (ou 7): sombra profunda embaixo e brilho forte na beirada
+# de cima à esquerda, como nos sprites do Metal Slug.
+EXT = {
+    tuple(FARDA): ["sombra", "caatinga_esc", "caatinga_media", "caatinga", "mandacaru", "mandacaru_luz"],
+    tuple(FARDA_ESC): ["preto", "sombra", "caatinga_esc", "caatinga_media", "caatinga", "mandacaru"],
+    tuple(PELE): ["pele_sombra", "pele_escura", "pele_media", "pele", "pele_luz", "pele_brilho"],
+    tuple(PELE_CLARA): ["pele_escura", "pele_media", "pele", "pele_luz", "pele_clara", "pele_brilho"],
+    tuple(COURO): ["marrom_noite", "couro_profundo", "couro_escuro", "couro", "couro_medio", "couro_luz"],
+    tuple(BOTA): ["preto", "couro_profundo", "couro_escuro", "couro", "couro_medio"],
+    tuple(ACO): ["preto", "sombra", "cinza_escuro", "cinza", "cinza_claro", "branco"],
+    tuple(MADEIRA): ["marrom_noite", "couro_profundo", "couro_escuro", "couro", "couro_medio", "couro_luz", "couro_claro"],
+    tuple(TRAPO): ["cinza_escuro", "cinza", "cinza_luz", "cinza_claro", "branco"],
+    tuple(PALHA): ["terra_escura", "terra", "terra_media", "areia_media", "areia", "areia_luz", "areia_clara"],
+    tuple(CORDA): ["couro_profundo", "terra_escura", "terra_media", "barro", "areia_luz"],
+    tuple(ALIEN): ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz", "alien_brilho"],
+}
+_L = np.array([-0.6, -0.75, 0.7])
+_L = _L / np.linalg.norm(_L)
+
+
+def sombrear(t, m, rampa, deslocar=0, achatado=2.4, linha=True, brilho=True):
+    """Volume com luz de cima à esquerda em 5 a 7 tons: normal pela distância à borda,
+    degradê do volume inteiro, beirada de cima acesa (brilho), miolo de sombra embaixo à
+    direita e linha interna escura onde encosta em peça já pintada."""
+    from scipy import ndimage
+    if not m.any():
+        return m
+    r = EXT.get(tuple(rampa), list(rampa))
+    k = len(r)
+    dist = ndimage.distance_transform_edt(np.pad(m, 1))[1:-1, 1:-1]
+    alt = ndimage.gaussian_filter(np.minimum(dist, achatado), 0.6)
+    gy, gx = np.gradient(alt)
+    n = np.sqrt(gx * gx + gy * gy + 1.0)
+    lum = (-gx * _L[0] - gy * _L[1] + _L[2]) / n
+    ys, xs = np.where(m)
+    gxg = (t.xx - xs.mean()) / max(4, np.ptp(xs) + 1)
+    gyg = (t.yy - ys.mean()) / max(4, np.ptp(ys) + 1)
+    v = 0.04 + np.clip(lum, 0, 1) * 0.86 - 0.42 * gxg - 0.42 * gyg + deslocar * 0.16
+    if brilho:
+        fora = ~m
+        cima = np.zeros_like(m)
+        cima[1:] = fora[:-1]
+        cima[0] = True
+        esq = np.zeros_like(m)
+        esq[:, 1:] = fora[:, :-1]
+        borda_luz = m & (cima | esq) & (v > 0.42)
+        v = np.where(borda_luz, v + 0.28, v)
+        baixo = np.zeros_like(m)
+        baixo[:-1] = fora[1:]
+        dir_ = np.zeros_like(m)
+        dir_[:, :-1] = fora[:, 1:]
+        v = np.where(m & (baixo | dir_) & ~(cima | esq), v - 0.14, v)
+    nivel = np.clip(np.round(v * (k - 1)), 0, k - 1).astype(int)
+    cores = np.array([IDX[c] for c in r])[nivel]
+    if linha:
+        borda = m & ~ndimage.binary_erosion(m)
+        ja = t.px != VAZIO
+        viz = ndimage.binary_dilation(ja & ~m)
+        cores = np.where(borda & viz, IDX[r[0]], cores)
+    t.px[m] = cores[m]
+    return m
+
+
+def vinco(t, pts, rampa, claro=True):
+    """Vinco de pano: traço escuro com a beirada clara em cima (dobra de cotovelo, joelho,
+    cinto)."""
+    r = EXT.get(tuple(rampa), list(rampa))
+    for (x, y) in pts:
+        if 0 <= int(y) < t.h and 0 <= int(x) < t.w and t.px[int(y), int(x)] != VAZIO:
+            t.ponto(x, y, r[1])
+            if claro and 0 <= int(y) - 1 < t.h and t.px[int(y) - 1, int(x)] != VAZIO:
+                t.ponto(x, y - 1, r[-2])
+
+
+def cel(t, m, rampa, sombra=2, luz=1, linha=True, deslocar=0, rebaixo=False):
+    """Substitui o Tela.cel antigo (3 tons) pelo sombreado novo."""
+    return sombrear(t, m, rampa, deslocar=deslocar, linha=linha, brilho=sombra > 0)
+
+
 # ---------------------------------------------------------------- peças
 def membro(t, a, b, c, r1, r2, rampa, deslocar=0):
-    """Braço ou perna em dois segmentos (a-b-c)."""
+    """Braço ou perna em dois segmentos (a-b-c), com volume e o vinco na dobra (b)."""
     m = t.capsula(a[0], a[1], b[0], b[1], r1) | t.capsula(b[0], b[1], c[0], c[1], r2)
-    t.cel(m, rampa, sombra=1, deslocar=deslocar)
+    sombrear(t, m, rampa, deslocar=deslocar)
+    if tuple(rampa) in (tuple(FARDA), tuple(FARDA_ESC), tuple(TRAPO), tuple(PALHA)):
+        # Rugas na dobra: dois tracinhos curvos de cada lado do cotovelo/joelho.
+        dx, dy = c[0] - a[0], c[1] - a[1]
+        L = math.hypot(dx, dy) + 1e-9
+        nx, ny = -dy / L, dx / L
+        for s_ in (-1, 1):
+            p0 = (b[0] + nx * s_ * r1 * 0.5, b[1] + ny * s_ * r1 * 0.5)
+            vinco(t, [p0, (p0[0] + dx / L, p0[1] + dy / L)], rampa)
     return m
 
 
 def bota(t, x, y, comprido=4.2, deslocar=0):
-    """Bota grandona com o bico para a frente; (x, y) é o calcanhar no chão."""
+    """Botina grandona com o bico para a frente; (x, y) é o calcanhar no chão. Sola grossa
+    com a beirada clara, bico engraxado brilhando e o cadarço."""
     m = t.elipse(x + comprido * 0.55, y - 1.6, comprido, 2.3) & (t.yy < y + 0.5)
-    t.cel(m, BOTA, sombra=1, deslocar=deslocar)
+    sombrear(t, m, BOTA, deslocar=deslocar)
     t.chapado(t.retangulo(x - 1, y - 0.5, comprido * 1.7, 1) & m, "preto")
+    t.ponto(x + comprido * 1.1, y - 2.6, "couro_luz" if deslocar >= 0 else "couro_medio")
+    t.ponto(x + comprido * 0.4, y - 3.2, "couro_medio")
+    t.ponto(x + comprido * 0.8, y - 1, "couro_escuro")
     return m
 
 
-def perna(t, quadril, joelho, pe, rampa, atras=False):
+def perna(t, quadril, joelho, pe, rampa, atras=False, perneira=False):
     d = -1 if atras else 0
     membro(t, quadril, joelho, (pe[0], pe[1] - 2), 2.6, 2.2, rampa, d)
+    if perneira:
+        # Perneira de pano enrolada da canela à botina (faixas em diagonal).
+        dx, dy = pe[0] - joelho[0], pe[1] - 2 - joelho[1]
+        for f in (0.45, 0.62, 0.79, 0.96):
+            cx_, cy_ = joelho[0] + dx * f, joelho[1] + dy * f
+            for k in (-2, -1, 0, 1, 2):
+                xx, yy = cx_ + k, cy_ - k * 0.45
+                if 0 <= int(yy) < t.h and 0 <= int(xx) < t.w and t.px[int(yy), int(xx)] != VAZIO:
+                    t.ponto(xx, yy, "caatinga_esc" if d else "caatinga_media")
+                    if k == -2:
+                        t.ponto(xx, yy - 1, "mandacaru" if not d else "caatinga")
     bota(t, pe[0] - 1, pe[1], deslocar=d)
 
 
@@ -96,34 +199,52 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0
     if pose == "anda":
         ciclo = [(-3, 3), (0, 0), (3, -3), (0, 0)][passo]
         pulo = 1 if passo in (1, 3) else 0
-        perna(t, (12, 35 + pulo), (12 + ciclo[1] * 0.5, 40), (11 + ciclo[1], CHAO), FARDA, atras=True)
+        perna(t, (12, 35 + pulo), (12 + ciclo[1] * 0.5, 40), (11 + ciclo[1], CHAO), FARDA, atras=True, perneira=True)
     elif pose == "panico":
-        perna(t, (12, 35), (9, 39), (6, CHAO), FARDA, atras=True)
+        perna(t, (12, 35), (9, 39), (6, CHAO), FARDA, atras=True, perneira=True)
     elif pose != "sem_pernas":
-        perna(t, (12, 35), (11, 40), (9, CHAO), FARDA, atras=True)
+        perna(t, (12, 35), (11, 40), (9, CHAO), FARDA, atras=True, perneira=True)
 
     # Cenas cômicas em pé (cozinhando, mostrando a foto): fuzil pendurado nas costas.
     if braco in ("colher", "foto"):
-        t.cel(t.capsula(4, 37, 15, 13, 1.1), MADEIRA, sombra=1)
-        t.cel(t.capsula(13, 17, 17, 9, 0.8), ACO, sombra=0)
+        cel(t, t.capsula(4, 37, 15, 13, 1.1), MADEIRA, sombra=1)
+        cel(t, t.capsula(13, 17, 17, 9, 0.8), ACO, sombra=0)
         t.linha(8, 30, 16, 22, "couro_escuro")  # bandoleira
     # Braço de trás (segura o fuzil por baixo ou balança no pânico).
     if braco:
         # Cena cômica: mão de trás largada na barriga.
         membro(t, (12, 25), (10, 30), (14, 33), 2.2, 2.0, FARDA, -1)
-        t.cel(t.elipse(14.5, 33, 2, 1.8), PELE, sombra=1)
+        cel(t, t.elipse(14.5, 33, 2, 1.8), PELE, sombra=1)
     elif pose == "panico":
         membro(t, (11, 24), (7, 18), (5, 12), 2.2, 2.0, FARDA, -1)
-        t.cel(t.elipse(5, 11, 2.2, 2.2), PELE, sombra=1)
+        cel(t, t.elipse(5, 11, 2.2, 2.2), PELE, sombra=1)
     else:
         membro(t, (12, 25), (15, 31), (22, 31), 2.2, 2.0, FARDA, -1)
 
+    # Mochila de lona nas costas com o cobertor enrolado em cima, preso por correias.
+    if braco is None and tipo != "rojao":
+        mo = t.retangulo(4, 21 + pulo, 7, 10) | t.elipse(7.5, 30 + pulo, 3.5, 2.5)
+        sombrear(t, mo, ["sombra", "terra_escura", "terra", "terra_media", "barro", "areia_media"])
+        t.linha(4, 25 + pulo, 10, 25 + pulo, "terra_escura")
+        t.ponto(7, 26 + pulo, "ouro_escuro")
+        rolo = t.capsula(3, 19.5 + pulo, 11, 19.5 + pulo, 2.2)
+        sombrear(t, rolo, ["sombra", "cinza_escuro", "cinza_medio", "cinza", "cinza_luz"])
+        for x in (5, 9):
+            t.linha(x, 17.5 + pulo, x, 21.5 + pulo, "couro_profundo")
+        t.linha(10, 21 + pulo, 13, 24 + pulo, "couro_escuro")  # alça
+    # Cantil de lata com capa de feltro e o bornal pendurados atrás, no quadril.
+    if pose not in ("sem_pernas",) and braco is None:
+        sombrear(t, t.elipse(7.6, 31.5, 2.7, 3.4), ["preto", "sombra", "caatinga_esc", "caatinga_media", "caatinga"])
+        t.ponto(7, 27.6, "cinza_luz")
+        t.ponto(8, 27.6, "cinza_escuro")
+        sombrear(t, t.retangulo(5, 33, 5, 5), ["couro_profundo", "terra_escura", "terra", "terra_media", "barro"])
+        t.linha(5, 33, 9, 33, "terra_escura")
     # Barriga redonda com cinto e cartucheira (o metralhador é mais gordo).
     if tipo in ("metralhador", "oficial"):
         corpo = t.elipse(15, 29.5, 8.8, 7.2) | t.retangulo(8, 24, 14, 8)
     else:
         corpo = t.elipse(15, 29.5, 7.5, 6.5) | t.retangulo(9, 24.5, 12, 8)
-    t.cel(corpo, FARDA, sombra=2)
+    cel(t, corpo, FARDA, sombra=2)
     t.chapado(t.capsula(9, 23, 21, 33, 0.9) & corpo, "couro")
     t.chapado(t.capsula(9, 22.5, 21, 32.5, 0.5) & corpo, "couro_medio")
     t.chapado(t.retangulo(7, 33, 17, 2) & t.elipse(15, 30, 9, 8), "couro_escuro")
@@ -135,62 +256,88 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0
         for k, cor in enumerate(("vermelho", "ceu_medio", "amarelo_fogo")):
             t.chapado(t.retangulo(16 + k * 2.2, 25, 1.6, 1.5), cor)
             t.chapado(t.elipse(16.8 + k * 2.2, 27.5, 0.9, 0.9), "amarelo_claro")
-        t.cel(t.elipse(12, 23.5, 3.2, 1.6), ["ouro_escuro", "amarelo_fogo", "amarelo_claro"], sombra=0)
+        cel(t, t.elipse(12, 23.5, 3.2, 1.6), ["ouro_escuro", "amarelo_fogo", "amarelo_claro"], sombra=0)
     if tipo == "granadeiro":
         # Bananas de dinamite presas na cartucheira.
         for k in range(4):
             t.chapado(t.retangulo(10 + k * 2.6, 24.5 + k * 2.2, 1.6, 3), "vermelho")
             t.ponto(int(10 + k * 2.6), int(24.5 + k * 2.2), "amarelo_claro")
 
+    # Farda: vinco puxado pelo cinto, bolso do peito com a lapela e botão, carreira de
+    # botões, cartucheiras de couro com tampa e botão de latão no cinto.
+    vinco(t, [(11, 31.5), (12, 32), (13, 32.2), (17, 32.2), (18, 32), (19, 31.5)], FARDA)
+    t.linha(17, 25.5, 20, 25.5, "caatinga_esc")
+    t.ponto(18.5, 26.5, "amarelo_fogo")
+    for yb in (27, 29.5, 32):
+        if t.px[int(yb), 21] != VAZIO:
+            t.ponto(21, yb, "mandacaru_luz")
+    for x in (9.5, 13):
+        bolsa = t.retangulo(x, 30, 3, 3.5)
+        sombrear(t, bolsa, COURO)
+        t.linha(x, 30, x + 2, 30, "couro_luz")
+        t.ponto(x + 1, 31, "ouro_escuro")
+    t.ponto(19, 33, "amarelo_claro")
     if pose == "anda":
         ciclo = [(-3, 3), (0, 0), (3, -3), (0, 0)][passo]
-        perna(t, (17, 35 + pulo), (18 + ciclo[0] * 0.5, 40), (17 + ciclo[0], CHAO), FARDA)
+        perna(t, (17, 35 + pulo), (18 + ciclo[0] * 0.5, 40), (17 + ciclo[0], CHAO), FARDA, perneira=True)
     elif pose == "panico":
-        perna(t, (17, 35), (21, 38), (22, CHAO - 2), FARDA)
+        perna(t, (17, 35), (21, 38), (22, CHAO - 2), FARDA, perneira=True)
     elif pose != "sem_pernas":
-        perna(t, (17, 35), (19, 40), (19, CHAO), FARDA)
+        perna(t, (17, 35), (19, 40), (19, CHAO), FARDA, perneira=True)
 
     # Lança-rojão no ombro: o tubo passa por trás da cabeça, rente ao olho.
     if tipo == "rojao" and pose not in ("panico",):
         ty = 14.5 + pulo
         tubo = t.capsula(5, ty + 1, 35, ty, 2.3)
-        t.cel(tubo, ["sombra", "caatinga_esc", "caatinga_media", "caatinga"], sombra=1)
+        cel(t, tubo, ["sombra", "caatinga_esc", "caatinga_media", "caatinga"], sombra=1)
         for bx_ in (9, 30):
             t.chapado(t.retangulo(bx_, ty - 2, 1.5, 4.5) & tubo, "sombra")
         t.chapado(t.elipse(35, ty, 1.2, 2.2), "sombra")
         if rosto != "grito":
             # Rojão carregado aparecendo na boca do tubo.
-            t.cel(t.poligono([(35, ty - 1.8), (39.5, ty), (35, ty + 1.8)]), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
+            cel(t, t.poligono([(35, ty - 1.8), (39.5, ty), (35, ty + 1.8)]), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
 
     # Cabeça no tamanho da do Lampião (caricata, sem exagero).
     hy = 17 + pulo
-    t.cel(t.elipse(10.5, hy + 1.5, 1.8, 2.4), PELE, sombra=1)  # orelha
+    cel(t, t.elipse(10.5, hy + 1.5, 1.8, 2.4), PELE, sombra=1)  # orelha
     cabeca = t.elipse(17, hy, 7.6, 7.4) & (t.yy < hy + 7)
-    t.cel(cabeca, PELE, sombra=2)
+    cel(t, cabeca, PELE, sombra=2)
     # Barba por fazer no queixo.
     queixo = t.elipse(19.5, hy + 5, 6, 2.8) & cabeca & (t.yy > hy + 3)
     xadrez = ((t.xx.astype(int) + t.yy.astype(int)) % 2) == 0
     t.px[queixo & xadrez & (t.px != IDX["pele_luz"])] = IDX["pele_media"]
     t.chapado(t.elipse(20.5, hy + 2.5, 1.3, 0.9), "rosa_poeira")
+    # Sombra da queixada e da nuca, costeleta e orelha com a dobra.
+    nuca = cabeca & (t.xx < 13) & (t.yy > hy - 2)
+    t.px[nuca & (t.px == IDX["pele"])] = IDX["pele_media"]
+    t.px[nuca & (t.px == IDX["pele_luz"])] = IDX["pele"]
+    for (a, b) in ((12, hy - 3), (12, hy - 2), (13, hy - 2), (12, hy - 1), (13, hy - 1), (12, hy)):
+        t.ponto(a, b, "couro_profundo")
+    t.ponto(13, hy - 3, "couro_escuro")
+    t.ponto(10.5, hy + 1.5, "pele_sombra")
+    t.ponto(10, hy + 0.5, "pele_luz")
 
     q = -2 if pose == "panico" else 0
     if tipo in ("granadeiro", "metralhador", "rojao"):
         # Capacete Adrian (usado pelo Exército nos anos 30): cúpula com crista e aba em volta.
-        t.cel(t.elipse(17, hy - 3.5 + q, 10.5, 1.8), FARDA_ESC, sombra=1)
-        t.cel(t.elipse(17, hy - 5 + q, 8, 5.5) & (t.yy < hy - 3.5 + q), FARDA_ESC, sombra=1)
-        t.cel(t.capsula(12, hy - 9 + q, 21, hy - 10 + q, 0.9), FARDA, sombra=0)
+        cel(t, t.elipse(17, hy - 3.5 + q, 10.5, 1.8), FARDA_ESC, sombra=1)
+        cel(t, t.elipse(17, hy - 5 + q, 8, 5.5) & (t.yy < hy - 3.5 + q), FARDA_ESC, sombra=1)
+        cel(t, t.capsula(12, hy - 9 + q, 21, hy - 10 + q, 0.9), FARDA, sombra=0)
         t.chapado(t.elipse(14, hy - 7 + q, 1.6, 1), "caatinga")
     else:
         # Quepe com aba (sobe de susto no pânico); o sargento do facão tem faixa vermelha.
-        t.cel(t.poligono([(9.5, hy - 4 + q), (11, hy - 10 + q), (23, hy - 11 + q), (24.5, hy - 5 + q)]), FARDA_ESC, sombra=1)
+        cel(t, t.poligono([(9.5, hy - 4 + q), (11, hy - 10 + q), (23, hy - 11 + q), (24.5, hy - 5 + q)]), FARDA_ESC, sombra=1)
         faixa = {"facao": "vermelho", "oficial": "amarelo_fogo"}.get(tipo, "caatinga_esc")
         t.chapado(t.retangulo(10, hy - 6 + q, 14.5, 1.6), faixa)
         if tipo == "oficial":
             # Quepe de oficial, mais alto, com cordão dourado.
-            t.cel(t.poligono([(10, hy - 9 + q), (11, hy - 13 + q), (24, hy - 13 + q), (24.5, hy - 9 + q)]), FARDA_ESC, sombra=1)
+            cel(t, t.poligono([(10, hy - 9 + q), (11, hy - 13 + q), (24, hy - 13 + q), (24.5, hy - 9 + q)]), FARDA_ESC, sombra=1)
             t.linha(11, hy - 5 + q, 24, hy - 5 + q, "amarelo_claro")
-        t.cel(t.poligono([(20, hy - 5 + q), (27.5, hy - 4.5 + q), (27.5, hy - 3.2 + q), (20, hy - 3.2 + q)]), BOTA, sombra=0)
+        cel(t, t.poligono([(20, hy - 5 + q), (27.5, hy - 4.5 + q), (27.5, hy - 3.2 + q), (20, hy - 3.2 + q)]), BOTA, sombra=0)
         t.chapado(t.retangulo(16, hy - 9 + q, 2, 2), "amarelo_fogo")
+        t.ponto(16, hy - 9 + q, "amarelo_claro")
+        t.linha(21, hy - 4.6 + q, 26, hy - 4.4 + q, "couro_medio")  # brilho da pala
+        t.linha(11, hy - 4 + q, 13, hy + 2, "couro_profundo")  # jugular
 
     # Rosto.
     ox, oy = 22, hy - 0.5
@@ -228,11 +375,13 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0
         t.chapado(t.retangulo(ox, oy - 0.5, 1, 1.5), "preto")
         inclina = 1 if bravo else 0
         t.linha(19, hy - 3 - inclina, 24, hy - 3 + inclina, "couro_profundo")
+        t.linha(19, hy - 4 - inclina, 23, hy - 4 + inclina, "couro_profundo")
+        t.ponto(ox - 1, oy + 1.6, "pele_media")
     # Nariz grande, mas na medida.
-    t.cel(t.elipse(26, hy + 1.5, 2.5, 2.2), PELE_CLARA, sombra=1)
+    cel(t, t.elipse(26, hy + 1.5, 2.5, 2.2), PELE_CLARA, sombra=1)
     t.ponto(25, hy + 2, "pele_sombra")
     # Bigode.
-    t.cel(t.poligono([(20, hy + 3.5), (27, hy + 3.5), (29, hy + 5.5), (26.5, hy + 5), (24, hy + 6), (21, hy + 5.5)]),
+    cel(t, t.poligono([(20, hy + 3.5), (27, hy + 3.5), (29, hy + 5.5), (26.5, hy + 5), (24, hy + 6), (21, hy + 5.5)]),
           ["couro_profundo", "couro_profundo", "couro_escuro", "couro"], sombra=1)
     # Boca.
     if rosto == "grito":
@@ -262,24 +411,24 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0
         braco_comico(t, braco, k, hy)
     elif pose == "panico":
         membro(t, (18, 24), (22, 18), (24, 11), 2.2, 2.0, FARDA)
-        t.cel(t.elipse(24.5, 10, 2.2, 2.2), PELE, sombra=1)
+        cel(t, t.elipse(24.5, 10, 2.2, 2.2), PELE, sombra=1)
     elif tipo == "oficial":
         if rosto == "grito":
             # Atira de pistola, braço esticado.
             membro(t, (18, 25), (23, 27), (28, 27), 2.3, 2.1, FARDA)
-            t.cel(t.retangulo(28, 25.5, 6, 2), ACO, sombra=0)
-            t.cel(t.retangulo(28, 26.5, 2, 3.5), MADEIRA, sombra=0)
-            t.cel(t.elipse(28.5, 27, 2, 1.8), PELE, sombra=1)
+            cel(t, t.retangulo(28, 25.5, 6, 2), ACO, sombra=0)
+            cel(t, t.retangulo(28, 26.5, 2, 3.5), MADEIRA, sombra=0)
+            cel(t, t.elipse(28.5, 27, 2, 1.8), PELE, sombra=1)
         else:
             # Dá a ordem: espada erguida apontando para a frente ("AVANÇAR!").
             membro(t, (18, 25), (24, 26), (30, 22), 2.3, 2.0, FARDA)
-            t.cel(t.capsula(31, 21, 42, 11, 0.9, 0.5), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
+            cel(t, t.capsula(31, 21, 42, 11, 0.9, 0.5), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
             t.chapado(t.capsula(28.5, 22.5, 32.5, 19.5, 0.8), "amarelo_fogo")  # guarda dourada
-            t.cel(t.elipse(30.5, 22, 2, 1.8), PELE, sombra=1)
+            cel(t, t.elipse(30.5, 22, 2, 1.8), PELE, sombra=1)
     elif tipo == "rojao":
         # Mão da frente segurando o punho do tubo, logo abaixo dele.
         membro(t, (18, 25), (26, 27), (31, 18 + pulo), 2.3, 2.0, FARDA)
-        t.cel(t.elipse(31.5, 17.5 + pulo, 2, 1.8), PELE, sombra=1)
+        cel(t, t.elipse(31.5, 17.5 + pulo, 2, 1.8), PELE, sombra=1)
         if rosto == "grito":
             # Disparo: fumaça saindo por trás do tubo.
             for k, (dx, r) in enumerate(((0, 3.5), (-3, 2.8), (-5, 2))):
@@ -287,52 +436,63 @@ def volante(rosto="serio", pose="parado", passo=0, tipo="fuzil", braco=None, k=0
                          achatado=1.5, suave=0.4, ambiente=0.35, linha=False)
     elif tipo == "metralhador":
         # Metralhadora pesada no quadril: camisa do cano furada e carregador em cima.
-        t.cel(t.poligono([(9 + recuo, 27.5), (17 + recuo, 27.5), (17 + recuo, 31.5), (11 + recuo, 32)]), MADEIRA, sombra=1)
-        t.cel(t.retangulo(17 + recuo, 27, 8, 4), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=1)
-        t.cel(t.retangulo(19 + recuo, 23.5, 3.5, 3.5), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=0)
-        t.cel(t.retangulo(25 + recuo, 27.5, 14, 2.6), ACO, sombra=0)
+        cel(t, t.poligono([(9 + recuo, 27.5), (17 + recuo, 27.5), (17 + recuo, 31.5), (11 + recuo, 32)]), MADEIRA, sombra=1)
+        cel(t, t.retangulo(17 + recuo, 27, 8, 4), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=1)
+        cel(t, t.retangulo(19 + recuo, 23.5, 3.5, 3.5), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=0)
+        cel(t, t.retangulo(25 + recuo, 27.5, 14, 2.6), ACO, sombra=0)
         for x in range(26, 38, 2):
             t.ponto(x + recuo, 28, "sombra")
-        t.cel(t.retangulo(39 + recuo, 27, 2.5, 3.5), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=0)
+        cel(t, t.retangulo(39 + recuo, 27, 2.5, 3.5), ["sombra", "sombra_media", "cinza_escuro", "cinza_medio"], sombra=0)
         membro(t, (18, 25), (21, 30), (26, 31), 2.3, 2.1, FARDA)
-        t.cel(t.elipse(26.5, 31, 2, 1.8), PELE, sombra=1)
+        cel(t, t.elipse(26.5, 31, 2, 1.8), PELE, sombra=1)
     elif tipo == "granadeiro":
         if rosto == "grito":
             # Braço lá em cima, jogando a dinamite com o pavio aceso.
             membro(t, (18, 24), (16, 17), (13, 11), 2.2, 2.0, FARDA)
-            t.cel(t.elipse(13, 10, 2, 2), PELE, sombra=1)
-            t.cel(t.capsula(10, 7, 15, 9, 1.2), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
+            cel(t, t.elipse(13, 10, 2, 2), PELE, sombra=1)
+            cel(t, t.capsula(10, 7, 15, 9, 1.2), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
             t.linha(15, 9, 17, 7, "couro_escuro")
             t.pontos([(17, 6), (18, 7)], "amarelo_fogo")
             t.ponto(18, 6, "branco")
         else:
-            t.cel(t.capsula(25, 27, 29, 32, 1.2), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
+            cel(t, t.capsula(25, 27, 29, 32, 1.2), ["vermelho_esc", "vermelho_medio", "vermelho", "laranja_fogo"], sombra=0)
             t.linha(29, 32, 31, 31, "couro_escuro")
             t.ponto(32, 30, "amarelo_fogo")
             membro(t, (18, 25), (21, 30), (25, 30), 2.3, 2.1, FARDA)
-            t.cel(t.elipse(25.5, 30, 2, 1.8), PELE, sombra=1)
+            cel(t, t.elipse(25.5, 30, 2, 1.8), PELE, sombra=1)
     elif tipo == "facao":
         if rosto == "grito":
             # Golpe: braço esticado e o facão na horizontal, com o rastro do corte.
             membro(t, (18, 25), (23, 26), (28, 27), 2.3, 2.1, FARDA)
-            t.cel(t.capsula(28, 26.5, 41, 25, 1.4, 0.8), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
-            t.cel(t.elipse(28.5, 27, 2, 1.8), PELE, sombra=1)
+            cel(t, t.capsula(28, 26.5, 41, 25, 1.4, 0.8), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
+            cel(t, t.elipse(28.5, 27, 2, 1.8), PELE, sombra=1)
             for k in range(9):
                 a = -1.1 + k * 0.25
                 t.ponto(int(30 + math.cos(a) * 12), int(27 + math.sin(a) * 12), "branco")
         else:
             # Facão erguido, correndo para cima do Lampião.
             membro(t, (18, 25), (24, 27), (30, 22), 2.2, 2.0, FARDA)
-            t.cel(t.capsula(31, 20, 37, 7, 1.4, 0.8), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
-            t.cel(t.capsula(30, 23, 31, 20, 1.1), ["couro_profundo", "couro_escuro", "couro", "couro_medio"], sombra=0)
-            t.cel(t.elipse(30.5, 22, 2, 1.9), PELE, sombra=1)
+            cel(t, t.capsula(31, 20, 37, 7, 1.4, 0.8), ["sombra", "cinza_escuro", "cinza_claro", "branco"], sombra=0)
+            cel(t, t.capsula(30, 23, 31, 20, 1.1), ["couro_profundo", "couro_escuro", "couro", "couro_medio"], sombra=0)
+            cel(t, t.elipse(30.5, 22, 2, 1.9), PELE, sombra=1)
     else:
-        t.cel(t.poligono([(10 + recuo, 28), (19 + recuo, 28.5), (19 + recuo, 31.5), (12 + recuo, 32)]), MADEIRA, sombra=1)
-        t.cel(t.retangulo(19 + recuo, 28.5, 23, 1.6), ACO, sombra=0)
-        t.cel(t.retangulo(19 + recuo, 30, 12, 1.6), MADEIRA, sombra=0)
+        coronha = t.poligono([(10 + recuo, 28), (19 + recuo, 28.5), (19 + recuo, 31.5), (12 + recuo, 32)])
+        cel(t, coronha, MADEIRA, sombra=1)
+        t.linha(12 + recuo, 30, 18 + recuo, 29.5, "couro_escuro")  # veio
+        t.ponto(11 + recuo, 28.6, "couro_claro")
+        cel(t, t.retangulo(19 + recuo, 28.5, 23, 1.6), ACO, sombra=0)
+        t.linha(19 + recuo, 28.5, 41 + recuo, 28.5, "cinza_claro")
+        cel(t, t.retangulo(19 + recuo, 30, 12, 1.6), MADEIRA, sombra=0)
+        t.linha(20 + recuo, 30, 30 + recuo, 30, "couro_medio")
+        for bx in (23, 29):
+            t.ponto(bx + recuo, 30, "cinza_luz")
+            t.ponto(bx + recuo, 31, "cinza_escuro")
+        t.ponto(20 + recuo, 27.3, "cinza_claro")  # alavanca do ferrolho
+        t.ponto(21 + recuo, 27.3, "cinza")
         t.ponto(41 + recuo, 28, "cinza")
+        t.ponto(39 + recuo, 27.4, "cinza_escuro")  # massa de mira
         membro(t, (18, 25), (20, 30), (25, 30), 2.3, 2.1, FARDA)
-        t.cel(t.elipse(25.5, 30, 2, 1.8), PELE, sombra=1)
+        cel(t, t.elipse(25.5, 30, 2, 1.8), PELE, sombra=1)
     t.contorno("sombra")
     if rosto == "grito" and tipo == "fuzil" and not braco:
         t.pontos([(43, 28), (42, 27), (42, 29)], "amarelo_fogo")
@@ -351,7 +511,7 @@ def carta(t, cx, cy, ang, naipe="vermelho"):
     c, s_ = math.cos(ang), math.sin(ang)
     cantos = [(-1.6, -2.6), (1.6, -2.6), (1.6, 2.6), (-1.6, 2.6)]
     pts = [(cx + x * c - y * s_, cy + x * s_ + y * c) for x, y in cantos]
-    t.cel(t.poligono(pts), CARTA, sombra=1)
+    cel(t, t.poligono(pts), CARTA, sombra=1)
     t.ponto(cx, cy, naipe)
 
 
@@ -362,19 +522,19 @@ def braco_comico(t, braco, k, hy):
             # "TRUCO!": braço lá em cima batendo a carta.
             membro(t, (18, 25), (25, 21), (31, 12), 2.2, 2.0, FARDA)
             carta(t, 32.5, 8.5, 0.6, "preto")
-            t.cel(t.elipse(31, 12, 2.1, 2.1), PELE, sombra=1)
+            cel(t, t.elipse(31, 12, 2.1, 2.1), PELE, sombra=1)
         else:
             # Leque de cartas na frente do peito, escondendo o jogo.
             membro(t, (18, 25), (23, 28), (26, 24), 2.3, 2.1, FARDA)
             for n, (dx, a, cor) in enumerate(((-2, -0.6, "vermelho"), (0, -0.2, "preto"), (2, 0.2, "vermelho"), (4, 0.6, "preto"))):
                 carta(t, 26 + dx, 20 + abs(dx - 1) * 0.3, a, cor)
-            t.cel(t.elipse(26.5, 24, 2.1, 1.9), PELE, sombra=1)
+            cel(t, t.elipse(26.5, 24, 2.1, 1.9), PELE, sombra=1)
     elif braco == "colher":
         # Mexendo a panela com a colher de pau (a panela é um sprite à parte, na frente).
         dx = (-2, 2)[k % 2]
         membro(t, (18, 25), (23, 30), (27 + dx, 31), 2.3, 2.1, FARDA)
-        t.cel(t.capsula(27 + dx, 30, 31 + dx * 1.5, 41, 0.8, 0.6), ["couro_profundo", "couro", "couro_medio", "couro_luz"], sombra=0)
-        t.cel(t.elipse(27.5 + dx, 31, 2.1, 1.9), PELE, sombra=1)
+        cel(t, t.capsula(27 + dx, 30, 31 + dx * 1.5, 41, 0.8, 0.6), ["couro_profundo", "couro", "couro_medio", "couro_luz"], sombra=0)
+        cel(t, t.elipse(27.5 + dx, 31, 2.1, 1.9), PELE, sombra=1)
     elif braco == "foto":
         # Retrato da noiva bem perto do nariz.
         sobe = k % 2
@@ -385,7 +545,7 @@ def braco_comico(t, braco, k, hy):
         t.chapado(t.retangulo(fx + 1.5, fy + 1.5, 4, 5), "terra_media")
         t.chapado(t.elipse(fx + 3.5, fy + 3, 1.1, 1.2), "areia_luz")  # rostinho
         t.chapado(t.retangulo(fx + 2.3, fy + 4.5, 2.5, 2), "areia_media")
-        t.cel(t.elipse(28.5, 21 - sobe, 2.1, 1.9), PELE, sombra=1)
+        cel(t, t.elipse(28.5, 21 - sobe, 2.1, 1.9), PELE, sombra=1)
 
 
 def comico(nome, tipo="fuzil"):
@@ -464,7 +624,7 @@ def tentaculo(t, x0, y0, fase, comprimento=12, rampa=ALIEN, deslocar=0, para_cim
     for k in range(6):
         r = 2.3 - k * 0.3
         m |= t.capsula(pts[k][0], pts[k][1], pts[k + 1][0], pts[k + 1][1], r, r - 0.3)
-    t.cel(m, rampa, sombra=1, deslocar=deslocar)
+    cel(t, m, rampa, sombra=1, deslocar=deslocar)
     return pts[-1]
 
 
@@ -479,9 +639,9 @@ def xeremita(cara="normal", pose="parado", passo=0):
     for k, x in enumerate((12, 16)):
         tentaculo(t, x, 33 + pulo, f + k * 1.7, 12 - pulo, ALIEN_ESC, deslocar=0)
     corpo = t.elipse(17, 29.5 + pulo, 6, 5.5)
-    t.cel(corpo, ACO, sombra=2)
+    cel(t, corpo, ACO, sombra=2)
     t.chapado(t.retangulo(11, 31 + pulo, 13, 1) & corpo, "cinza_escuro")
-    t.cel(t.elipse(19, 29 + pulo, 1.6, 1.6), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
+    cel(t, t.elipse(19, 29 + pulo, 1.6, 1.6), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
     for k, x in enumerate((14, 19)):
         tentaculo(t, x, 34 + pulo, f + 0.8 + k * 1.9, 11 - pulo, ALIEN)
 
@@ -492,14 +652,14 @@ def xeremita(cara="normal", pose="parado", passo=0):
     # Cabeçona com caroços.
     hy = 17 + pulo
     cabeca = t.elipse(18, hy, 9, 8.6) | t.elipse(14, hy + 5, 5.5, 4.5)
-    t.cel(cabeca, ALIEN, sombra=2)
+    cel(t, cabeca, ALIEN, sombra=2)
     for (x, y, r) in ((12, hy - 4, 1.4), (16, hy - 6.5, 1.1), (10.5, hy + 1, 1.1), (14, hy - 1.5, 0.9)):
         t.chapado(t.elipse(x, y, r, r * 0.8), "alien_medio")
         t.ponto(int(x - r * 0.5), int(y - r * 0.5), "alien_luz")
     t.chapado(t.elipse(13, hy - 5.5, 1.8, 1.1), "alien_brilho")
     # Antena com bolinha.
     t.linha(16, hy - 8.5, 14, hy - 12, "alien_esc")
-    t.cel(t.elipse(13.5, hy - 12.5, 1.6, 1.6), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
+    cel(t, t.elipse(13.5, hy - 12.5, 1.6, 1.6), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
 
     # Olhão.
     ox, oy = 23, hy - 1
@@ -543,12 +703,12 @@ def xeremita(cara="normal", pose="parado", passo=0):
         tentaculo(t, 27, 28, 3.5, 16, ALIEN, para_cima=True, lado=1)
     else:
         m = t.capsula(20, 28 + pulo, 24, 31, 2.2, 1.8) | t.capsula(24, 31, 28, 30, 1.8, 1.6)
-        t.cel(m, ALIEN, sombra=1)
+        cel(t, m, ALIEN, sombra=1)
         recuo = -1 if cara == "grito" else 0
-        t.cel(t.elipse(31 + recuo, 29.5, 4, 2.4), LILAS, sombra=1)
-        t.cel(t.retangulo(33 + recuo, 28.5, 4, 2), LILAS, sombra=0)
-        t.cel(t.elipse(37.5 + recuo, 29.5, 1.5, 1.5), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
-        t.cel(t.poligono([(28 + recuo, 30), (31 + recuo, 30), (30 + recuo, 34), (28 + recuo, 34)]), LILAS, sombra=1, deslocar=-1)
+        cel(t, t.elipse(31 + recuo, 29.5, 4, 2.4), LILAS, sombra=1)
+        cel(t, t.retangulo(33 + recuo, 28.5, 4, 2), LILAS, sombra=0)
+        cel(t, t.elipse(37.5 + recuo, 29.5, 1.5, 1.5), ["alien_esc", "alien", "alien_brilho", "branco"], sombra=0)
+        cel(t, t.poligono([(28 + recuo, 30), (31 + recuo, 30), (30 + recuo, 34), (28 + recuo, 34)]), LILAS, sombra=1, deslocar=-1)
     t.contorno("sombra")
     if cara == "grito":
         t.pontos([(39, 29), (40, 28), (40, 30), (41, 29)], "alien_brilho")
@@ -580,15 +740,15 @@ def cabeca_romeiro(t, x, y, rosto="triste", chapeu=0):
     for k, cor in enumerate(("vermelho", "amarelo_fogo", "ceu", "mandacaru")):
         balanco = 1 if chapeu else 0
         t.linha(x - 9 + k * 0.6, y - 5 + chapeu, x - 11 - k * 0.8 - balanco, y + 3 + k * 1.5, cor)
-    t.cel(t.elipse(x - 7, y + 1, 1.8, 2.4), PELE, sombra=1)  # orelha
-    t.cel(t.elipse(x, y, 7, 7.5), PELE, sombra=2)
+    cel(t, t.elipse(x - 7, y + 1, 1.8, 2.4), PELE, sombra=1)  # orelha
+    cel(t, t.elipse(x, y, 7, 7.5), PELE, sombra=2)
     # Barba branca e comprida, até o peito.
     barba = t.poligono([(x - 6, y + 1), (x + 7, y + 1), (x + 8, y + 7), (x + 4, y + 14), (x, y + 15), (x - 4, y + 9)])
-    t.cel(barba, BARBA, sombra=2)
+    cel(t, barba, BARBA, sombra=2)
     t.linha(x + 1, y + 7, x + 2, y + 12, "cinza")
     t.linha(x + 5, y + 6, x + 4, y + 10, "cinza")
     # Bigode e boca.
-    t.cel(t.poligono([(x + 1, y + 3), (x + 8, y + 3), (x + 9, y + 5), (x + 2, y + 5)]), BARBA, sombra=1)
+    cel(t, t.poligono([(x + 1, y + 3), (x + 8, y + 3), (x + 9, y + 5), (x + 2, y + 5)]), BARBA, sombra=1)
     if rosto == "feliz":
         t.chapado(t.elipse(x + 5, y + 6.5, 2.4, 1.6), "preto")
         t.chapado(t.retangulo(x + 3, y + 5.5, 4, 1), "branco")
@@ -614,13 +774,13 @@ def cabeca_romeiro(t, x, y, rosto="triste", chapeu=0):
         if rosto == "chorando":
             t.chapado(t.capsula(x + 3, y, x + 2, y + 4, 0.7), "ceu_claro")
     # Narigão.
-    t.cel(t.elipse(x + 8, y + 1, 2.6, 2.3), PELE_CLARA, sombra=1)
+    cel(t, t.elipse(x + 8, y + 1, 2.6, 2.3), PELE_CLARA, sombra=1)
     t.ponto(x + 7, y + 2, "pele_sombra")
     # Chapéu de palha com aba larga e fita vermelha.
     cy = y - 6 + chapeu
-    t.cel(t.elipse(x, cy - 2, 6, 4.5) & (t.yy < cy + 0.5), PALHA, sombra=1)
+    cel(t, t.elipse(x, cy - 2, 6, 4.5) & (t.yy < cy + 0.5), PALHA, sombra=1)
     t.chapado(t.retangulo(x - 5.5, cy - 2, 11.5, 1.5), "vermelho")
-    t.cel(t.elipse(x, cy + 0.5, 12.5, 2.2), PALHA, sombra=1)
+    cel(t, t.elipse(x, cy + 0.5, 12.5, 2.2), PALHA, sombra=1)
     for k in range(-10, 11, 3):
         t.ponto(int(x + k), int(cy + 1), "areia_media")
 
@@ -639,18 +799,18 @@ def romeiro_amarrado(balanco=0, pulo=0, rosto="triste"):
     t = Tela(W, H)
     b, p = balanco, pulo
     # Pernas dobradas (sentado nos calcanhares).
-    t.cel(t.elipse(17, 41 - p, 9, 4), CRU, sombra=2)
-    t.cel(t.elipse(9, 43 - p, 3, 2), COURO, sombra=1)
+    cel(t, t.elipse(17, 41 - p, 9, 4), CRU, sombra=2)
+    cel(t, t.elipse(9, 43 - p, 3, 2), COURO, sombra=1)
     # Tronco de camisa de algodão.
     tronco = t.elipse(17 + b * 0.5, 32 - p, 7.5, 8)
-    t.cel(tronco, CAMISA, sombra=2)
+    cel(t, tronco, CAMISA, sombra=2)
     # Bornal nas costas.
-    t.cel(t.elipse(10 + b * 0.5, 34 - p, 3, 3.5), COURO, sombra=1)
+    cel(t, t.elipse(10 + b * 0.5, 34 - p, 3, 3.5), COURO, sombra=1)
     # Voltas de corda.
     for k, y in enumerate((28, 32, 36)):
         volta = t.capsula(9 + b * 0.5, y - p + k * 0.3, 25 + b * 0.5, y - p - 1, 1.2) & t.elipse(17 + b * 0.5, 32 - p, 9, 9)
-        t.cel(volta, CORDA, sombra=1)
-    t.cel(t.elipse(24 + b * 0.5, 33 - p, 1.8, 1.5), CORDA, sombra=1)  # nó
+        cel(t, volta, CORDA, sombra=1)
+    cel(t, t.elipse(24 + b * 0.5, 33 - p, 1.8, 1.5), CORDA, sombra=1)  # nó
     t.linha(25 + b * 0.5, 34 - p, 27 + b, 38 - p, "barro")
     cabeca_romeiro(t, 18 + b, 18 - p, rosto, chapeu=1 if p else 0)
     t.contorno("sombra")
@@ -671,62 +831,62 @@ def romeiro_em_pe(pose="parado", passo=0, rosto="feliz"):
     if pose == "corre":
         k = [(-4, 4), (0, 0), (4, -4), (0, 0)][passo]
         membro(t, (bx - 1, 34 + dy), (bx - 1 + k[1] * 0.4, 39 + dy), (bx - 2 + k[1], CHAO - 1), 2, 1.8, CRU, -1)
-        t.cel(t.elipse(bx - 1 + k[1], CHAO - 0.5, 2.4, 1.2), COURO, sombra=0, deslocar=-1)
+        cel(t, t.elipse(bx - 1 + k[1], CHAO - 0.5, 2.4, 1.2), COURO, sombra=0, deslocar=-1)
     elif pose == "solto":
         membro(t, (bx - 1, 34 + dy), (bx - 4, 38 + dy), (bx - 5, 42 + dy), 2, 1.8, CRU, -1)
-        t.cel(t.elipse(bx - 6, 42.5 + dy, 2.4, 1.2), COURO, sombra=0, deslocar=-1)
+        cel(t, t.elipse(bx - 6, 42.5 + dy, 2.4, 1.2), COURO, sombra=0, deslocar=-1)
     else:
         membro(t, (bx - 1, 34 + dy), (bx - 2, 39 + dy), (bx - 3, CHAO - 1), 2, 1.8, CRU, -1)
-        t.cel(t.elipse(bx - 2, CHAO - 0.5, 2.6, 1.2), COURO, sombra=0, deslocar=-1)
+        cel(t, t.elipse(bx - 2, CHAO - 0.5, 2.6, 1.2), COURO, sombra=0, deslocar=-1)
     # Braço de trás.
     if pose == "solto":
         membro(t, (bx - 3, 25 + dy), (bx - 9, 21 + dy), (bx - 12, 15 + dy), 1.8, 1.6, CAMISA, -1)
-        t.cel(t.elipse(bx - 12.5, 14 + dy, 1.8, 1.8), PELE, sombra=1)
+        cel(t, t.elipse(bx - 12.5, 14 + dy, 1.8, 1.8), PELE, sombra=1)
     elif pose == "corre":
         k = [-1, 0, 1, 0][passo]
         membro(t, (bx - 3, 25 + dy), (bx - 3 - k * 3, 30 + dy), (bx - 1 - k * 5, 31 + dy), 1.8, 1.6, CAMISA, -1)
     # Tronco magrinho e bornal.
     curva = 2 if pose == "procura" else 0
     tronco = t.elipse(bx + curva, 29 + dy, 6.5, 7) | t.retangulo(bx - 5 + curva, 29 + dy, 11, 5)
-    t.cel(tronco, CAMISA, sombra=2)
+    cel(t, tronco, CAMISA, sombra=2)
     t.chapado(t.capsula(bx - 5 + curva, 23 + dy, bx + 5 + curva, 34 + dy, 0.8) & tronco, "couro")
-    t.cel(t.elipse(bx + 6 + curva, 34 + dy, 3.4, 3.4), COURO, sombra=1)
+    cel(t, t.elipse(bx + 6 + curva, 34 + dy, 3.4, 3.4), COURO, sombra=1)
     t.chapado(t.retangulo(bx + 3 + curva, 31 + dy, 7, 1.5), "couro_escuro")
     t.chapado(t.retangulo(bx - 5, 34 + dy, 11, 1.2), "barro")  # cordão na cintura
     # Perna da frente.
     if pose == "corre":
         k = [(-4, 4), (0, 0), (4, -4), (0, 0)][passo]
         membro(t, (bx + 2, 34 + dy), (bx + 3 + k[0] * 0.4, 39 + dy), (bx + 2 + k[0], CHAO - 1), 2, 1.8, CRU)
-        t.cel(t.elipse(bx + 3 + k[0], CHAO - 0.5, 2.4, 1.2), COURO, sombra=0)
+        cel(t, t.elipse(bx + 3 + k[0], CHAO - 0.5, 2.4, 1.2), COURO, sombra=0)
     elif pose == "solto":
         membro(t, (bx + 2, 34 + dy), (bx + 6, 37 + dy), (bx + 5, 41 + dy), 2, 1.8, CRU)
-        t.cel(t.elipse(bx + 6, 41.5 + dy, 2.4, 1.2), COURO, sombra=0)
+        cel(t, t.elipse(bx + 6, 41.5 + dy, 2.4, 1.2), COURO, sombra=0)
     else:
         membro(t, (bx + 2, 34 + dy), (bx + 3, 39 + dy), (bx + 4, CHAO - 1), 2, 1.8, CRU)
-        t.cel(t.elipse(bx + 5, CHAO - 0.5, 2.6, 1.2), COURO, sombra=0)
+        cel(t, t.elipse(bx + 5, CHAO - 0.5, 2.6, 1.2), COURO, sombra=0)
     if pose == "solto":
         # Cordas caindo no chão.
         for x0 in (8, 22):
-            t.cel(t.capsula(x0, CHAO - 1, x0 + 7, CHAO - 2, 1), CORDA, sombra=0)
+            cel(t, t.capsula(x0, CHAO - 1, x0 + 7, CHAO - 2, 1), CORDA, sombra=0)
     hx, hy = bx + 1 + curva * 1.5, 16 + dy + curva
     cabeca_romeiro(t, hx, hy, rosto, chapeu=-2 if pose == "solto" else 0)
     terco(t, bx, 24 + dy)
     # Braço da frente.
     if pose == "solto":
         membro(t, (bx + 3, 25 + dy), (bx + 10, 21 + dy), (bx + 14, 14 + dy), 1.8, 1.6, CAMISA)
-        t.cel(t.elipse(bx + 14.5, 13 + dy, 1.8, 1.8), PELE, sombra=1)
+        cel(t, t.elipse(bx + 14.5, 13 + dy, 1.8, 1.8), PELE, sombra=1)
     elif pose == "procura":
         membro(t, (bx + 4, 25 + dy), (bx + 7, 30 + dy), (bx + 7, 33 + dy), 1.8, 1.6, CAMISA)
     elif pose == "entrega":
         membro(t, (bx + 4, 25 + dy), (bx + 11, 25 + dy), (bx + 17, 21 + dy), 1.8, 1.6, CAMISA)
-        t.cel(t.elipse(bx + 17.5, 20.5 + dy, 1.9, 1.9), PELE, sombra=1)
+        cel(t, t.elipse(bx + 17.5, 20.5 + dy, 1.9, 1.9), PELE, sombra=1)
     elif pose == "continencia":
         membro(t, (bx + 4, 25 + dy), (bx + 9, 21 + dy), (bx + 7, 13 + dy), 1.8, 1.6, CAMISA)
-        t.cel(t.elipse(bx + 7, 12 + dy, 1.9, 1.7), PELE, sombra=1)
+        cel(t, t.elipse(bx + 7, 12 + dy, 1.9, 1.7), PELE, sombra=1)
     else:  # corre
         k = [1, 0, -1, 0][passo]
         membro(t, (bx + 3, 25 + dy), (bx + 3 - k * 3, 30 + dy), (bx + 6 - k * 4, 30 + dy), 1.8, 1.6, CAMISA)
-        t.cel(t.elipse(bx + 6.5 - k * 4, 30 + dy, 1.7, 1.7), PELE, sombra=1)
+        cel(t, t.elipse(bx + 6.5 - k * 4, 30 + dy, 1.7, 1.7), PELE, sombra=1)
     t.contorno("sombra")
     if pose == "corre":
         # Gotas de suor voando para trás.
@@ -742,20 +902,20 @@ def romeiro_pendurado(balanco=0, rosto="chorando"):
     b = balanco
     # Pernas soltas no ar.
     membro(t, (bx - 1, 34), (bx - 2 - b, 39), (bx - 3 - b * 2, 43), 2, 1.8, CRU, -1)
-    t.cel(t.elipse(bx - 2 - b * 2, 43.5, 2.2, 1.2), COURO, sombra=0, deslocar=-1)
+    cel(t, t.elipse(bx - 2 - b * 2, 43.5, 2.2, 1.2), COURO, sombra=0, deslocar=-1)
     tronco = t.elipse(bx, 29, 6.5, 7) | t.retangulo(bx - 5, 29, 11, 5)
-    t.cel(tronco, CAMISA, sombra=2)
+    cel(t, tronco, CAMISA, sombra=2)
     t.chapado(t.capsula(bx - 5, 23, bx + 5, 34, 0.8) & tronco, "couro")
     t.chapado(t.retangulo(bx - 5, 34, 11, 1.2), "barro")
     membro(t, (bx + 2, 34), (bx + 3 + b, 39), (bx + 4 + b * 2, 43), 2, 1.8, CRU)
-    t.cel(t.elipse(bx + 5 + b * 2, 43.5, 2.2, 1.2), COURO, sombra=0)
+    cel(t, t.elipse(bx + 5 + b * 2, 43.5, 2.2, 1.2), COURO, sombra=0)
     # Braços esticados para cima, por trás da cabeça (aparecem os cotovelos e as mãos amarradas lá em cima).
     membro(t, (bx - 4, 24), (bx - 7, 13), (bx + 1, 1.5), 1.8, 1.6, CAMISA, -1)
     membro(t, (bx + 4, 24), (bx + 9, 13), (bx + 3, 1.5), 1.8, 1.6, CAMISA)
     cabeca_romeiro(t, bx + 1, 18, rosto, chapeu=1)
     terco(t, bx, 25)
-    t.cel(t.elipse(bx + 2, 1.5, 2.6, 1.6), PELE, sombra=1)
-    t.cel(t.retangulo(bx, 2, 4.5, 1.4), CORDA, sombra=0)
+    cel(t, t.elipse(bx + 2, 1.5, 2.6, 1.6), PELE, sombra=1)
+    cel(t, t.retangulo(bx, 2, 4.5, 1.4), CORDA, sombra=0)
     t.contorno("sombra")
     return t
 

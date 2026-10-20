@@ -95,8 +95,7 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
                     "rojao": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "oficial": ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"],
                     "xeremita": ["parado", "atira", "grito", "anda1", "anda2", "anda3", "anda4", "morte"]}.items():
-    d = pixel.ler(f"{nome}.txt")
-    d = {k: rp.repintar_tela(v) for k, v in d.items()}
+    d = pixel.ler(f"{nome}.txt")  # já sombreados no nível novo por caricatos.sombrear()
     # Soldados da Volante também têm os quadros sentados (distraídos) depois do tostado.
     extra = [d["sentado1"], d["sentado2"]] if "sentado1" in d else []
     # Depois da morte na peixeira: de bruços com a mão na cabeça (granada perto) e,
@@ -106,7 +105,7 @@ for nome, ordem in {"volante": ["parado", "atira", "panico", "anda1", "anda2", "
           + [mo.estirar(d["grito" if nome == "xeremita" else "panico"], False)] + comicos
           + [mo.tombar(d["morte"]), mo.estirar(d["morte"])],
           SAIDA / f"{nome}.png")
-d = {k: rp.repintar_tela(v) for k, v in pixel.ler("refem.txt").items()}
+d = pixel.ler("refem.txt")
 folha([d[n] for n in ["amarrado1", "amarrado2", "amarrado3", "solto", "procura", "entrega", "continencia",
                       "corre1", "corre2", "corre3", "corre4", "pendurado1", "pendurado2"]], SAIDA / "refem.png")
 import inimigos as ini  # noqa: E402
@@ -146,7 +145,7 @@ ct.cabeca_solta().salvar(SAIDA / "cabeca_contaminado.png")
 # Soldado de máscara contra gás (tools/arte/mascarado.py): mesmos quadros da Volante comum
 # (sem as cenas cômicas), com a máscara posta antes de gerar tostado, joelhos, caído e de bruços.
 import mascarado as mc  # noqa: E402
-d = {k: mc.mascarar(rp.repintar_tela(v)) for k, v in pixel.ler("volante.txt").items()}
+d = {k: mc.mascarar(v) for k, v in pixel.ler("volante.txt").items()}
 folha([d[n] for n in ["parado", "atira", "panico", "anda1", "anda2", "anda3", "anda4", "morte"]] + [tostar(d["morte"])]
       + [d["sentado1"], d["sentado2"], ajoelhar(d["morte"]), mo.estirar(d["morte"], False), mo.estirar(d["panico"], False),
          mo.tombar(d["morte"]), mo.estirar(d["morte"])],

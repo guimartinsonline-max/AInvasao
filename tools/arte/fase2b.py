@@ -408,15 +408,15 @@ def camada_jogo():
     por(nova(bd.barraca, TROPA_X, "tropa", 11), TROPA_X - bd.PORTA_BARRACA)
     por(nova(bd.torre_holofote, TORRES[0][0], 118, 1), TORRES[0][0] - 32)
     por(nova(bd.base_gerador, GERADORES[0][0]), GERADORES[0][0] - 27, 0)
-    por(nova(bd.poste_lampadas, 400, 58, 1), 392)
+    por(nova(bd.poste_lampadas, 400, 72, 1), 392)
     # B) laboratório, jaulas, quarentena, segunda torre.
     por(nova(bd.barraca, LAB_X, "lab", 12), LAB_X - 98)
     for (x, _a) in JAULAS:
         por(nova(jaula_base_nova, x, bd, 40), x - 20, 0)
     por(nova(pilha_sacos, 780, bd, 3, 2, 6), 770)
-    por(nova(bd.poste_lampadas, 760, 58, 2), 752)
+    por(nova(bd.poste_lampadas, 760, 72, 2), 752)
     por(nova(bd.barraca, QUARENTENA_X, "quarentena", 13), QUARENTENA_X - bd.PORTA_BARRACA)
-    por(nova(bd.poste_lampadas, 1125, 58, 3), 1117)
+    por(nova(bd.poste_lampadas, 1125, 72, 3), 1117)
     por(nova(bd.torre_holofote, TORRES[1][0], 118, 2), TORRES[1][0] - 32)
     por(nova(bd.base_gerador, GERADORES[1][0]), GERADORES[1][0] - 27, 0)
     # C) guindaste, sacos do metralhador e o elevador na beira.
@@ -1013,8 +1013,8 @@ def dados_fase():
             "geradores": [{"x": x, "id": g} for (x, g) in GERADORES],
             "jaulas": [{"x": x, "alien": a} for (x, a) in JAULAS],
             "guindaste": {"x": PONTA_LANCA[0], "y": PONTA_LANCA[1] + 2, "comprimento": 70},
-            "lampadas": [{"x0": 400, "x1": 760, "y": CHAO - 58 + 4, "gerador": 0},
-                         {"x0": 760, "x1": 1125, "y": CHAO - 58 + 4, "gerador": 1}],
+            "lampadas": [{"x0": 400, "x1": 760, "y": CHAO - 72 + 4, "gerador": 0},
+                         {"x0": 760, "x1": 1125, "y": CHAO - 72 + 4, "gerador": 1}],
             "elevador": {"x": FIM, "y": CHAO},
             "noite": {"de": 0, "ate": 1300},
         },
