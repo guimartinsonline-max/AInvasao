@@ -130,15 +130,24 @@ def peito(t, fig, x, y):
 
 
 # ---------------------------------------------------------------- corpo
-def tronco_forma(t, bx, topo, base, fig, voa=0):
-    """Tronco em pé: ombros redondos e largos, peito, cintura um pouco mais fina.
-    Nada de caixa nem corcunda: as costas descem quase retas."""
-    m = t.poligono([(bx - 5, topo + 1), (bx + 6, topo + 1), (bx + 8, topo + 6), (bx + 7, base - 2),
-                    (bx + 5, base), (bx - 5, base), (bx - 6, base - 3), (bx - 6, topo + 5)])
-    m |= t.elipse(bx - 3.5, topo + 3, 3.2, 3) | t.elipse(bx + 4.5, topo + 3, 3.4, 3)
-    if fig == "cientista":  # jaleco desce até a coxa
-        m |= t.poligono([(bx - 6, base - 3), (bx + 7, base - 3), (bx + 7, base + 5), (bx - 6 - voa * 2, base + 4)])
+def tronco_forma(t, bx, topo, base, fig=None, voa=0):
+    """Tronco em pé e arredondado: peito em barril, ombros redondos, cintura um pouco
+    mais fina, costas em curva (nada de caixa nem corcunda)."""
+    alt = base - topo
+    m = t.elipse(bx + 0.8, topo + alt * 0.42, 7.2, alt * 0.45)       # peito
+    m |= t.elipse(bx + 0.3, base - alt * 0.22, 6.0, alt * 0.3)       # barriga/cintura
+    m |= t.elipse(bx - 3.2, topo + 3.2, 3.2, 3.0) | t.elipse(bx + 4.6, topo + 3.2, 3.4, 3.0)  # ombros
     return m
+
+
+def aba_jaleco(t, bx, base, voa=0):
+    """Aba do jaleco por cima das coxas (desenhada depois da perna da frente),
+    voando para trás na corrida."""
+    m = t.poligono([(bx - 6, base - 4), (bx + 6, base - 4), (bx + 7, base + 6), (bx + 1, base + 6.5),
+                    (bx - 5 - voa * 2.5, base + 5 + voa * 0.5), (bx - 6.5 - voa, base)])
+    sombrear2d(t, m, PELO)
+    t.linha(bx + 3, base - 3, bx + 3, base + 6, "pelo_3")  # abertura
+    t.ponto(bx - 3, base + 5, "pelo_2")  # barra suja
 
 
 def em_pe(fig="romeiro", pose="continencia", passo=0, rosto="feliz"):
@@ -171,23 +180,21 @@ def em_pe(fig="romeiro", pose="continencia", passo=0, rosto="feliz"):
         membro(t, (bx - 3, 19 + dy), (bx - 4 - k * 3, 25 + dy), (bx - 2 - k * 5, 27 + dy), 2.3, 2.0, r["braco"], -1.2)
         mao(t, bx - 2 - k * 5, 28 + dy, -1)
     # Tronco largo, inclinado para a frente.
-    tronco = tronco_forma(t, bx, 16 + dy, 32 + dy, fig, 2 if pose == "corre" else 0)
-    sombrear2d(t, tronco, r["tronco"])
+    sombrear2d(t, tronco_forma(t, bx, 16 + dy, 32 + dy), r["tronco"])
     if fig == "cientista":
-        t.linha(bx + 3, 20 + dy, bx + 3, 35 + dy, "pelo_3")  # abertura do jaleco
+        t.linha(bx + 3, 20 + dy, bx + 3, 29 + dy, "pelo_3")  # abertura do jaleco
+    # Perna da frente.
+    joelho_f = ((bx + 2 + pe_f[0]) / 2 + 2, (quadril + pe_f[1]) / 2)
+    membro(t, (bx + 2, quadril), joelho_f, (pe_f[0], pe_f[1] - 2), 3.0, 2.4, r["calca"])
+    bota(t, pe_f[0] - 2, pe_f[1])
+    if fig == "cientista":
+        aba_jaleco(t, bx, 32 + dy, 2 if pose == "corre" else 0)
+    else:
+        t.chapado(t.retangulo(bx - 5, 30 + dy, 11, 1), "osso_2")  # cordão na cintura
     # Bornal com alça cruzada.
     t.linha(bx - 5, 18 + dy, bx + 6, 29 + dy, "fuba_3")
     sombrear2d(t, t.elipse(bx + 7, 30 + dy, 3, 3), FUBA)
     t.chapado(t.retangulo(bx + 4, 28 + dy, 6, 1), "fuba_1")
-    if fig == "romeiro":
-        t.chapado(t.retangulo(bx - 6, 31 + dy, 13, 1), "osso_2")  # cordão na cintura
-    # Perna da frente.
-    joelho_f = ((bx + 2 + pe_f[0]) / 2 + 2, (quadril + pe_f[1]) / 2)
-    if fig == "romeiro" or pose != "corre":
-        membro(t, (bx + 2, quadril), joelho_f, (pe_f[0], pe_f[1] - 2), 3.0, 2.4, r["calca"])
-    else:
-        membro(t, (bx + 2, quadril + 3), joelho_f, (pe_f[0], pe_f[1] - 2), 3.0, 2.4, r["calca"])
-    bota(t, pe_f[0] - 2, pe_f[1])
     if pose == "solto":
         for x0 in (7, 23):
             sombrear2d(t, t.capsula(x0, CHAO - 1, x0 + 7, CHAO - 2, 1), CORDA)
@@ -250,13 +257,14 @@ def pendurado(fig="romeiro", balanco=0, rosto="chorando"):
     # Braços: ombro, cotovelo para fora, mãos juntas lá em cima.
     membro(t, (bx - 4, 21), (bx - 8, 11), (bx - 1, 3), 2.2, 1.9, r["braco"], -1.2)
     membro(t, (bx + 5, 21), (bx + 10, 11), (bx + 3, 3), 2.2, 1.9, r["braco"])
-    sombrear2d(t, tronco_forma(t, bx, 19, 34, fig), r["tronco"])
-    if fig == "cientista":
-        t.linha(bx + 3, 22, bx + 3, 37, "pelo_3")
-    else:
-        t.chapado(t.retangulo(bx - 6, 33, 13, 1), "osso_2")
+    sombrear2d(t, tronco_forma(t, bx, 19, 34), r["tronco"])
     membro(t, (bx + 2, 34), (bx + 3 + b, 39), (bx + 4 + b * 2, 43), 2.8, 2.3, r["calca"])
     bota(t, bx + 2 + b * 2, 45)
+    if fig == "cientista":
+        t.linha(bx + 3, 22, bx + 3, 31, "pelo_3")
+        aba_jaleco(t, bx, 34)
+    else:
+        t.chapado(t.retangulo(bx - 5, 32, 11, 1), "osso_2")
     cabeca(t, fig, bx + 1, 15, rosto, chapeu=1)
     peito(t, fig, bx + 1, 22)
     mao(t, bx - 0.5, 2.5, -1)
