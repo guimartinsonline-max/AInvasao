@@ -55,6 +55,16 @@ EXT = {
     tuple(CORDA): ["couro_profundo", "terra_escura", "terra_media", "barro", "areia_luz"],
     tuple(ALIEN): ["alien_profundo", "alien_esc", "alien_medio", "alien", "alien_luz", "alien_brilho"],
 }
+# Padrão novo (20/10): NPCs desenhados por npcs.py ligam MODO3D, que troca o sombreado
+# por cúpula com luz de um lado só (volume3d.sombrear2d) e as rampas pelas saturadas.
+MODO3D = False
+
+
+def _r(nome, a, b):
+    return [f"{nome}_{k}" for k in range(a, b + 1)]
+
+
+NOVA = {}
 _L = np.array([-0.6, -0.75, 0.7])
 _L = _L / np.linalg.norm(_L)
 
@@ -66,6 +76,9 @@ def sombrear(t, m, rampa, deslocar=0, achatado=2.4, linha=True, brilho=True):
     from scipy import ndimage
     if not m.any():
         return m
+    if MODO3D and tuple(rampa) in NOVA:
+        import volume3d
+        return volume3d.sombrear2d(t, m, NOVA[tuple(rampa)], deslocar, linha)
     r = EXT.get(tuple(rampa), list(rampa))
     k = len(r)
     dist = ndimage.distance_transform_edt(np.pad(m, 1))[1:-1, 1:-1]
@@ -766,6 +779,13 @@ def calca():
 
 CALCA_ESC = ["sombra", "sombra_media", "cinza_escuro", "cinza"]
 
+NOVA.update({
+    tuple(TRAPO): _r("pelo", 2, 7), tuple(CAMISA): _r("osso", 2, 5) + ["pelo_7"], tuple(BARBA): _r("pelo", 2, 7),
+    tuple(PELE): _r("carne", 1, 7), tuple(PELE_CLARA): _r("carne", 2, 7), tuple(COURO): _r("fuba", 1, 5),
+    tuple(CRU): _r("osso", 1, 5), tuple(PALHA): _r("osso", 1, 5) + ["latao_6"], tuple(CORDA): _r("osso", 1, 4),
+    tuple(CALCA_ESC): _r("aco", 1, 6),
+})
+
 
 def cabeca_romeiro(t, x, y, rosto="triste", chapeu=0):
     """Cabeça do romeiro: chapéu de palha com fitas, narigão e barba branca comprida.
@@ -994,7 +1014,7 @@ def gravar(arquivo, quadros):
 if __name__ == "__main__":
     gravar("volante.txt", VOLANTE)
     gravar("xeremita.txt", XEREMITA)
-    gravar("refem.txt", REFEM)
+    # refem.txt agora sai do npcs.py (padrão novo, MODO3D).
     gravar("granadeiro.txt", GRANADEIRO)
     gravar("metralhador.txt", METRALHADOR)
     gravar("facao.txt", FACAO)

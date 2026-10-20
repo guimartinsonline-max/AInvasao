@@ -42,8 +42,9 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
 
 ## 4. Paleta
 
-- Paleta fixa em `assets/paleta.json` (94 cores hoje). **Toda cor usada tem nome lá.** Precisa de cor nova? Adiciona na paleta com nome, nunca hex solto no desenho.
+- Paleta fixa em `assets/paleta.json` (151 cores hoje). **Toda cor usada tem nome lá.** Precisa de cor nova? Adiciona na paleta com nome, nunca hex solto no desenho.
 - **Rampas por material** (5 a 7 tons, do mais escuro ao brilho): pele, couro, tecido cáqui/oliva da Volante, madeira, lona, pedra/arenito, metal, carne de alien, gosma.
+- **Rampas saturadas (padrão novo, 20/10):** `pelo_1-7` (branco/pano claro), `fuba_1-7` (marrom alaranjado, pena, couro claro), `carne_1-7` (pele), `verde_1-7` (farda oliva), `negro_1-6` (preto com brilho azulado), `rubro_1-6`, `latao_1-6`, `osso_1-5` (chifre, palha, cru), `aco_1-6` (calça, metal escuro). Cada degrau muda de matiz, não só de claridade: a sombra puxa para o azul/roxo e a luz para o amarelo. Personagens e bichos usam essas; as antigas ficam para o cenário.
 - Sombras puxam para o **frio** (azul/roxo: `sombra`, `azul_sombra`, `sombra_media`); luzes puxam para o **quente** (`areia_clara`, `amarelo_claro`). Nunca escurecer só misturando preto.
 - **Céu azul sempre presente** para equilibrar a terra quente. Não deixar a tela toda em laranja/marrom.
 - **Verde-alien** (`alien_*`) é reservado para coisa alienígena, gás, gosma e raio. Humano e cenário normal não usam esse verde vivo (a caatinga usa os verdes acinzentados `caatinga*` e `mandacaru*`).
@@ -54,6 +55,8 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
 - **Contorno de 1 px escuro só na silhueta** (`sombra` em personagens, `mad_n1` em madeira/cenário). Por dentro, divisões só com tom, sem linha preta.
 - Luz de cima e da frente: **beirada de cima acesa**, miolo médio, base e lado de trás na sombra, e um **ponto de brilho** no que é liso ou molhado (metal, olho, gosma, couro engraxado).
 - Volume calculado pela forma (cilindro para tora, braço e cano; plano para lona e parede; relevo para carne de alien).
+- **Volume 3D (padrão novo para personagens e bichos, `tools/arte/volume3d.py`):** o boneco é montado com formas 3D (elipsoides e cápsulas) ou cúpulas sobre a forma 2D (`sombrear2d`), iluminado de um lado só, desenhado 4x maior e reduzido em manchas limpas. **Proibido o sombreado de travesseiro** (borda toda clara em volta) e pixel solto no meio de mancha. A luz forma uma área clara grande e contínua no lado de cima-esquerda; a sombra fica embaixo e atrás.
+- Onde uma peça passa na frente de outra (perna sobre barriga, braço sobre tronco), linha escura do material de trás.
 - **Sem pontilhado em xadrez (Bayer)** da fase 2 em diante. Transição de tom e de terreno em manchas orgânicas.
 - **Textura e desgaste em tudo:** veio, racha, nó, costura, remendo, mancha d'água, barro, ferrugem, farpa, tinta descascada, amassado. Nada fica liso e novo.
 - Letreiros e placas: fonte **5x7 com sombra** (`letreiro()`), pintada à mão e gasta.
