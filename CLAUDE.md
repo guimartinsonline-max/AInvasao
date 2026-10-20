@@ -20,6 +20,7 @@ Este arquivo reúne tudo o que já foi decidido. Leia antes de qualquer tarefa.
 
 - **Nome:** A Invasão
 - **Gênero:** run and gun 2D com rolagem lateral, estilo Metal Slug.
+- **Referência principal:** Metal Slug (pode pesquisar fotos e vídeos da franquia para estilo, mecânicas e humor bizarro). Arte original no estilo, sem copiar sprites.
 - **Plataformas:** iPhone e PC, as duas como plataformas principais, com o mesmo código no navegador.
   - **iPhone:** instalado como app na Tela de Início. Modo paisagem, tela cheia, controles de toque.
   - **PC:** instalável como app pelo navegador (Chrome/Edge). Tela cheia, teclado e controle (gamepad), com a imagem escalada em proporção inteira para monitores grandes.
