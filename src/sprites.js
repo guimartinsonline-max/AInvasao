@@ -53,6 +53,7 @@ export function carregarSprites(cena) {
     cena.load.spritesheet(`lampiao_${arma}_gordo`, s(`lampiao_${arma}_gordo`), { frameWidth: LAMPIAO_GORDO.largura, frameHeight: LAMPIAO_GORDO.altura });
   }
   for (const nome of Object.keys(COMIDAS)) cena.load.image(`comida_${nome}`, s(`comida_${nome}`));
+  for (const nome of ITENS) cena.load.image(`item_${nome}`, s(`item_${nome}`));
   // Cenário vivo da fase 1.
   for (const [nome, q] of Object.entries(AMBIENTE)) {
     cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
@@ -158,130 +159,13 @@ export function gerarSprites(cena) {
   });
 }
 
-// Itens de arma no estilo Metal Slug: letra grande e grossa, com volume
-// (degradê de cima para baixo), extrusão escura para dar profundidade,
-// contorno preto e brilho no canto. A chave é item_<nome da arma>.
-const LETRAS = {
-  M: ['XXX......XXX', 'XXXX....XXXX', 'XXXXX..XXXXX', 'XXX.XXXX.XXX', 'XXX..XX..XXX', 'XXX......XXX',
-    'XXX......XXX', 'XXX......XXX', 'XXX......XXX', 'XXX......XXX', 'XXX......XXX', 'XXX......XXX'],
-  B: ['XXXXXXXX..', 'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX...XXX.', 'XXXXXXXX..',
-    'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXXXXXXXX.', 'XXXXXXXX..'],
-  R: ['XXXXXXXX..', 'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXXXXXXXX.',
-    'XXXXXXXX..', 'XXX..XXX..', 'XXX...XXX.', 'XXX...XXX.', 'XXX....XXX', 'XXX....XXX'],
-  D: ['XXXXXXX...', 'XXXXXXXX..', 'XXX...XXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX',
-    'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXX...XXX.', 'XXXXXXXX..', 'XXXXXXX...'],
-  C: ['..XXXXXXX.', '.XXXXXXXXX', 'XXX.....XX', 'XXX.......', 'XXX.......', 'XXX.......',
-    'XXX.......', 'XXX.......', 'XXX.......', 'XXX.....XX', '.XXXXXXXXX', '..XXXXXXX.'],
-  P: ['XXXXXXXX..', 'XXXXXXXXX.', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', 'XXXXXXXXX.',
-    'XXXXXXXX..', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......'],
-  E: ['XXXXXXXXXX', 'XXXXXXXXXX', 'XXX.......', 'XXX.......', 'XXX.......', 'XXXXXXXX..',
-    'XXXXXXXX..', 'XXX.......', 'XXX.......', 'XXX.......', 'XXXXXXXXXX', 'XXXXXXXXXX'],
-  F: ['XXXXXXXXXX', 'XXXXXXXXXX', 'XXX.......', 'XXX.......', 'XXX.......', 'XXXXXXXX..',
-    'XXXXXXXX..', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......', 'XXX.......'],
-  G: ['..XXXXXX..', '.XXXXXXXX.', 'XXX....XXX', 'XXX.......', 'XXX.......', 'XXX..XXXXX',
-    'XXX..XXXXX', 'XXX....XXX', 'XXX....XXX', 'XXX....XXX', '.XXXXXXXX.', '..XXXXXX..'],
-};
+// Itens de arma no chão: caixa de chapa com a letra da arma (padrão novo do
+// ESTILO.md, desenhada em tools/arte/itens_ms.py). A chave é item_<nome da arma>.
+export const ITENS = ['madsen', 'bacamarte', 'rojao', 'desintegrador', 'candeeiro', 'papo_amarelo', 'estilingue', 'buscape', 'granadas'];
 
-// Degradê de cada cor: brilho, claro, médio, escuro (extrusão).
-const RAMPAS = {
-  vermelho: ['amarelo_claro', 'laranja_fogo', 'vermelho', 'vermelho_esc'],
-  ouro: ['branco', 'amarelo_claro', 'ouro_escuro', 'laranja_escuro'],
-  laranja_fogo: ['amarelo_claro', 'amarelo_fogo', 'laranja_fogo', 'vermelho_medio'],
-  alien: ['branco', 'alien_brilho', 'alien', 'alien_profundo'],
-  caatinga: ['amarelo_claro', 'mandacaru_luz', 'mandacaru', 'caatinga_esc'],
-  azul: ['branco', 'ceu_luz', 'ceu', 'azul_medio'],
-  aco: ['branco', 'aco_brilho', 'cinza_luz', 'cinza_escuro'],
-  couro: ['areia_clara', 'couro_luz', 'couro_claro', 'couro_escuro'],
-  lilas: ['branco', 'lilas_claro', 'lilas', 'roxo_escuro'],
-};
-
-export const ITENS = {
-  madsen: { letra: 'M', rampa: 'vermelho' },
-  bacamarte: { letra: 'B', rampa: 'ouro' },
-  rojao: { letra: 'R', rampa: 'laranja_fogo' },
-  desintegrador: { letra: 'D', rampa: 'alien' },
-  candeeiro: { letra: 'C', rampa: 'azul' },
-  papo_amarelo: { letra: 'P', rampa: 'aco' },
-  estilingue: { letra: 'E', rampa: 'couro' },
-  buscape: { letra: 'F', rampa: 'lilas' },
-  granadas: { letra: 'G', rampa: 'caatinga' },
-};
-
-// Caixa do item, como no Metal Slug: quadrado de chapa com bisel (luz em cima à
-// esquerda, sombra embaixo à direita), rebites nos cantos, fundo afundado escuro
-// e a letra grossa colorida da arma no meio, com extrusão e contorno.
 export const CAIXA_ITEM = { largura: 24, altura: 22 };
 
 function gerarItens(cena) {
-  const { largura: W, altura: H } = CAIXA_ITEM;
-  for (const [nome, { letra, rampa }] of Object.entries(ITENS)) {
-    const glifo = LETRAS[letra];
-    const [brilho, claro, medio, escuro] = RAMPAS[rampa];
-    const grade = Array.from({ length: H }, () => Array(W).fill(null));
-    const pinta = (x, y, c) => { if (y >= 0 && y < H && x >= 0 && x < W) grade[y][x] = c; };
-    // Chapa da caixa (1 px de contorno preto em volta).
-    for (let y = 1; y < H - 1; y++) {
-      for (let x = 1; x < W - 1; x++) {
-        const borda = Math.min(x - 1, y - 1, W - 2 - x, H - 2 - y);
-        let c = 'cinza';
-        if (borda <= 1) c = (x - 1 < 2 || y - 1 < 2) && x + y < W + H - 8 ? 'cinza_claro' : 'cinza_escuro';
-        if (borda === 0 && (x === 1 || y === 1)) c = 'branco';
-        if (borda === 0 && (x === W - 2 || y === H - 2)) c = 'sombra';
-        pinta(x, y, c);
-      }
-    }
-    // Fundo afundado onde fica a letra (sombra em cima/esquerda, luz embaixo/direita).
-    for (let y = 4; y < H - 4; y++) {
-      for (let x = 4; x < W - 4; x++) {
-        let c = 'sombra';
-        if (y === 4 || x === 4) c = 'preto';
-        if (y === H - 5 || x === W - 5) c = 'cinza_medio';
-        pinta(x, y, c);
-      }
-    }
-    // Rebites.
-    for (const [x, y] of [[3, 3], [W - 4, 3], [3, H - 4], [W - 4, H - 4]]) {
-      pinta(x, y, 'cinza_luz');
-      pinta(x + 1, y + 1, 'sombra_media');
-    }
-    // Faixa colorida da arma no topo da chapa.
-    for (let x = 6; x < W - 6; x++) pinta(x, 2, medio);
-    // Letra: centralizada no fundo, com extrusão escura e degradê.
-    const lw = glifo[0].length;
-    const lh = glifo.length;
-    const ox = Math.floor((W - lw) / 2) - 1;
-    const oy = Math.floor((H - lh) / 2) - 1;
-    const cheio = (x, y) => glifo[y] && glifo[y][x] === 'X';
-    glifo.forEach((l, y) => [...l].forEach((ch, x) => {
-      if (ch !== 'X') return;
-      pinta(ox + x + 1, oy + y + 1, escuro);
-      pinta(ox + x + 2, oy + y + 1, 'preto');
-    }));
-    glifo.forEach((l, y) => [...l].forEach((ch, x) => {
-      if (ch !== 'X') return;
-      let cor = y < lh / 2 ? claro : medio;
-      if (!cheio(x - 1, y) && !cheio(x, y - 1)) cor = brilho;
-      else if (!cheio(x, y - 1) && y < 5) cor = brilho;
-      pinta(ox + x, oy + y, cor);
-    }));
-    // Contorno preto em volta da caixa.
-    const final = grade.map((l) => l.slice());
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        if (grade[y][x]) continue;
-        let perto = false;
-        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (grade[y + dy]?.[x + dx]) perto = true;
-        if (perto) final[y][x] = 'preto';
-      }
-    }
-    texturaDesenhada(cena, `item_${nome}`, W, H, (ctx, cor) => {
-      final.forEach((l, y) => l.forEach((c, x) => {
-        if (!c) return;
-        ctx.fillStyle = cor(c);
-        ctx.fillRect(x, y, 1, 1);
-      }));
-    });
-  }
   // Tábua de caixote quebrado.
-  texturaDeTexto(cena, 'tabua', ['ssss.', 'ffffs', 'ddddd'], { s: 'couro_luz', f: 'couro_claro', d: 'couro' });
+  texturaDeTexto(cena, 'tabua', ['ssss.', 'ffffs', 'ddddd'], { s: 'fuba_5', f: 'fuba_4', d: 'fuba_2' });
 }
