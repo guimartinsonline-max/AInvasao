@@ -1,105 +1,13 @@
-"""NPCs no padrão do ESTILO.md (lote 2 de gráficos): cientista refém, bode Fubá,
-galinha e urubu.
+"""NPCs no padrão do ESTILO.md (lote 2 de gráficos): bode Fubá, galinha e urubu
+em formas 3D; romeiro e cientista vêm do gente.py (corpo do Metal Slug).
 
-O cientista usa as poses do romeiro (caricatos.py) com cabeça, jaleco e calça próprios;
-os bichos são desenhados aqui, caricatos, com contorno só por fora e volume em 5 a 7 tons.
 
-Uso: python3 tools/arte/npcs.py   (grava pixel/cientista.txt; os PNGs saem no exportar.py)
+Uso: python3 tools/arte/npcs.py   (grava pixel/refem.txt e cientista.txt; os PNGs saem no exportar.py)
 """
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-import caricatos as ca  # noqa: E402
-from caricatos import sombrear, PELE, PELE_CLARA, BARBA, TRAPO  # noqa: E402
-from motor import Tela  # noqa: E402
-
-PELO = ["cinza", "cinza_luz", "cinza_claro", "branco", "branco"]
-MANCHA = ["couro_profundo", "couro_escuro", "couro", "couro_medio", "couro_luz"]
-CHIFRE = ["terra_escura", "terra_media", "barro", "areia_media", "areia_luz"]
-CASCO = ["preto", "sombra", "cinza_escuro"]
-LATAO = ["couro_profundo", "ouro_escuro", "amarelo_fogo", "amarelo_claro"]
-PENA = ["couro_profundo", "couro_escuro", "couro", "couro_medio", "barro", "couro_luz"]
-PENA_ESC = ["preto", "sombra", "azul_sombra", "sombra_media"]
-URUBU = ["preto", "sombra", "azul_sombra", "sombra_media", "cinza_escuro"]
-CABECA_URUBU = ["vermelho_esc", "vermelho_medio", "vermelho", "rosa_poeira"]
-
-
-# ================================================================ cientista
-def cabeca_cientista(t, x, y, rosto="triste"):
-    """Careca grande com tufos brancos espetados, óculos redondos de aro grosso,
-    narigão vermelho e bigodão branco. (x, y) = centro do rosto."""
-    # Tufos espetados atrás e dos lados (cientista maluco).
-    tufo = t.poligono([(x - 4, y - 7), (x - 10, y - 10), (x - 8, y - 5), (x - 13, y - 5), (x - 9, y - 2),
-                       (x - 13, y + 1), (x - 8, y + 1), (x - 10, y + 5), (x - 5, y + 3)])
-    sombrear(t, tufo, BARBA)
-    sombrear(t, t.elipse(x - 6, y + 1, 1.8, 2.4), PELE)  # orelha
-    sombrear(t, t.elipse(x, y - 1, 7.2, 8.4), PELE)
-    # Careca: brilho grande no topo e rugas na testa.
-    t.pontos([(x - 2, y - 7), (x - 1, y - 7), (x - 3, y - 6)], "pele_brilho")
-    t.linha(x + 1, y - 5, x + 4, y - 5, "pele_media")
-    t.linha(x + 2, y - 7, x + 4, y - 7, "pele_media")
-    # Tufo pequeno espetado na frente da orelha.
-    t.pontos([(x - 3, y - 2), (x - 4, y - 3), (x - 2, y - 1)], "cinza_claro")
-    # Bigodão branco caído.
-    bigode = t.poligono([(x + 1, y + 3), (x + 10, y + 3), (x + 11, y + 7), (x + 7, y + 5), (x + 4, y + 7), (x + 1, y + 6)])
-    sombrear(t, bigode, BARBA)
-    if rosto == "feliz":
-        t.chapado(t.elipse(x + 6, y + 8, 2.4, 1.6), "preto")
-        t.chapado(t.elipse(x + 6, y + 9, 1.3, 0.6), "vermelho")
-    elif rosto == "chorando":
-        t.chapado(t.elipse(x + 6, y + 8, 1.8, 1.5), "preto")
-    else:
-        t.linha(x + 4, y + 8, x + 7, y + 8, "pele_sombra")
-    # Narigão vermelho.
-    sombrear(t, t.elipse(x + 8, y + 1, 2.8, 2.4), PELE_CLARA)
-    t.ponto(x + 9, y, "pele_brilho")
-    # Óculos: lente redonda grande de aro grosso, com o olho atrás e o reflexo.
-    ex, ey = x + 4, y - 2
-    t.chapado(t.elipse(ex, ey, 3.3, 3.2), "preto")
-    t.chapado(t.elipse(ex, ey, 2.3, 2.2), "ceu_claro")
-    if rosto == "feliz":
-        t.pontos([(ex - 1, ey), (ex, ey - 1), (ex + 1, ey)], "preto")
-    elif rosto == "concentrado":
-        t.linha(ex - 1, ey, ex + 1, ey, "preto")
-    else:
-        t.chapado(t.retangulo(ex, ey - 0.5, 1.5, 1.5), "preto")
-    t.ponto(ex - 1, ey - 1, "branco")
-    t.linha(ex - 4, ey - 1, x - 5, y - 1, "preto")  # haste até a orelha
-    # Sobrancelha branca espetada por cima do aro.
-    if rosto in ("triste", "chorando"):
-        t.linha(ex - 2, ey - 4, ex + 3, ey - 6, "branco")
-    else:
-        t.linha(ex - 2, ey - 5, ex + 3, ey - 5, "branco")
-    if rosto == "chorando":
-        t.chapado(t.capsula(ex + 1, ey + 3, ex, ey + 6, 0.7), "ceu_claro")
-
-
-def peito_cientista(t, x, y):
-    """No lugar do terço: gravata-borboleta vermelha, bolso com canetas e mancha de gosma."""
-    t.chapado(t.poligono([(x - 2, y - 1), (x + 3, y + 1), (x - 2, y + 2)]), "vermelho")
-    t.chapado(t.poligono([(x + 6, y - 1), (x + 3, y + 1), (x + 6, y + 2)]), "vermelho_esc")
-    t.ponto(x + 3, y + 1, "vermelho_esc")
-    # Bolso com duas canetas.
-    t.linha(x - 3, y + 5, x - 1, y + 5, "cinza")
-    t.pontos([(x - 3, y + 4), (x - 1, y + 3)], "azul_medio")
-    t.ponto(x - 2, y + 4, "vermelho")
-    # Respingo de gosma do laboratório.
-    t.pontos([(x + 2, y + 7), (x + 3, y + 7), (x + 3, y + 8)], "alien_medio")
-
-
-def fralda(t, bx, y, pose, passo=0):
-    """Aba do jaleco até o meio da coxa, voando para trás quando corre."""
-    voa = {"corre": 2 + (passo % 2), "solto": 1}.get(pose, 0)
-    m = t.poligono([(bx - 6, y - 2), (bx + 6, y - 2), (bx + 7, y + 5), (bx - 6 - voa * 2, y + 4 + (voa > 0))])
-    sombrear(t, m, TRAPO)
-    t.linha(bx + 1, y - 1, bx + 1, y + 4, "cinza_luz")  # abertura do jaleco
-    t.ponto(bx - 3, y + 3, "cinza")  # barra suja
-
-
-CIENTISTA = ca.REFEM
-
-
 # ================================================================ bichos (volume 3D)
 # Montados com formas 3D (volume3d.Cena), luz de cima-esquerda e rampas saturadas;
 # olho, boca e detalhes pequenos são pintados por cima, pixel a pixel.
@@ -268,9 +176,8 @@ def urubu(quadro=0):
 
 
 if __name__ == "__main__":
-    ca.MODO3D = True
-    ca.gravar("refem.txt", ca.REFEM)
-    ca.FIGURA = "cientista"
-    ca.gravar("cientista.txt", CIENTISTA)
-    ca.FIGURA = "romeiro"
-    print("pixel/cientista.txt atualizado")
+    import gente
+    import pixel
+    for fig, arq in (("romeiro", "refem.txt"), ("cientista", "cientista.txt")):
+        pixel.salvar(arq, gente.quadros(fig))
+    print("pixel/refem.txt e pixel/cientista.txt atualizados")

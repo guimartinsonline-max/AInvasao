@@ -13,7 +13,7 @@ Pode e deve estudar imagens, vídeos e rips da franquia como referência de esti
 Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do time da Nazca/SNK:
 
 - **Animação demais, de propósito.** Tudo tem mais quadros do que precisa: o soldado que coça a cabeça, o que foge tropeçando, o tanque que treme parado. O próprio artista Akio contou que as animações eram tão longas que os programadores tinham que otimizar o jogo para aguentar. Para nós: poucos quadros, mas **cada ação com antecipação, ação e exagero** (ver seção 6).
-- **Caricatura com peso.** Corpos atarracados, cabeça grande, mãos e botas grandes, inclinados para a frente. Tudo parece pesado e macio ao mesmo tempo, como borracha.
+- **Caricatura com peso.** Corpos atarracados de tronco largo e comprido, cabeça pequena (~1/4 da altura, não cabeçudo), mãos e botas grandes, inclinados para a frente. Tudo parece pesado e macio ao mesmo tempo, como borracha.
 - **Rostos que falam.** Olhos e boca mudam em quase toda ação: grito, pânico, suor, choro, risada. O inimigo é engraçado antes de ser perigoso.
 - **Contorno escuro só por fora** e volume por dentro com rampas de 5 a 7 tons. A luz vem de cima e um pouco da frente.
 - **Máquinas gordas e cheias de coisa:** rebites, chapas, canos, sacos, lona, ferrugem, lama, gente dentro. Toda máquina tem um "rosto" (farol, janela, boca de canhão) e explode em pedaços.
@@ -78,7 +78,7 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
 ## 7. Regras por categoria
 
 ### Personagens jogáveis
-- Atarracados, inclinados para a frente, base agachada. Cabeça ~1/3 da altura.
+- Atarracados, inclinados para a frente, base agachada e pernas abertas com o joelho dobrado. **Cabeça ~1/4 da altura** (cerca de 10x11 px num corpo de 40 px; pedido do Guilherme em 20/10, cabeça grande ficava "oversized"), tronco largo ocupando o meio do corpo, mãos e botas grandes. Referência pronta: `tools/arte/gente.py`.
 - **O rosto é o mais importante:** pelo menos neutro, grito, dor, olhando para cima, olhando para baixo, suor, bocejo.
 - Cada arma com o seu jeito de segurar (quadril, ombro, cintura, uma mão).
 - Acessórios do cangaço lidos de longe: chapéu de couro com a meia-lua e moedas, cartucheiras de latão, bornal bordado, punhal. Não encher de detalhe pequeno que vira ruído.
