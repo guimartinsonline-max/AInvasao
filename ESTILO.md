@@ -42,7 +42,7 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
 
 ## 4. Paleta
 
-- Paleta fixa em `assets/paleta.json` (230 cores hoje). **Toda cor usada tem nome lá.** Precisa de cor nova? Adiciona na paleta com nome, nunca hex solto no desenho.
+- Paleta fixa em `assets/paleta.json` (151 cores hoje). **Toda cor usada tem nome lá.** Precisa de cor nova? Adiciona na paleta com nome, nunca hex solto no desenho.
 - **Rampas por material** (5 a 7 tons, do mais escuro ao brilho): pele, couro, tecido cáqui/oliva da Volante, madeira, lona, pedra/arenito, metal, carne de alien, gosma.
 - **Rampas saturadas (padrão novo, 20/10):** `pelo_1-7` (branco/pano claro), `fuba_1-7` (marrom alaranjado, pena, couro claro), `carne_1-7` (pele), `verde_1-7` (farda oliva), `negro_1-6` (preto com brilho azulado), `rubro_1-6`, `latao_1-6`, `osso_1-5` (chifre, palha, cru), `aco_1-6` (calça, metal escuro). Cada degrau muda de matiz, não só de claridade: a sombra puxa para o azul/roxo e a luz para o amarelo. Personagens e bichos usam essas; as antigas ficam para o cenário.
 - Sombras puxam para o **frio** (azul/roxo: `sombra`, `azul_sombra`, `sombra_media`); luzes puxam para o **quente** (`areia_clara`, `amarelo_claro`). Nunca escurecer só misturando preto.
@@ -119,7 +119,6 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
   - **Formas grandes com textura dentro:** casa ocupando metade da altura da tela, telha canal em fileiras, reboco caído mostrando a trama, rachadura, lasca, pedra encaixada no chão. Poucas peças grandes em vez de muitas pequenas.
   - **Fundo enevoado** (pouco contraste, mais claro) fechando o horizonte, e **camada de frente** escura (capim, xique-xique) nos cantos.
 - Nível mínimo: o da barraca LAB (`tools/arte/base_detalhe.py`).
-- **Cores do cenário (padrão novo, 20/10):** o cenário é pintado com as cores antigas e o `exportar.py` passa no fim o `tools/arte/cenario_ms.py`, que troca cada uma pela irmã saturada `cen_<nome>` da paleta (terra mais quente e viva, sombra fria, luz quente; céu e telha só um pouco) e acende a beirada de cima-esquerda das peças das camadas de perto, escurecendo a de baixo-direita. Peça nova de cenário continua usando as cores antigas no desenho: a passada cuida do resto. Para incluir um PNG novo de cenário na passada, ponha o nome em `PREFIXOS`/`AVULSOS` do `cenario_ms.py`.
 - Camadas: céu, fundo distante (mais claro e de menor contraste, `nevoa()`), meio, perto, chão de jogo, frente (1,1 de parallax). **Fundo cheio até o alto.**
 - Fundo pintado inteiro para o trecho: **sem repetição visível**.
 - Coerência: nada flutuando, fumaça sempre sai de um fogo visível, passagem entre ambientes suave (sem corte reto).
