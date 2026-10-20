@@ -194,7 +194,6 @@ import fase1  # noqa: E402
 import fase1_extra as fx  # noqa: E402
 folha([npcs.urubu(q) for q in range(3)], SAIDA / "urubu.png")
 folha([npcs.galinha(q) for q in range(6)], SAIDA / "galinha.png")
-folha([fx.galinha_assada()], SAIDA / "comida_galinha.png")
 folha([fx.roupa(q) for q in range(3)], SAIDA / "roupa.png")
 folha([fx.varal(q) for q in range(2)], SAIDA / "varal.png")
 for k, (_x, w_, h_, sem, buraco) in enumerate(fase1.FASE["casas"]):
@@ -234,9 +233,11 @@ folha([av.biruta(q) for q in range(3)], SAIDA / "biruta.png")
 import vila_campo as vca  # noqa: E402
 for nome in ("cacimba", "ninho", "canoa"):
     folha([getattr(vca, nome)(q) for q in range(2)], SAIDA / f"segredo_{nome}.png")
-import comidas as cm  # noqa: E402
-for nome, (fn, _pts) in cm.COMIDAS.items():
+import itens_ms as itm  # noqa: E402  (padrão novo, 20/10: itens com volume3d)
+for nome, fn in itm.COMIDAS_MS.items():
     folha([fn()], SAIDA / f"comida_{nome}.png")
+for k, nome in enumerate(itm.CORES_ARMA):
+    folha([itm.caixa_arma(nome, k)], SAIDA / f"item_{nome}.png")
 folha([lm.chapeu_solto()], SAIDA / "chapeu.png")
 # Retratos do painel: sério, gritando, susto, dor, morto.
 folha([la.retrato(r) for r in ("serio", "grito", "susto", "dor", "morto")], SAIDA / "retrato.png")
@@ -277,7 +278,7 @@ fase2.exportar(SAIDA, RAIZ)
 import fase2b  # noqa: E402
 fase2b.exportar(SAIDA, RAIZ)
 import objetos as obj  # noqa: E402
-folha([obj.barril(0), obj.barril(1)], SAIDA / "barril.png")
+folha([itm.barril(0), itm.barril(1)], SAIDA / "barril.png")
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")
 import veiculos as vc  # noqa: E402
 folha([bl.danificar(bl.blindar(q, semente=3), e, 3) for e in range(4)
@@ -296,7 +297,7 @@ for nome, tela in {
     "planicie": cn.planicie(),
     "caatinga": cn.caatinga(),
     "chao": cn.chao_tile(),
-    "caixote": fase1.caixote_detalhado(),
+    "caixote": itm.caixote(),
     "laje": cn.laje(),
 }.items():
     tela.imagem().save(SAIDA / f"{nome}.png", optimize=True)

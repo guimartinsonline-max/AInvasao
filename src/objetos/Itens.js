@@ -10,7 +10,7 @@ export class Itens {
     this.cena = cena;
     this.grupo = cena.physics.add.group({ maxSize: QUANTOS });
     for (let k = 0; k < QUANTOS; k++) {
-      const item = this.grupo.create(-100, -100, 'item_M').setOrigin(0.5, 1).setDepth(7);
+      const item = this.grupo.create(-100, -100, 'item_madsen').setOrigin(0.5, 1).setDepth(7);
       item.body.setSize(CAIXA_ITEM.largura - 2, CAIXA_ITEM.altura - 2).setOffset(1, 1);
       item.body.setBounce(0.35).setDrag(120, 0).setMaxVelocityY(400);
       item.disableBody(true, true);
