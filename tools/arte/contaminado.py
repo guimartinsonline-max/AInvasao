@@ -242,14 +242,12 @@ def contaminado(pose="parado", k=0, cabeca=True, tumor_=True, bracos=True):
     if pose == "vomita":
         # Golfada saindo da boca (o projétil em arco sai no jogo): grossa, em gomos,
         # com pedaços e respingos.
-        for (x, y, r) in ((27, 21, 1.8), (29.5, 21, 2.4), (32.5, 21.5, 2.8), (35.5, 22.5, 2.5), (38, 24, 2.0)):
+        # Só a boca transbordando: o jato em si são as gotas que saem dela no jogo.
+        for (x, y, r) in ((26.5, 21, 1.6), (27.5, 22.5, 1.2)):
             m = t.elipse(x, y, r, r * 0.85)
             relevo(t, m, domo(t, x, y, r, r * 0.85) * 3, GOSMA, ambiente=0.0, brilho=1.6, linha=False)
-        for (x, y) in ((31, 21), (34, 22), (36, 23)):
-            t.ponto(x, y, "couro")
-        for (x, y) in ((34, 17), (39, 19), (41, 26), (36, 27), (30, 25)):
-            t.ponto(x, y, "alien_luz")
-        t.ponto(42, 22, "alien_brilho")
+        t.linha(26, 23, 26, 26, "alien")
+        t.ponto(26, 27, "alien_luz")
         # Bochechas estufadas e o corpo dando o tranco.
         t.chapado(t.elipse(19.5, 19, 1.6, 1.3), "alien_luz")
 

@@ -321,8 +321,8 @@ export class Jogador {
         if (this.morto || !this.zumbi) return;
         const d = this.direcao;
         // Sai da boca escancarada (quadro golfada) e vai embora junto com o jato.
-        const x = this.x + d * 10;
-        const y = this.pe - 42;
+        const x = this.x + d * 8;
+        const y = this.pe - 19; // boca escancarada do quadro golfada
         // Começa alto e vai baixando (o jato varre o arco de cima para a frente).
         const sobe = 1.05 - (k / (n - 1)) * 0.7 + (Math.random() - 0.5) * 0.12;
         const ang = d > 0 ? -sobe : Math.PI + sobe;

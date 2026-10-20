@@ -58,8 +58,10 @@ export class BalasInimigas {
     for (let k = 0; k < n; k++) {
       this.cena.time.delayedCall(k * 50, () => {
         if (origem && !origem.vivo) return;
-        const ox = origem ? origem.x + origem.direcao * origem.q.cano[0] : x;
-        const oy = origem ? origem.y - origem.q.cano[1] : y;
+        // Sai da boca (q.boca no quadro de vômito), não da ponta do cano.
+        const boca = origem ? (origem.q.boca || origem.q.cano) : null;
+        const ox = origem ? origem.x + origem.direcao * boca[0] : x;
+        const oy = origem ? origem.y - boca[1] : y;
         const d = this.dinamites.get(ox, oy, 'vomito');
         if (!d) return;
         d.setTexture('vomito', k % 3).setActive(true).setVisible(true).setDepth(14).setFlipX(direcao < 0).setRotation(0);

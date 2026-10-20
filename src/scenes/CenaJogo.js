@@ -56,7 +56,8 @@ export class CenaJogo extends Phaser.Scene {
 
     this.balas = new Balas(this, this.solidos, this.alvos, (alvo, bala) => {
       const tipo = bala.tipo;
-      if (alvo.bloqueia && alvo.bloqueia(bala.body.velocity.x)) {
+      // A golfada do zumbi cai por cima: passa por escudo e por refém na frente.
+      if (!tipo.porCima && alvo.bloqueia && alvo.bloqueia(bala.body.velocity.x)) {
         alvo.danoEscudo(Math.max(1, tipo.dano), bala.x, bala.y);
         if (tipo.atravessa) this.balas.recolher(bala);
         return;
