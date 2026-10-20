@@ -303,6 +303,10 @@ for nome, tela in {
     tela.imagem().save(SAIDA / f"{nome}.png", optimize=True)
 folha([cn.touceira(k) for k in range(4)], SAIDA / "touceiras.png")
 
+# Cenários no padrão novo: cores saturadas cen_* e luz de um lado (ESTILO.md).
+import cenario_ms  # noqa: E402
+cenario_ms.aplicar()
+
 # Aumenta a versão dos assets para o navegador não usar cópias velhas.
 config = RAIZ / "src/config.js"
 texto = config.read_text()
