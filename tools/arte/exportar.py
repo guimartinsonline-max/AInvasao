@@ -241,7 +241,7 @@ folha([engordar_rosto(la.retrato(r)) for r in ("serio", "grito", "susto", "dor",
 for nome, quadros in {
     "clarao": [ef.clarao(k) for k in range(3)],
     "clarao_g": [ef.clarao(k, grande=True) for k in range(3)],
-    "tracer": [ef.tracer(k) for k in range(2)],
+    "tracer": [ef.bala_grossa(k, 11, 6, ("laranja_escuro", "laranja_fogo", "amarelo_fogo", "amarelo_claro", "branco")) for k in range(2)],
     "bala_pesada": [ef.bala_pesada(k) for k in range(2)],
     "bala_grossa": [ef.bala_grossa(k) for k in range(2)],
     "bala_inimiga": [ef.bala_inimiga(k) for k in range(2)],

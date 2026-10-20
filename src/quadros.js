@@ -115,7 +115,7 @@ export const EFEITOS = {
   gota_golfada: { largura: 22, altura: 18, quadros: 3 },
   clarao: { largura: 24, altura: 18, quadros: 3 },
   clarao_g: { largura: 33, altura: 25, quadros: 3 },
-  tracer: { largura: 12, altura: 3, quadros: 2 },
+  tracer: { largura: 11, altura: 6, quadros: 2 },
   bala_pesada: { largura: 22, altura: 10, quadros: 2 },
   obus: { largura: 30, altura: 14, quadros: 3 },
   clarao_canhao: { largura: 50, altura: 37, quadros: 3 },
