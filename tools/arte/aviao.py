@@ -21,6 +21,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
 from motor import Tela, IDX  # noqa: E402
+from sombreado import vol as _vol, cel as _cel  # noqa: E402
 import veiculos as vc  # noqa: E402
 
 W, H = 132, 60
@@ -49,7 +50,7 @@ def asa(t, x0, x1, y, espessura=4.5):
         barriga = espessura * 0.18 * math.sqrt(max(0.0, 1 - f)) * 2
         pts.append((x1 - f * corda, y + barriga))
     m = t.poligono(pts)
-    t.volume(m, PRATA, achatado=1.4, suave=0.5, ambiente=0.35, brilho=1.25)
+    _vol(t, m, PRATA, achatado=1.4, suave=0.5, ambiente=0.35, brilho=1.25)
     # Nervuras da lona e o bordo de ataque brilhando.
     for x in range(int(x0) + 5, int(x1) - 3, 5):
         t.px[(np.abs(t.xx - x) < 0.5) & m & (t.yy < y)] = IDX["cinza_medio"]
@@ -58,7 +59,7 @@ def asa(t, x0, x1, y, espessura=4.5):
 
 
 def montante(t, a, b, r=0.8):
-    t.cel(t.capsula(a[0], a[1], b[0], b[1], r), FERRO, sombra=0)
+    _cel(t, t.capsula(a[0], a[1], b[0], b[1], r), FERRO, sombra=0)
 
 
 def biplano(q=0):
@@ -76,30 +77,30 @@ def biplano(q=0):
     # Fuselagem de lona esticada sobre a estrutura (afinando até a cauda).
     corpo = t.poligono([(103, 22), (86, 19.5), (60, 20.5), (30, 25), (12, 28), (10, 30.5), (12, 33),
                         (30, 35.5), (60, 39.5), (86, 41), (103, 40)])
-    t.volume(corpo, OLIVA, achatado=4, suave=1.4, ambiente=0.3, textura=0.06, semente=3)
+    _vol(t, corpo, OLIVA, achatado=4, suave=1.4, ambiente=0.3, textura=0.06, semente=3)
     # Nervuras das cavernas e longarinas aparecendo pela lona.
     for x in range(22, 100, 7):
         t.px[(np.abs(t.xx - x) < 0.5) & corpo & ~(t.yy < 23)] = IDX["caatinga_esc"]
     t.px[corpo & (np.abs(t.yy - (24 + (100 - t.xx) * 0.03)) < 0.5)] = IDX["mandacaru"]
     # Faixa de chapa perto do motor (rebites).
     chapa = corpo & (t.xx > 92)
-    t.volume(chapa, FERRO, achatado=2, suave=0.6, ambiente=0.35, brilho=1.1)
+    _vol(t, chapa, FERRO, achatado=2, suave=0.6, ambiente=0.35, brilho=1.1)
     for y in range(23, 40, 3):
         t.ponto(93, y, "cinza_claro")
     # Escapamento soltando fuligem pelo lado.
-    t.cel(t.capsula(88, 35, 70, 36.5, 1.1), MOTOR, sombra=0)
+    _cel(t, t.capsula(88, 35, 70, 36.5, 1.1), MOTOR, sombra=0)
     t.chapado(t.elipse(66, 36, 3.5, 1.2) & corpo, "caatinga_esc")
     # Estrela da aviação na fuselagem: círculo azul, estrela amarela.
-    t.cel(t.elipse(30, 31, 4.6, 4.6) & corpo, ["sombra", "ceu_escuro", "azul_medio", "ceu_medio"], sombra=1)
+    _cel(t, t.elipse(30, 31, 4.6, 4.6) & corpo, ["sombra", "ceu_escuro", "azul_medio", "ceu_medio"], sombra=1)
     estrela = []
     for k in range(10):
         a = -math.pi / 2 + k * math.pi / 5
         r = 4.2 if k % 2 == 0 else 1.8
         estrela.append((30 + math.cos(a) * r * 0.9, 31 + math.sin(a) * r * 0.9))
-    t.cel(t.poligono(estrela), ["ouro_escuro", "amarelo_fogo", "amarelo_fogo", "amarelo_claro"], sombra=0)
+    _cel(t, t.poligono(estrela), ["ouro_escuro", "amarelo_fogo", "amarelo_fogo", "amarelo_claro"], sombra=0)
     # Leme listrado de verde e amarelo (como os aviões militares brasileiros da época).
     leme = t.poligono([(11, 29), (7, 16), (9, 12.5), (15, 12), (22, 27)])
-    t.volume(leme, OLIVA, achatado=2, suave=0.6, ambiente=0.35)
+    _vol(t, leme, OLIVA, achatado=2, suave=0.6, ambiente=0.35)
     for k, cor in enumerate(("caatinga", "amarelo_fogo", "caatinga")):
         faixa = leme & (t.xx >= 8 + k * 2.6) & (t.xx < 10.6 + k * 2.6)
         t.chapado(faixa, cor)
@@ -107,19 +108,19 @@ def biplano(q=0):
     # Cabines: buraco escuro com a borda de couro acolchoada.
     for cx_, larg in ((80, 9), (46, 9)):
         t.chapado(t.elipse(cx_, 21, larg / 2, 2.2) & (t.yy > 19), "preto")
-        t.cel(t.capsula(cx_ - larg / 2, 21.5, cx_ + larg / 2, 21, 0.8), COURO, sombra=0)
+        _cel(t, t.capsula(cx_ - larg / 2, 21.5, cx_ + larg / 2, 21, 0.8), COURO, sombra=0)
     # Para-brisa do piloto.
     t.chapado(t.poligono([(85, 21), (87, 15.5), (88.5, 15.5), (88, 21)]), "ceu_medio")
     t.linha(87, 15.5, 88.5, 15.5, "cinza_claro")
     # Piloto: capacete de couro, óculos de aviador, cachecol branco voando para trás.
     if not queimado:
         hx, hy = 79.5, 15.5
-        t.cel(t.elipse(hx, hy, 4, 4), COURO, sombra=1)
-        t.cel(t.elipse(hx + 2.5, hy + 1.5, 2.5, 2.3), PELE, sombra=1)
-        t.cel(t.capsula(hx - 1, hy, hx + 4.5, hy, 1.2), ["sombra", "cinza_escuro", "cinza_medio"], sombra=0)
+        _cel(t, t.elipse(hx, hy, 4, 4), COURO, sombra=1)
+        _cel(t, t.elipse(hx + 2.5, hy + 1.5, 2.5, 2.3), PELE, sombra=1)
+        _cel(t, t.capsula(hx - 1, hy, hx + 4.5, hy, 1.2), ["sombra", "cinza_escuro", "cinza_medio"], sombra=0)
         t.chapado(t.elipse(hx + 3.5, hy, 1.2, 1.1), "ceu_claro")
         t.ponto(hx + 3, hy - 1, "branco")
-        t.cel(t.poligono([(hx - 1, hy + 3.5), (hx - 9, hy + 2.5 - q % 2), (hx - 12, hy + 4 - q % 2), (hx - 2, hy + 5)]),
+        _cel(t, t.poligono([(hx - 1, hy + 3.5), (hx - 9, hy + 2.5 - q % 2), (hx - 12, hy + 4 - q % 2), (hx - 2, hy + 5)]),
               ["cinza_luz", "cinza_claro", "branco", "branco"], sombra=0)
     # Asa de cima com os montantes de cabana e os montantes em N entre as asas.
     montante(t, (76, 20), (73, 11))
@@ -133,18 +134,18 @@ def biplano(q=0):
     vc.roda(t, rx, ry, rr, quadro=q % 3, raios=5)
     # Motor radial: capô redondo e os cilindros com aletas aparecendo.
     capo = t.elipse(105, 31, 5.5, 10.5)
-    t.volume(capo, MOTOR, achatado=2.5, suave=0.7, ambiente=0.3, brilho=1.2)
+    _vol(t, capo, MOTOR, achatado=2.5, suave=0.7, ambiente=0.3, brilho=1.2)
     for k in range(5):
         a = -1.1 + k * 0.55
         cy = 31 + math.sin(a) * 8.5
-        t.cel(t.capsula(106, cy, 110, cy, 1.4), FERRO, sombra=0)
+        _cel(t, t.capsula(106, cy, 110, cy, 1.4), FERRO, sombra=0)
         t.pontos([(107, int(cy)), (109, int(cy))], "sombra")
-    t.cel(t.elipse(111.5, 31, 1.8, 2.6), MOTOR, sombra=0)  # cubo
+    _cel(t, t.elipse(111.5, 31, 1.8, 2.6), MOTOR, sombra=0)  # cubo
     t.contorno("sombra")
     # Hélice de madeira (desenhada depois do contorno para o borrão ficar leve).
     if q == 0 or queimado:
         pa = t.capsula(113, 14, 113, 48, 1.3)
-        t.cel(pa, MADEIRA, sombra=1)
+        _cel(t, pa, MADEIRA, sombra=1)
         t.chapado(t.retangulo(112.4, 14, 1.4, 3), "cinza_claro")  # ponteira de metal
         t.chapado(t.retangulo(112.4, 45, 1.4, 3), "cinza_claro")
     else:
@@ -153,9 +154,9 @@ def biplano(q=0):
         xadrez = ((t.xx.astype(int) + t.yy.astype(int) + q) % 3) == 0
         t.px[disco & xadrez] = IDX["cinza_claro"]
         meia = {1: (14, 31), 2: (31, 48), 3: (22, 40)}[q]
-        t.cel(t.capsula(113.5, meia[0], 113.5, meia[1], 1.1), MADEIRA, sombra=0)
+        _cel(t, t.capsula(113.5, meia[0], 113.5, meia[1], 1.1), MADEIRA, sombra=0)
         t.pontos([(113, 13 + q * 2), (114, 49 - q * 2)], "branco")
-    t.cel(t.elipse(114, 31, 1.6, 1.8), FERRO, sombra=0)
+    _cel(t, t.elipse(114, 31, 1.6, 1.8), FERRO, sombra=0)
     if queimado:
         vc.queimar(t, semente=9)
     return t
@@ -170,17 +171,17 @@ def artilheiro(q=0):
     morto = q == 3
     # Anel de ferro em volta da cabine, com rebites e o pino que segura a arma.
     anel = t.capsula(3, 21, 25, 21, 1.6)
-    t.cel(anel, FERRO, sombra=1)
+    _cel(t, anel, FERRO, sombra=1)
     for x in range(5, 25, 4):
         t.ponto(x, 20, "cinza_luz")
-    t.cel(t.capsula(14, 20, 14, 15, 1.1), FERRO, sombra=0)  # pino
+    _cel(t, t.capsula(14, 20, 14, 15, 1.1), FERRO, sombra=0)  # pino
     if morto:
         # Debruçado para fora da cabine, braços pendurados, olhos em X.
         corpo = t.elipse(10, 17, 5, 4)
-        t.volume(corpo, ["sombra", "couro_escuro", "couro", "couro_medio"], achatado=2, suave=0.6)
-        t.cel(t.elipse(5, 19, 3.6, 3.4), COURO, sombra=1)
-        t.cel(t.elipse(4, 21, 2.4, 1.8), PELE, sombra=1)
-        t.cel(t.capsula(8, 19, 6, 23.5, 1.1), ["sombra", "couro_escuro", "couro"], sombra=0)
+        _vol(t, corpo, ["sombra", "couro_escuro", "couro", "couro_medio"], achatado=2, suave=0.6)
+        _cel(t, t.elipse(5, 19, 3.6, 3.4), COURO, sombra=1)
+        _cel(t, t.elipse(4, 21, 2.4, 1.8), PELE, sombra=1)
+        _cel(t, t.capsula(8, 19, 6, 23.5, 1.1), ["sombra", "couro_escuro", "couro"], sombra=0)
         t.linha(3, 20, 5, 22, "preto")
         t.linha(3, 22, 5, 20, "preto")
         t.contorno("sombra")
@@ -188,23 +189,23 @@ def artilheiro(q=0):
     baixo = q == 1
     # Jaqueta de couro com gola de pele, cachecol vermelho esvoaçando.
     corpo = t.elipse(16, 16, 5, 5) & (t.yy < 21)
-    t.volume(corpo, ["sombra", "couro_escuro", "couro", "couro_medio", "couro_luz"], achatado=2, suave=0.6, ambiente=0.3)
-    t.cel(t.capsula(17, 12, 24, 11 + (1 if q == 2 else 0), 1.0, 0.5), ["vermelho_esc", "vermelho_medio", "vermelho"], sombra=0)
+    _vol(t, corpo, ["sombra", "couro_escuro", "couro", "couro_medio", "couro_luz"], achatado=2, suave=0.6, ambiente=0.3)
+    _cel(t, t.capsula(17, 12, 24, 11 + (1 if q == 2 else 0), 1.0, 0.5), ["vermelho_esc", "vermelho_medio", "vermelho"], sombra=0)
     hx, hy = (14, 10) if baixo else (15, 9)
     # Capacete de couro com abas, óculos de aviador puxados nos olhos.
-    t.cel(t.elipse(hx, hy, 3.8, 3.8), COURO, sombra=1)
-    t.cel(t.elipse(hx - 2.3, hy + 1.3 + (1 if baixo else 0), 2.3, 2.2), PELE, sombra=1)
-    t.cel(t.capsula(hx - 4.5, hy, hx + 1, hy, 1.1), ["sombra", "cinza_escuro", "cinza_medio"], sombra=0)
+    _cel(t, t.elipse(hx, hy, 3.8, 3.8), COURO, sombra=1)
+    _cel(t, t.elipse(hx - 2.3, hy + 1.3 + (1 if baixo else 0), 2.3, 2.2), PELE, sombra=1)
+    _cel(t, t.capsula(hx - 4.5, hy, hx + 1, hy, 1.1), ["sombra", "cinza_escuro", "cinza_medio"], sombra=0)
     t.chapado(t.elipse(hx - 3.5, hy, 1.1, 1), "ceu_claro")
     t.ponto(hx - 3.9, hy - 0.4, "branco")
-    t.cel(t.capsula(hx + 2.5, hy + 1, hx + 3, hy + 4, 0.9), COURO, sombra=0)  # aba do capacete
+    _cel(t, t.capsula(hx + 2.5, hy + 1, hx + 3, hy + 4, 0.9), COURO, sombra=0)  # aba do capacete
     if q == 2:
         t.chapado(t.elipse(hx - 2.2, hy + 3.4, 1.0, 0.9), "preto")  # gritando
     else:
         t.ponto(hx - 2, hy + 3.5, "preto")
     # Braços nos punhos da arma (que fica no pino em 14,14).
-    t.cel(t.capsula(16, 15, 11, 14, 1.3), ["sombra", "couro_escuro", "couro", "couro_medio"], sombra=0)
-    t.cel(t.elipse(10.5, 14, 1.5, 1.3), PELE, sombra=0)
+    _cel(t, t.capsula(16, 15, 11, 14, 1.3), ["sombra", "couro_escuro", "couro", "couro_medio"], sombra=0)
+    _cel(t, t.elipse(10.5, 14, 1.5, 1.3), PELE, sombra=0)
     t.contorno("sombra")
     return t
 
@@ -218,26 +219,26 @@ def metralhadora_torreta(q=0):
     r = -1 if q == 1 else 0  # recuo
     cy = 6
     # Punho de pá (madeira) e coronha curta.
-    t.cel(t.capsula(1 + r, cy + 1, 5 + r, cy + 1, 1.6), MADEIRA, sombra=1)
-    t.cel(t.capsula(2 + r, cy - 1, 2 + r, cy + 3, 0.9), MADEIRA, sombra=0)
+    _cel(t, t.capsula(1 + r, cy + 1, 5 + r, cy + 1, 1.6), MADEIRA, sombra=1)
+    _cel(t, t.capsula(2 + r, cy - 1, 2 + r, cy + 3, 0.9), MADEIRA, sombra=0)
     # Culatra.
-    t.cel(t.retangulo(5 + r, cy - 1.5, 7, 4), FERRO, sombra=1)
+    _cel(t, t.retangulo(5 + r, cy - 1.5, 7, 4), FERRO, sombra=1)
     t.ponto(9 + r, cy + 2.5, "preto")  # gatilho
     # Camisa de refrigeração grossa com aletas.
     camisa = t.capsula(12 + r, cy, 23 + r, cy, 2.3, 1.9)
-    t.cel(camisa, ["preto", "sombra", "cinza_escuro", "cinza_medio"], sombra=1)
+    _cel(t, camisa, ["preto", "sombra", "cinza_escuro", "cinza_medio"], sombra=1)
     for x in range(13, 23, 2):
         t.linha(x + r, cy - 1.5, x + r, cy + 1.5, "sombra")
     t.linha(13 + r, cy - 1.8, 22 + r, cy - 1.8, "cinza")  # brilho de cima
     # Cano e quebra-chamas na boca.
-    t.cel(t.capsula(23 + r, cy, 27 + r, cy, 0.9), FERRO, sombra=0)
-    t.cel(t.retangulo(26 + r, cy - 1.2, 2, 2.6), FERRO, sombra=0)
+    _cel(t, t.capsula(23 + r, cy, 27 + r, cy, 0.9), FERRO, sombra=0)
+    _cel(t, t.retangulo(26 + r, cy - 1.2, 2, 2.6), FERRO, sombra=0)
     # Massa de mira e alça.
     t.ponto(25 + r, cy - 2, "cinza_escuro")
     t.ponto(11 + r, cy - 3, "cinza_escuro")
     # Tambor chato em cima: disco cinza com raios e o centro.
     tambor = t.elipse(8 + r, cy - 3.2, 4.2, 1.6)
-    t.cel(tambor, ["sombra", "cinza_escuro", "cinza_medio", "cinza"], sombra=1)
+    _cel(t, tambor, ["sombra", "cinza_escuro", "cinza_medio", "cinza"], sombra=1)
     for dx in (-2.5, -0.8, 0.9, 2.6):
         t.ponto(8 + dx + r, cy - 3.4, "sombra")
     t.ponto(8 + r, cy - 3.8, "cinza_luz")
@@ -252,11 +253,11 @@ def metralhadora_torreta(q=0):
 def bomba(q=0):
     t = Tela(14, 8)
     corpo = t.elipse(7, 4, 5.5, 2.6)
-    t.volume(corpo, ["sombra", "caatinga_esc", "caatinga_media", "caatinga"], achatado=1.5, suave=0.5, ambiente=0.35)
+    _vol(t, corpo, ["sombra", "caatinga_esc", "caatinga_media", "caatinga"], achatado=1.5, suave=0.5, ambiente=0.35)
     t.chapado(t.retangulo(8, 1.6, 1, 4.8) & corpo, "amarelo_fogo")  # faixa
     d = 1 if q else 0
-    t.cel(t.poligono([(1.5, 4), (0, 1 + d), (2.5, 2.5)]), FERRO, sombra=0)
-    t.cel(t.poligono([(1.5, 4), (0, 7 - d), (2.5, 5.5)]), FERRO, sombra=0)
+    _cel(t, t.poligono([(1.5, 4), (0, 1 + d), (2.5, 2.5)]), FERRO, sombra=0)
+    _cel(t, t.poligono([(1.5, 4), (0, 7 - d), (2.5, 5.5)]), FERRO, sombra=0)
     t.contorno("sombra")
     return t
 
@@ -264,12 +265,12 @@ def bomba(q=0):
 def biruta(q=0):
     """Mastro com a biruta listrada de laranja e branco (18x46), pé no centro de baixo."""
     t = Tela(26, 46)
-    t.cel(t.capsula(4, 45, 4, 4, 0.9), FERRO, sombra=0)
+    _cel(t, t.capsula(4, 45, 4, 4, 0.9), FERRO, sombra=0)
     t.chapado(t.elipse(4, 4, 1.4, 1.4), "cinza_claro")
     cai = (0, 2, 4)[q]
     pts = [(5, 4), (24, 5 + cai), (24, 9 + cai), (5, 10)]
     m = t.poligono(pts)
-    t.volume(m, ["laranja_escuro", "laranja_fogo", "amarelo_fogo"], achatado=1.2, suave=0.4, ambiente=0.4)
+    _vol(t, m, ["laranja_escuro", "laranja_fogo", "amarelo_fogo"], achatado=1.2, suave=0.4, ambiente=0.4)
     for k in range(2):
         x0 = 10 + k * 8
         t.chapado(m & (t.xx >= x0) & (t.xx < x0 + 4), "branco")

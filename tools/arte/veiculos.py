@@ -16,6 +16,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
 from motor import Tela, IDX  # noqa: E402
+from sombreado import vol as _vol, cel as _cel  # noqa: E402
 
 OLIVA = ["sombra", "caatinga_esc", "caatinga_media", "caatinga", "mandacaru"]
 OLIVA_ESC = ["preto", "sombra", "caatinga_esc", "caatinga_media", "caatinga"]
@@ -56,11 +57,11 @@ def queimar(t, semente=0):
 
 def roda(t, cx, cy, r, quadro, raios=4):
     """Pneu com banda, aro de ferro e raios que giram entre os quadros."""
-    t.volume(t.elipse(cx, cy, r, r), PNEU, achatado=2, suave=0.6, ambiente=0.15)
+    _vol(t, t.elipse(cx, cy, r, r), PNEU, achatado=2, suave=0.6, ambiente=0.15)
     for k in range(10):  # cravos da banda
         a = k / 10 * 2 * np.pi + quadro * 0.31
         t.ponto(cx + np.cos(a) * (r - 0.8), cy + np.sin(a) * (r - 0.8), "preto")
-    t.volume(t.elipse(cx, cy, r * 0.55, r * 0.55), FERRO, achatado=1.5, suave=0.5, ambiente=0.3)
+    _vol(t, t.elipse(cx, cy, r * 0.55, r * 0.55), FERRO, achatado=1.5, suave=0.5, ambiente=0.3)
     for k in range(raios):
         a = k / raios * np.pi + quadro * np.pi / (raios * 2)
         dx, dy = np.cos(a) * r * 0.5, np.sin(a) * r * 0.5
@@ -77,15 +78,15 @@ def caminhao(quadro=0, giro=None):
     bob = 1 if quadro == 1 else 0
     y0 = -bob  # carroceria sobe 1 px num dos quadros (motor sacudindo)
     # Chassi e para-choque.
-    t.volume(t.retangulo(4, 44 + y0, 112, 4), FERRO, achatado=1.5, suave=0.4)
-    t.volume(t.retangulo(110, 42 + y0, 10, 4), FERRO, achatado=1.5, suave=0.4, brilho=1.2)
+    _vol(t, t.retangulo(4, 44 + y0, 112, 4), FERRO, achatado=1.5, suave=0.4)
+    _vol(t, t.retangulo(110, 42 + y0, 10, 4), FERRO, achatado=1.5, suave=0.4, brilho=1.2)
     # Carroceria de tábuas.
     caixa = t.retangulo(3, 27 + y0, 64, 18)
-    t.volume(caixa, TABUA, achatado=2, suave=0.6, ambiente=0.3, textura=0.08, semente=3)
+    _vol(t, caixa, TABUA, achatado=2, suave=0.6, ambiente=0.3, textura=0.08, semente=3)
     for y in (32, 37, 42):
         t.linha(3, y + y0, 66, y + y0, "couro_profundo")
     for x in (3, 22, 44, 66):
-        t.volume(t.retangulo(x - 1, 27 + y0, 3, 18), FERRO, achatado=1, suave=0.3)
+        _vol(t, t.retangulo(x - 1, 27 + y0, 3, 18), FERRO, achatado=1, suave=0.3)
         t.pontos([(x, 29 + y0), (x, 42 + y0)], "cinza_luz")
     # Lona arqueada com as varetas marcando.
     if quadro == 3:
@@ -94,7 +95,7 @@ def caminhao(quadro=0, giro=None):
         t.linha(8, 12 + y0, 62, 12 + y0, "sombra")
     else:
         lona = t.elipse(35, 28 + y0, 33, 21) & (t.yy < 28 + y0) & (t.xx > 2) & (t.xx < 68)
-        t.volume(lona, LONA, achatado=4, suave=1.2, ambiente=0.25, textura=0.1, semente=5)
+        _vol(t, lona, LONA, achatado=4, suave=1.2, ambiente=0.25, textura=0.1, semente=5)
         for x in (12, 24, 35, 46, 58):
             m = lona & (np.abs(t.xx - x) < 0.8)
             t.px[m] = IDX["terra"]
@@ -108,12 +109,12 @@ def caminhao(quadro=0, giro=None):
             t.chapado(abre & (t.xx > 9), "marrom_noite")
             t.chapado(t.retangulo(3, 27 + y0, 6, 17), "sombra")
             # Lona enrolada presa em cima da abertura.
-            t.volume(t.capsula(3, 14 + y0, 13, 13 + y0, 2.4), LONA, achatado=1, suave=0.3, ambiente=0.4)
+            _vol(t, t.capsula(3, 14 + y0, 13, 13 + y0, 2.4), LONA, achatado=1, suave=0.3, ambiente=0.4)
     # Cabine: teto arredondado, janela, porta.
     cab = (t.retangulo(68, 18 + y0, 24, 27) | t.elipse(80, 19 + y0, 12, 5)) & (t.yy > 13 + y0)
-    t.volume(cab, OLIVA, achatado=3, suave=1, ambiente=0.25, textura=0.0, semente=2)
+    _vol(t, cab, OLIVA, achatado=3, suave=1, ambiente=0.25, textura=0.0, semente=2)
     jan = t.retangulo(73, 21 + y0, 15, 9)
-    t.volume(jan, VIDRO, achatado=1.5, suave=0.5, ambiente=0.1)
+    _vol(t, jan, VIDRO, achatado=1.5, suave=0.5, ambiente=0.1)
     t.linha(75, 22 + y0, 78, 22 + y0, "ceu_luz")
     t.linha(72, 31 + y0, 72, 43 + y0, "caatinga_esc")
     t.linha(88, 31 + y0, 88, 43 + y0, "caatinga_esc")
@@ -125,28 +126,86 @@ def caminhao(quadro=0, giro=None):
     t.chapado(est, "branco")
     # Capô comprido com grade e farol.
     capo = t.poligono([(92, 27 + y0), (112, 29 + y0), (114, 44 + y0), (92, 44 + y0)])
-    t.volume(capo, OLIVA, achatado=3, suave=1, ambiente=0.3, textura=0.0, semente=4)
+    _vol(t, capo, OLIVA, achatado=3, suave=1, ambiente=0.3, textura=0.0, semente=4)
     for y in (33, 37):
         t.linha(96, y + y0, 108, y + y0, "caatinga_esc")
     grade = t.retangulo(112, 28 + y0, 5, 15)
-    t.volume(grade, FERRO, achatado=1.5, suave=0.4)
+    _vol(t, grade, FERRO, achatado=1.5, suave=0.4)
     for y in range(29, 43, 2):
         t.linha(112, y + y0, 116, y + y0, "sombra")
     farol = t.elipse(110, 27 + y0, 3.2, 3)
-    t.volume(farol, FERRO, achatado=1, suave=0.3)
+    _vol(t, farol, FERRO, achatado=1, suave=0.3)
     t.chapado(t.elipse(111, 27 + y0, 2, 2), "amarelo_claro" if quadro != 3 else "sombra")
     # Para-lamas redondos por cima das rodas.
     for cx in (26, 100):
         pl = t.elipse(cx, 50 + y0, 14, 9) & (t.yy < 50 + y0) & ~t.elipse(cx, 50 + y0, 11, 7)
-        t.volume(pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
+        _vol(t, pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
     # Rodas (com raios girando) e estepe.
     q = giro if giro is not None else (quadro if andando else 0)
     roda(t, 26, chao - 9.5, 9.5, q)
     roda(t, 100, chao - 9.5, 9.5, q)
+    _detalhar_caminhao(t, y0, quadro)
     t.contorno("sombra")
     if quadro == 3:
         queimar(t, 7)
     return t
+
+
+def _detalhar_caminhao(t, y0, quadro):
+    """Detalhes no nível novo: cordas cruzadas e remendo na lona com VOLANTE em
+    estêncil, veio e pregos nas tábuas, motorista de quepe na janela, retrovisor,
+    estribo com o galão, venezianas no capô, tampa do radiador, placa, para-choque e
+    escapamento."""
+    import base_detalhe as bd
+    if quadro != 3:
+        lona = (t.yy < 28 + y0) & (t.yy > 7 + y0) & (t.xx > 3) & (t.xx < 67) & (t.px != -1)
+        for x0 in (6, 28, 50):
+            for k in range(14):
+                for (a, b) in ((x0 + k, 26 + y0 - k * 0.9), (x0 + 13 - k, 26 + y0 - k * 0.9)):
+                    if 0 <= int(b) < t.h and lona[int(b), int(a)]:
+                        t.ponto(a, b, "terra_escura" if k % 2 else "areia_luz")
+        rem = t.retangulo(40, 16 + y0, 8, 6) & lona
+        t.chapado(rem, "terra_media")
+        for k in range(0, 8, 2):
+            t.ponto(40 + k, 16 + y0, "terra_escura")
+            t.ponto(40 + k, 21 + y0, "terra_escura")
+        faixa = t.retangulo(11, 15 + y0, 45, 11) & lona
+        t.chapado(faixa, "terra")
+        t.linha(11, 15 + y0, 55, 15 + y0, "terra_media")
+        bd.letreiro(t, "VOLANTE", 13, int(17 + y0), "areia_clara", sombra="terra_escura")
+    # Veio e pregos nas tábuas da carroceria.
+    for y in (30, 35, 40):
+        for x in range(5, 66, 9):
+            t.linha(x, y + y0, x + 4, y + y0, "couro_medio")
+    for x in (10, 32, 54):
+        for y in (29, 34, 39):
+            t.ponto(x, y + y0, "cinza_luz")
+    if quadro != 3:
+        # Motorista de quepe na janela.
+        t.chapado(t.elipse(80, 26 + y0, 2.6, 2.8), "pele_media")
+        t.chapado(t.retangulo(77, 22 + y0, 6, 2), "caatinga_esc")
+        t.chapado(t.retangulo(81, 23.5 + y0, 3, 1), "sombra")
+        t.ponto(81.5, 25.5 + y0, "preto")
+        t.chapado(t.retangulo(78, 28 + y0, 5, 2), "caatinga_media")
+    # Retrovisor, estribo, galão.
+    t.linha(90, 22 + y0, 93, 19 + y0, "sombra")
+    t.chapado(t.retangulo(92, 17 + y0, 3, 3), "cinza_luz")
+    t.chapado(t.retangulo(68, 45 + y0, 24, 2), "cinza_medio")
+    t.linha(68, 45 + y0, 91, 45 + y0, "cinza_luz")
+    gal = t.retangulo(70, 38 + y0, 6, 7)
+    _cel(t, gal, ["sombra", "vermelho_esc", "vermelho_medio", "vermelho"], sombra=1)
+    t.ponto(71, 37 + y0, "cinza_luz")
+    # Venezianas do capô, tampa do radiador, placa, para-choque, escapamento.
+    for k in range(5):
+        x = 97 + k * 3
+        t.linha(x, 39 + y0, x + 1, 42 + y0, "sombra")
+        t.ponto(x - 1, 39 + y0, "mandacaru")
+    t.chapado(t.retangulo(110, 26 + y0, 3, 2), "cinza_claro")
+    t.chapado(t.retangulo(113, 44 + y0, 8, 4), "amarelo_claro")
+    t.linha(114, 45 + y0, 119, 45 + y0, "sombra")
+    t.linha(114, 46.5 + y0, 117, 46.5 + y0, "sombra")
+    t.linha(2, 46 + y0, 0, 47 + y0, "sombra")
+    t.ponto(111, 26 + y0, "branco")
 
 
 def rebites(t, pontos):
@@ -167,8 +226,8 @@ def blindado(quadro=0, giro=None):
     rng = np.random.default_rng(4)
     # --- Atrás de tudo: estepe pendurado na traseira, antena e escapamento.
     estepe = t.elipse(9, 44 + y0, 7, 10)
-    t.volume(estepe, PNEU, achatado=2, suave=0.6, ambiente=0.15)
-    t.volume(t.elipse(9, 44 + y0, 3, 5), FERRO, achatado=1, suave=0.3)
+    _vol(t, estepe, PNEU, achatado=2, suave=0.6, ambiente=0.15)
+    _vol(t, t.elipse(9, 44 + y0, 3, 5), FERRO, achatado=1, suave=0.3)
     if not torre_quebrada:
         t.linha(50, 14 + y0, 38, 2, "cinza_escuro")  # antena chicote
         bandeira = t.poligono([(39, 3), (48, 5), (40, 8)])
@@ -178,38 +237,38 @@ def blindado(quadro=0, giro=None):
     rec = 4 if quadro == 2 else 0
     if not torre_quebrada:
         cano = t.capsula(78 - rec, 19 + y0, 120 - rec, 18 + y0, 2.6)
-        t.volume(cano, FERRO, achatado=1.5, suave=0.4, ambiente=0.2, brilho=1.1)
+        _vol(t, cano, FERRO, achatado=1.5, suave=0.4, ambiente=0.2, brilho=1.1)
         t.linha(84 - rec, 17 + y0, 116 - rec, 16.5 + y0, "cinza_claro")  # brilho do cano
         for x in (96, 106):
             t.chapado(t.retangulo(x - rec, 15.5 + y0, 2, 6), "cinza_escuro")  # anéis
-        t.volume(t.retangulo(115 - rec, 14.5 + y0, 8, 8), FERRO, achatado=1.5, suave=0.4)  # freio de boca
+        _vol(t, t.retangulo(115 - rec, 14.5 + y0, 8, 8), FERRO, achatado=1.5, suave=0.4)  # freio de boca
         t.chapado(t.retangulo(117 - rec, 15.5 + y0, 1, 6), "sombra")
         t.chapado(t.retangulo(121 - rec, 17 + y0, 2, 2), "preto")
     else:
-        t.volume(t.capsula(78, 19 + y0, 90, 21 + y0, 2.6), FERRO, achatado=1.5, suave=0.4)  # toco quebrado
+        _vol(t, t.capsula(78, 19 + y0, 90, 21 + y0, 2.6), FERRO, achatado=1.5, suave=0.4)  # toco quebrado
         for k, (x, y) in enumerate(((90, 18), (91, 22), (92, 20), (91, 16))):
             t.ponto(x, y + y0, "cinza_luz" if k % 2 else "sombra")
     # --- Torre arredondada, mantelete do canhão, escotilha e fenda de visão.
     torre = t.poligono([(42, 32 + y0), (46, 15 + y0), (56, 9 + y0), (78, 9 + y0), (86, 16 + y0), (88, 32 + y0)])
-    t.volume(torre, OLIVA, achatado=4, suave=1.2, ambiente=0.25, textura=0.0, semente=9)
+    _vol(t, torre, OLIVA, achatado=4, suave=1.2, ambiente=0.25, textura=0.0, semente=9)
     t.linha(47, 15 + y0, 56, 10 + y0, "mandacaru_luz")
     t.linha(56, 10 + y0, 77, 10 + y0, "mandacaru_luz")
     if not torre_quebrada:
         mant = t.retangulo(80, 12 + y0, 9, 14)
-        t.volume(mant, OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35, textura=0.0, semente=3)
+        _vol(t, mant, OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35, textura=0.0, semente=3)
         rebites(t, [(82, 14 + y0), (87, 14 + y0), (82, 23 + y0), (87, 23 + y0)])
     # Tripulante da Volante saindo da escotilha até o peito (quepe, olhão, narigão, bigodão).
     if not torre_quebrada:
         PELE_ = ["pele_sombra", "pele_media", "pele", "pele_luz"]
         ombros = t.elipse(64, 7 + y0, 8, 4) & (t.yy < 9 + y0)
-        t.volume(ombros, OLIVA, achatado=2, suave=0.5, ambiente=0.3)
+        _vol(t, ombros, OLIVA, achatado=2, suave=0.5, ambiente=0.3)
         t.linha(60, 5 + y0, 66, 9 + y0, "couro_escuro")  # correia
         cab = t.elipse(64, -1 + y0, 5.5, 6)
-        t.volume(cab, PELE_, achatado=2.5, suave=0.6, ambiente=0.3)
-        t.volume(t.elipse(59, 0 + y0, 1.6, 2.2), PELE_, achatado=1, suave=0.3, deslocar=-0.2)  # orelha
+        _vol(t, cab, PELE_, achatado=2.5, suave=0.6, ambiente=0.3)
+        _vol(t, t.elipse(59, 0 + y0, 1.6, 2.2), PELE_, achatado=1, suave=0.3, deslocar=-0.2)  # orelha
         quepe = t.retangulo(58, -9 + y0, 12, 5) | t.elipse(64, -9 + y0, 6, 2.5)
-        t.volume(quepe, OLIVA, achatado=1.5, suave=0.4, ambiente=0.3)
-        t.volume(t.poligono([(65, -4 + y0), (74, -3 + y0), (74, -2 + y0), (65, -2.5 + y0)]), OLIVA_ESC,
+        _vol(t, quepe, OLIVA, achatado=1.5, suave=0.4, ambiente=0.3)
+        _vol(t, t.poligono([(65, -4 + y0), (74, -3 + y0), (74, -2 + y0), (65, -2.5 + y0)]), OLIVA_ESC,
                  achatado=1, suave=0.2)  # aba
         t.chapado(t.retangulo(62, -8 + y0, 2, 2), "amarelo_fogo")  # distintivo
         t.chapado(t.elipse(67, -1 + y0, 2, 2.2), "branco")  # olho
@@ -217,13 +276,13 @@ def blindado(quadro=0, giro=None):
         t.ponto(68, 0 + y0, "preto")
         t.linha(65, -3.5 + y0, 69, -2.5 + y0, "couro_profundo")  # sobrancelha
         nariz = t.elipse(70.5, 2 + y0, 3, 2.6)
-        t.volume(nariz, PELE_, achatado=1.5, suave=0.4, ambiente=0.35)
+        _vol(t, nariz, PELE_, achatado=1.5, suave=0.4, ambiente=0.35)
         t.ponto(70, 1 + y0, "pele_brilho")
         bigode = t.elipse(68, 5 + y0, 5, 1.6)
-        t.volume(bigode, ["preto", "sombra", "couro_profundo"], achatado=1, suave=0.3)
+        _vol(t, bigode, ["preto", "sombra", "couro_profundo"], achatado=1, suave=0.3)
         t.chapado(t.retangulo(66, 6 + y0, 3, 1), "vermelho_medio")  # boca gritando
-    t.volume(t.elipse(64, 9 + y0, 9, 2.5), OLIVA_ESC, achatado=1.5, suave=0.4)  # aro da escotilha
-    t.volume(t.retangulo(52, 4 + y0, 6, 6) & (t.yy < 10 + y0), OLIVA, achatado=1, suave=0.3)  # tampa aberta
+    _vol(t, t.elipse(64, 9 + y0, 9, 2.5), OLIVA_ESC, achatado=1.5, suave=0.4)  # aro da escotilha
+    _vol(t, t.retangulo(52, 4 + y0, 6, 6) & (t.yy < 10 + y0), OLIVA, achatado=1, suave=0.3)  # tampa aberta
     t.chapado(t.retangulo(76, 18 + y0, 4, 2), "preto")  # fenda de visão
     t.ponto(77, 18 + y0, "ceu_medio")
     t.linha(44, 31 + y0, 87, 31 + y0, "sombra")  # anel da torre
@@ -239,7 +298,7 @@ def blindado(quadro=0, giro=None):
             t.ponto(x1, y1 + y0, "cinza_claro")
     # --- Casco de chapas inclinadas.
     casco = t.poligono([(4, 60 + y0), (8, 40 + y0), (26, 31 + y0), (104, 31 + y0), (124, 42 + y0), (126, 60 + y0)])
-    t.volume(casco, OLIVA, achatado=5, suave=1.4, ambiente=0.22, textura=0.0, semente=11)
+    _vol(t, casco, OLIVA, achatado=5, suave=1.4, ambiente=0.22, textura=0.0, semente=11)
     t.linha(26, 32 + y0, 104, 32 + y0, "mandacaru_luz")  # quina de cima iluminada
     t.linha(104, 32 + y0, 123, 42 + y0, "mandacaru")
     # Emendas das chapas, com rebites.
@@ -249,24 +308,24 @@ def blindado(quadro=0, giro=None):
         t.linha(x, 33 + y0, x, 51 + y0, "caatinga_esc")
     rebites(t, [(x, 44 + y0) for x in range(12, 122, 6)] + [(x, 54 + y0) for x in range(10, 124, 6)])
     # Bloco de visão do motorista na lateral (vidro grosso).
-    t.volume(t.retangulo(96, 44 + y0, 10, 5), FERRO, achatado=1, suave=0.3)
+    _vol(t, t.retangulo(96, 44 + y0, 10, 5), FERRO, achatado=1, suave=0.3)
     t.chapado(t.retangulo(98, 45 + y0, 6, 2), "azul_medio")
     t.ponto(99, 45 + y0, "ceu_luz")
     # Farol com grade na frente e gancho de reboque.
-    t.volume(t.elipse(120, 44 + y0, 3.5, 3.5), FERRO, achatado=1, suave=0.3)
+    _vol(t, t.elipse(120, 44 + y0, 3.5, 3.5), FERRO, achatado=1, suave=0.3)
     t.chapado(t.elipse(121, 44 + y0, 2, 2), "amarelo_claro")
     t.linha(118, 44 + y0, 123, 44 + y0, "cinza_escuro")
-    t.volume(t.capsula(122, 57 + y0, 128, 57 + y0, 1.3), FERRO, achatado=1, suave=0.3)
+    _vol(t, t.capsula(122, 57 + y0, 128, 57 + y0, 1.3), FERRO, achatado=1, suave=0.3)
     # Caixa de ferramentas e pá amarradas na lateral.
     caixa = t.retangulo(44, 45 + y0, 20, 6)
-    t.volume(caixa, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.35)
+    _vol(t, caixa, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.35)
     t.chapado(t.retangulo(53, 47 + y0, 2, 2), "cinza_claro")
-    t.volume(t.capsula(14, 38 + y0, 34, 36 + y0, 1.0), TABUA, achatado=1, suave=0.3)  # cabo da pá
-    t.volume(t.poligono([(34, 34 + y0), (41, 33 + y0), (41, 39 + y0), (34, 38 + y0)]), FERRO, achatado=1, suave=0.3)
+    _vol(t, t.capsula(14, 38 + y0, 34, 36 + y0, 1.0), TABUA, achatado=1, suave=0.3)  # cabo da pá
+    _vol(t, t.poligono([(34, 34 + y0), (41, 33 + y0), (41, 39 + y0), (34, 38 + y0)]), FERRO, achatado=1, suave=0.3)
     for x in (20, 30):
         t.linha(x, 35 + y0, x, 39 + y0, "couro_escuro")  # correias
     # Galão de combustível na traseira.
-    t.volume(t.retangulo(14, 44 + y0, 8, 9), ["vermelho_esc", "vermelho_medio", "vermelho"], achatado=1.5, suave=0.4)
+    _vol(t, t.retangulo(14, 44 + y0, 8, 9), ["vermelho_esc", "vermelho_medio", "vermelho"], achatado=1.5, suave=0.4)
     t.chapado(t.retangulo(16, 43 + y0, 3, 1), "cinza_escuro")
     # Seteiras e a metralhadora no casco, na altura do peito do Lampião.
     for x in (74, 86):
@@ -274,8 +333,8 @@ def blindado(quadro=0, giro=None):
         t.ponto(x, 45 + y0, "caatinga_esc")
     # Metralhadora numa torreta de bola no alto da chapa da frente: o tiro sai na altura da
     # cabeça do Lampião em pé (agachado escapa; dá para pular por cima com tempo).
-    t.volume(t.elipse(113, 38 + y0, 5, 4.5), OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35)
-    t.volume(t.capsula(114, 38 + y0, 131, 38 + y0, 1.7), FERRO, achatado=1, suave=0.3)
+    _vol(t, t.elipse(113, 38 + y0, 5, 4.5), OLIVA_ESC, achatado=2, suave=0.5, ambiente=0.35)
+    _vol(t, t.capsula(114, 38 + y0, 131, 38 + y0, 1.7), FERRO, achatado=1, suave=0.3)
     t.chapado(t.retangulo(125, 36.5 + y0, 2, 3), "cinza_escuro")  # quebra-chamas
     # Estrela da Volante e número pintado.
     sx, sy = 97, 38 + y0
@@ -289,7 +348,7 @@ def blindado(quadro=0, giro=None):
         if cheio[y + y0, x] and t.px[y + y0, x] in (IDX["caatinga"], IDX["caatinga_media"]):
             t.ponto(x, y + y0, "cinza_luz" if rng.random() < 0.5 else "terra_media")
     # Escapamento com fuligem na traseira.
-    t.volume(t.capsula(2, 58 + y0, 8, 58 + y0, 1.6), FERRO, achatado=1, suave=0.3)
+    _vol(t, t.capsula(2, 58 + y0, 8, 58 + y0, 1.6), FERRO, achatado=1, suave=0.3)
     t.ponto(2, 58 + y0, "preto")
     # Saia de lama embaixo: barro em degradê pontilhado.
     from motor import BAYER4
@@ -300,7 +359,7 @@ def blindado(quadro=0, giro=None):
     # Para-lamas, aba de lama e rodas grandes.
     for cx in (28, 102):
         pl = t.elipse(cx, 62 + y0, 16, 10) & (t.yy < 61 + y0) & ~t.elipse(cx, 62 + y0, 13, 9)
-        t.volume(pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
+        _vol(t, pl, OLIVA_ESC, achatado=1.5, suave=0.4, ambiente=0.3)
         t.chapado(t.retangulo(cx - 17, 58 + y0, 2, 9), "sombra")  # aba de borracha
     q = giro if giro is not None else (quadro if andando else 0)
     for cx in (28, 102):
@@ -308,6 +367,12 @@ def blindado(quadro=0, giro=None):
         for k in range(5):  # porcas do cubo
             a = k / 5 * 2 * np.pi + q * 0.6
             t.ponto(cx + np.cos(a) * 3.6, chao - 11 + np.sin(a) * 3.6, "cinza_claro")
+    # Número do carro em estêncil e a corrente de reboque pendurada na frente.
+    import base_detalhe as bd
+    bd.letreiro(t, "B-2", 62, int(36 + y0), "areia_clara", sombra="caatinga_esc", gasto=0.1, semente=2)
+    for k in range(7):
+        x, y = 118 + k * 0.6, 46 + y0 + k * 1.3
+        t.ponto(x, y, "cinza_medio" if k % 2 else "sombra")
     t.contorno("sombra")
     if quadro == 4:
         queimar(t, 13)

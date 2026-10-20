@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
-from motor import Tela, IDX, VAZIO  # noqa: E402
+from motor import Tela, IDX, VAZIO, RAMPAS as RAMPAS_MOTOR  # noqa: E402
 import pixel  # noqa: E402
 
 W, H = 52, 46  # folga à direita para o cano e o clarão do tiro
