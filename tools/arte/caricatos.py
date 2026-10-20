@@ -751,10 +751,29 @@ CRU = ["terra_media", "areia_media", "areia", "areia_luz"]
 CAMISA = ["areia_media", "areia_luz", "areia_clara", "branco"]
 
 
+# O cientista da base (fase 2) usa as mesmas poses do romeiro com outra cabeça e roupa
+# (npcs.py liga FIGURA = "cientista" e grava pixel/cientista.txt).
+FIGURA = "romeiro"
+
+
+def roupa():
+    return TRAPO if FIGURA == "cientista" else CAMISA
+
+
+def calca():
+    return CALCA_ESC if FIGURA == "cientista" else CRU
+
+
+CALCA_ESC = ["sombra", "sombra_media", "cinza_escuro", "cinza"]
+
+
 def cabeca_romeiro(t, x, y, rosto="triste", chapeu=0):
     """Cabeça do romeiro: chapéu de palha com fitas, narigão e barba branca comprida.
     (x, y) = centro do rosto."""
     x, y = int(round(x)), int(round(y))
+    if FIGURA == "cientista":
+        import npcs
+        return npcs.cabeca_cientista(t, x, y, rosto)
     # Fitas coloridas do chapéu caindo atrás.
     for k, cor in enumerate(("vermelho", "amarelo_fogo", "ceu", "mandacaru")):
         balanco = 1 if chapeu else 0
@@ -807,6 +826,9 @@ def cabeca_romeiro(t, x, y, rosto="triste", chapeu=0):
 def terco(t, x, y):
     """Terço de contas no peito, com a cruzinha."""
     x, y = int(round(x)), int(round(y))
+    if FIGURA == "cientista":
+        import npcs
+        return npcs.peito_cientista(t, x, y)
     for k in range(6):
         t.ponto(int(x - 4 + k * 1.5), int(y + abs(k - 2.5) * -0.6 + 1.5), "couro_escuro")
     t.chapado(t.retangulo(x, y + 2, 1, 3), "couro_escuro")
@@ -818,11 +840,11 @@ def romeiro_amarrado(balanco=0, pulo=0, rosto="triste"):
     t = Tela(W, H)
     b, p = balanco, pulo
     # Pernas dobradas (sentado nos calcanhares).
-    cel(t, t.elipse(17, 41 - p, 9, 4), CRU, sombra=2)
+    cel(t, t.elipse(17, 41 - p, 9, 4), calca(), sombra=2)
     cel(t, t.elipse(9, 43 - p, 3, 2), COURO, sombra=1)
     # Tronco de camisa de algodão.
     tronco = t.elipse(17 + b * 0.5, 32 - p, 7.5, 8)
-    cel(t, tronco, CAMISA, sombra=2)
+    cel(t, tronco, roupa(), sombra=2)
     # Bornal nas costas.
     cel(t, t.elipse(10 + b * 0.5, 34 - p, 3, 3.5), COURO, sombra=1)
     # Voltas de corda.
@@ -849,25 +871,25 @@ def romeiro_em_pe(pose="parado", passo=0, rosto="feliz"):
     # Perna de trás.
     if pose == "corre":
         k = [(-4, 4), (0, 0), (4, -4), (0, 0)][passo]
-        membro(t, (bx - 1, 34 + dy), (bx - 1 + k[1] * 0.4, 39 + dy), (bx - 2 + k[1], CHAO - 1), 2, 1.8, CRU, -1)
+        membro(t, (bx - 1, 34 + dy), (bx - 1 + k[1] * 0.4, 39 + dy), (bx - 2 + k[1], CHAO - 1), 2, 1.8, calca(), -1)
         cel(t, t.elipse(bx - 1 + k[1], CHAO - 0.5, 2.4, 1.2), COURO, sombra=0, deslocar=-1)
     elif pose == "solto":
-        membro(t, (bx - 1, 34 + dy), (bx - 4, 38 + dy), (bx - 5, 42 + dy), 2, 1.8, CRU, -1)
+        membro(t, (bx - 1, 34 + dy), (bx - 4, 38 + dy), (bx - 5, 42 + dy), 2, 1.8, calca(), -1)
         cel(t, t.elipse(bx - 6, 42.5 + dy, 2.4, 1.2), COURO, sombra=0, deslocar=-1)
     else:
-        membro(t, (bx - 1, 34 + dy), (bx - 2, 39 + dy), (bx - 3, CHAO - 1), 2, 1.8, CRU, -1)
+        membro(t, (bx - 1, 34 + dy), (bx - 2, 39 + dy), (bx - 3, CHAO - 1), 2, 1.8, calca(), -1)
         cel(t, t.elipse(bx - 2, CHAO - 0.5, 2.6, 1.2), COURO, sombra=0, deslocar=-1)
     # Braço de trás.
     if pose == "solto":
-        membro(t, (bx - 3, 25 + dy), (bx - 9, 21 + dy), (bx - 12, 15 + dy), 1.8, 1.6, CAMISA, -1)
+        membro(t, (bx - 3, 25 + dy), (bx - 9, 21 + dy), (bx - 12, 15 + dy), 1.8, 1.6, roupa(), -1)
         cel(t, t.elipse(bx - 12.5, 14 + dy, 1.8, 1.8), PELE, sombra=1)
     elif pose == "corre":
         k = [-1, 0, 1, 0][passo]
-        membro(t, (bx - 3, 25 + dy), (bx - 3 - k * 3, 30 + dy), (bx - 1 - k * 5, 31 + dy), 1.8, 1.6, CAMISA, -1)
+        membro(t, (bx - 3, 25 + dy), (bx - 3 - k * 3, 30 + dy), (bx - 1 - k * 5, 31 + dy), 1.8, 1.6, roupa(), -1)
     # Tronco magrinho e bornal.
     curva = 2 if pose == "procura" else 0
     tronco = t.elipse(bx + curva, 29 + dy, 6.5, 7) | t.retangulo(bx - 5 + curva, 29 + dy, 11, 5)
-    cel(t, tronco, CAMISA, sombra=2)
+    cel(t, tronco, roupa(), sombra=2)
     t.chapado(t.capsula(bx - 5 + curva, 23 + dy, bx + 5 + curva, 34 + dy, 0.8) & tronco, "couro")
     cel(t, t.elipse(bx + 6 + curva, 34 + dy, 3.4, 3.4), COURO, sombra=1)
     t.chapado(t.retangulo(bx + 3 + curva, 31 + dy, 7, 1.5), "couro_escuro")
@@ -875,14 +897,17 @@ def romeiro_em_pe(pose="parado", passo=0, rosto="feliz"):
     # Perna da frente.
     if pose == "corre":
         k = [(-4, 4), (0, 0), (4, -4), (0, 0)][passo]
-        membro(t, (bx + 2, 34 + dy), (bx + 3 + k[0] * 0.4, 39 + dy), (bx + 2 + k[0], CHAO - 1), 2, 1.8, CRU)
+        membro(t, (bx + 2, 34 + dy), (bx + 3 + k[0] * 0.4, 39 + dy), (bx + 2 + k[0], CHAO - 1), 2, 1.8, calca())
         cel(t, t.elipse(bx + 3 + k[0], CHAO - 0.5, 2.4, 1.2), COURO, sombra=0)
     elif pose == "solto":
-        membro(t, (bx + 2, 34 + dy), (bx + 6, 37 + dy), (bx + 5, 41 + dy), 2, 1.8, CRU)
+        membro(t, (bx + 2, 34 + dy), (bx + 6, 37 + dy), (bx + 5, 41 + dy), 2, 1.8, calca())
         cel(t, t.elipse(bx + 6, 41.5 + dy, 2.4, 1.2), COURO, sombra=0)
     else:
-        membro(t, (bx + 2, 34 + dy), (bx + 3, 39 + dy), (bx + 4, CHAO - 1), 2, 1.8, CRU)
+        membro(t, (bx + 2, 34 + dy), (bx + 3, 39 + dy), (bx + 4, CHAO - 1), 2, 1.8, calca())
         cel(t, t.elipse(bx + 5, CHAO - 0.5, 2.6, 1.2), COURO, sombra=0)
+    if FIGURA == "cientista":
+        import npcs
+        npcs.fralda(t, bx, 34 + dy, pose, passo)
     if pose == "solto":
         # Cordas caindo no chão.
         for x0 in (8, 22):
@@ -892,19 +917,19 @@ def romeiro_em_pe(pose="parado", passo=0, rosto="feliz"):
     terco(t, bx, 24 + dy)
     # Braço da frente.
     if pose == "solto":
-        membro(t, (bx + 3, 25 + dy), (bx + 10, 21 + dy), (bx + 14, 14 + dy), 1.8, 1.6, CAMISA)
+        membro(t, (bx + 3, 25 + dy), (bx + 10, 21 + dy), (bx + 14, 14 + dy), 1.8, 1.6, roupa())
         cel(t, t.elipse(bx + 14.5, 13 + dy, 1.8, 1.8), PELE, sombra=1)
     elif pose == "procura":
-        membro(t, (bx + 4, 25 + dy), (bx + 7, 30 + dy), (bx + 7, 33 + dy), 1.8, 1.6, CAMISA)
+        membro(t, (bx + 4, 25 + dy), (bx + 7, 30 + dy), (bx + 7, 33 + dy), 1.8, 1.6, roupa())
     elif pose == "entrega":
-        membro(t, (bx + 4, 25 + dy), (bx + 11, 25 + dy), (bx + 17, 21 + dy), 1.8, 1.6, CAMISA)
+        membro(t, (bx + 4, 25 + dy), (bx + 11, 25 + dy), (bx + 17, 21 + dy), 1.8, 1.6, roupa())
         cel(t, t.elipse(bx + 17.5, 20.5 + dy, 1.9, 1.9), PELE, sombra=1)
     elif pose == "continencia":
-        membro(t, (bx + 4, 25 + dy), (bx + 9, 21 + dy), (bx + 7, 13 + dy), 1.8, 1.6, CAMISA)
+        membro(t, (bx + 4, 25 + dy), (bx + 9, 21 + dy), (bx + 7, 13 + dy), 1.8, 1.6, roupa())
         cel(t, t.elipse(bx + 7, 12 + dy, 1.9, 1.7), PELE, sombra=1)
     else:  # corre
         k = [1, 0, -1, 0][passo]
-        membro(t, (bx + 3, 25 + dy), (bx + 3 - k * 3, 30 + dy), (bx + 6 - k * 4, 30 + dy), 1.8, 1.6, CAMISA)
+        membro(t, (bx + 3, 25 + dy), (bx + 3 - k * 3, 30 + dy), (bx + 6 - k * 4, 30 + dy), 1.8, 1.6, roupa())
         cel(t, t.elipse(bx + 6.5 - k * 4, 30 + dy, 1.7, 1.7), PELE, sombra=1)
     t.contorno("sombra")
     if pose == "corre":
@@ -920,17 +945,20 @@ def romeiro_pendurado(balanco=0, rosto="chorando"):
     bx = 17
     b = balanco
     # Pernas soltas no ar.
-    membro(t, (bx - 1, 34), (bx - 2 - b, 39), (bx - 3 - b * 2, 43), 2, 1.8, CRU, -1)
+    membro(t, (bx - 1, 34), (bx - 2 - b, 39), (bx - 3 - b * 2, 43), 2, 1.8, calca(), -1)
     cel(t, t.elipse(bx - 2 - b * 2, 43.5, 2.2, 1.2), COURO, sombra=0, deslocar=-1)
     tronco = t.elipse(bx, 29, 6.5, 7) | t.retangulo(bx - 5, 29, 11, 5)
-    cel(t, tronco, CAMISA, sombra=2)
+    cel(t, tronco, roupa(), sombra=2)
     t.chapado(t.capsula(bx - 5, 23, bx + 5, 34, 0.8) & tronco, "couro")
     t.chapado(t.retangulo(bx - 5, 34, 11, 1.2), "barro")
-    membro(t, (bx + 2, 34), (bx + 3 + b, 39), (bx + 4 + b * 2, 43), 2, 1.8, CRU)
+    membro(t, (bx + 2, 34), (bx + 3 + b, 39), (bx + 4 + b * 2, 43), 2, 1.8, calca())
     cel(t, t.elipse(bx + 5 + b * 2, 43.5, 2.2, 1.2), COURO, sombra=0)
+    if FIGURA == "cientista":
+        import npcs
+        npcs.fralda(t, bx, 34, "pendurado", b)
     # Braços esticados para cima, por trás da cabeça (aparecem os cotovelos e as mãos amarradas lá em cima).
-    membro(t, (bx - 4, 24), (bx - 7, 13), (bx + 1, 1.5), 1.8, 1.6, CAMISA, -1)
-    membro(t, (bx + 4, 24), (bx + 9, 13), (bx + 3, 1.5), 1.8, 1.6, CAMISA)
+    membro(t, (bx - 4, 24), (bx - 7, 13), (bx + 1, 1.5), 1.8, 1.6, roupa(), -1)
+    membro(t, (bx + 4, 24), (bx + 9, 13), (bx + 3, 1.5), 1.8, 1.6, roupa())
     cabeca_romeiro(t, bx + 1, 18, rosto, chapeu=1)
     terco(t, bx, 25)
     cel(t, t.elipse(bx + 2, 1.5, 2.6, 1.6), PELE, sombra=1)
