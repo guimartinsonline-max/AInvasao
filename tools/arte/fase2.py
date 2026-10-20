@@ -810,23 +810,25 @@ def placa(texto="PERIGO", w=40, h=26, semente=0):
     """Placa da Volante: tábuas pregadas em estaca, letras vermelhas grossas pintadas à
     mão com sombra e tinta escorrendo, caveira com ossos cruzados, pregos enferrujados
     escorrendo ferrugem, buracos de bala com lasca clara e o canto queimado em brasa."""
+    from base_detalhe import letreiro, largura_texto
+    w = max(w, largura_texto(texto) + 10)
     t = Tela(w, h + 14)
     tab = f1.tabuas(w, h, vertical=False, semente=semente)
     t.colar(tab, 0, 0)
     est = t.retangulo(w / 2 - 2.5, h - 1, 5, 15)
     madeira(t, est, True, semente + 3)
     # Letras com sombra escura e escorridos.
-    x0 = int((w - len(texto) * 5 + 1) // 2)
-    escrever(t, texto, x0, 3, "vermelho", grossa=True)
+    x0 = int((w - largura_texto(texto)) // 2)
+    letreiro(t, texto, x0, 3, "vermelho", sombra="preto")
     rng = np.random.default_rng(semente)
     for k in range(len(texto)):
         if rng.random() < 0.35:
-            xx = x0 + k * 5 + int(rng.integers(0, 3))
-            L_ = int(rng.integers(1, 4))
-            t.linha(xx, 8, xx, 8 + L_, "vermelho_medio")
-            t.ponto(xx, 9 + L_, "vermelho")
+            xx = x0 + k * 6 + int(rng.integers(0, 5))
+            L_ = int(rng.integers(1, 3))
+            t.linha(xx, 10, xx, 10 + L_, "vermelho_medio")
+            t.ponto(xx, 11 + L_, "vermelho")
     # Caveira com ossos cruzados.
-    cx, cy = w / 2, h * 0.68
+    cx, cy = w / 2, h * 0.72
     for d in (-1, 1):
         t.linha(cx - 5, cy + 4 * d * -1 + 1, cx + 5, cy - 4 * d * -1 + 1, "cinza_claro")
         t.ponto(cx - 5.5, cy + 4 * d * -1 + 1, "branco")
@@ -918,13 +920,15 @@ def cancela(w=70):
     # Placa ALTO pendurada na barra.
     px0 = w * 0.32
     t.linha(px0 + 1, 14, px0 + 1, 16, "sombra")
-    t.linha(px0 + 9, 14, px0 + 9, 16, "sombra")
-    pl = t.retangulo(px0 - 1, 16, 19, 7)
+    t.linha(px0 + 21, 14, px0 + 21, 16, "sombra")
+    from base_detalhe import letreiro
+    pl = t.retangulo(px0 - 3, 16, 29, 11)
     t.chapado(pl, "areia_luz")
+    t.chapado(t.retangulo(px0 - 3, 25, 29, 1), "areia_media")
     t.px[pl & ~ndimage.binary_erosion(pl)] = IDX["preto"]
-    escrever(t, "ALTO", px0 + 1, 17, "vermelho")
+    letreiro(t, "ALTO", px0 + 1, 18, "vermelho", sombra="vermelho_esc")
     # Lampião de lata com vidro aceso.
-    lx_ = w * 0.62
+    lx_ = w * 0.8
     t.linha(lx_, 14, lx_, 17, "sombra")
     t.chapado(t.retangulo(lx_ - 2, 17, 5, 1), "cinza_escuro")
     t.chapado(t.retangulo(lx_ - 1.5, 18, 4, 4), "amarelo_fogo")

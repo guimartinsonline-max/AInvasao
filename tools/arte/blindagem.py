@@ -6,7 +6,7 @@ escorrido de ferrugem saindo dos rebites e lama subindo das rodas.
 import numpy as np
 from scipy import ndimage
 
-from motor import IDX, RGB, VAZIO, BAYER4
+from motor import IDX, RGB, VAZIO, BAYER4, N_BASE
 
 VERDES = [IDX[n] for n in ("caatinga_esc", "caatinga_media", "caatinga", "mandacaru", "mandacaru_luz")]
 
@@ -17,7 +17,7 @@ def _mapa(mais_claro):
     mapa = np.arange(len(RGB))
     for i in range(len(RGB)):
         melhor, dist = i, 1e9
-        for j in range(len(RGB)):
+        for j in range(len(RGB) if i >= N_BASE else N_BASE):
             if mais_claro:
                 if lum[j] <= lum[i] * 1.08 or lum[j] > lum[i] * 1.7 + 20:
                     continue

@@ -28,6 +28,8 @@ LEGENDA = {
     "8": "alien_profundo", "9": "alien_esc", "0": "alien_medio", "!": "alien", "?": "alien_luz", "*": "alien_brilho",
     "N": "marrom_noite",
     "(": "roxo_escuro", ")": "roxo", "[": "lilas", "]": "lilas_claro", "{": "rosa_poeira",
+    # Crepúsculo (base_detalhe.py): madeira, lona, lona acesa, oliva, terra batida, corda.
+    "D": "mad_n1", "F": "mad_n2", "I": "mad_n3", "Q": "mad_n4", "S": "mad_n5", "z": "mad_n6", "#": "lona_n1", "$": "lona_n2", "%": "lona_n3", "&": "lona_n4", "+": "lona_n5", ",": "lona_n6", "-": "lona_q1", "/": "lona_q2", ":": "lona_q3", ";": "lona_q4", "<": "oliva_n1", ">": "oliva_n2", "@": "oliva_n3", "^": "oliva_n4", "_": "oliva_n5", "`": "chao_n1", "|": "chao_n2", "~": "chao_n3", "á": "chao_n4", "é": "chao_n5", "í": "chao_n6", "ó": "corda_n1", "ú": "corda_n2", "ã": "corda_n3",
 }
 CHAR = {v: k for k, v in LEGENDA.items()}
 faltando = set(NOMES) - set(CHAR)

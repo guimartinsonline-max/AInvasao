@@ -22,7 +22,7 @@ import numpy as np
 from scipy import ndimage
 
 sys.path.insert(0, str(Path(__file__).parent))
-from motor import IDX, VAZIO, Tela, RGB  # noqa: E402
+from motor import IDX, VAZIO, Tela, RGB, N_BASE  # noqa: E402
 import fase1 as f1  # noqa: E402
 import fase1_extra as fx  # noqa: E402
 import fase2 as f2  # noqa: E402
@@ -39,7 +39,7 @@ JAULAS = [(845, "olheiro"), (915, "cerebrao")]
 GUINDASTE_X = 1330                      # pé do guindaste; a ponta da lança fica em +150
 PONTA_LANCA = (GUINDASTE_X + 150, 40)   # (x, y de mundo) de onde desce o cabo
 LAB_X = 640
-QUARENTENA_X = 1000
+QUARENTENA_X = 1040
 TROPA_X = 270
 ELEVADOR_X = FIM - 34
 
@@ -50,6 +50,7 @@ def _mapa_noite(forca):
     alvo = RGB.astype(float) * np.array([0.5, 0.52, 0.72]) + np.array([4, 6, 22])
     mix = RGB.astype(float) * (1 - forca) + alvo * forca
     d = ((mix[:, None, :] - RGB[None, :, :].astype(float)) ** 2).sum(-1)
+    d[:N_BASE, N_BASE:] = 1e12  # cor antiga escurece para cor antiga
     return d.argmin(1)
 
 
@@ -102,17 +103,51 @@ def ceu(faixas, h=308, w=548, estrelas=0, semente=0):
     return t
 
 
+def nuvens(t, faixas, semente=0):
+    """Bancos de nuvem de fumaça com volume: corpo escuro, miolo, beirada de cima clara e a
+    barriga acesa por baixo (luz do poente ou da cratera). faixas: (y, espessura, cores
+    [sombra, corpo, luz de cima, barriga acesa, barriga forte])."""
+    h, w = t.h, t.w
+    for k, (yc, esp, cores) in enumerate(faixas):
+        n = ruido(h, w, (esp * 0.45, 16), semente + k) * 0.7 + ruido(h, w, (3.5, 6), semente + 10 + k) * 0.3
+        perfil = 1 - np.abs(t.yy - yc) / esp
+        dens = n + perfil * 2.0 - 0.55
+        m = dens > 0
+        m = ndimage.binary_opening(m, iterations=2)
+        m = ndimage.binary_closing(m, iterations=2)
+        acima = np.roll(m, 3, 0)
+        abaixo = np.roll(m, -3, 0)
+        barriga = m & ~abaixo
+        barriga2 = m & ~np.roll(m, -1, 0)
+        topo = m & ~acima
+        miolo = m & (dens > 0.45)
+        t.px[m] = IDX[cores[0]]
+        t.px[miolo] = IDX[cores[1]]
+        t.px[topo] = IDX[cores[2]]
+        t.px[barriga] = IDX[cores[3]]
+        t.px[barriga2] = IDX[cores[4]]
+
+
 def ceu_tarde():
-    """Fim de tarde roxo: lilás em cima, laranja queimado no horizonte (sol atrás da fumaça)."""
-    return ceu([(0, "roxo_escuro"), (70, "roxo"), (140, "lilas"), (200, "rosa_poeira"), (240, "laranja_escuro"),
-                (262, "laranja_fogo")])
+    """Fim de tarde roxo: lilás em cima, laranja queimado no horizonte (sol atrás da fumaça),
+    bancos de nuvem de fumaça com a barriga acesa de laranja."""
+    t = ceu([(0, "roxo_escuro"), (70, "roxo"), (140, "lilas"), (200, "rosa_poeira"), (240, "laranja_escuro"),
+             (262, "laranja_fogo")])
+    nuvens(t, [(34, 24, ["sombra", "sombra_media", "roxo", "rosa_poeira", "lilas_claro"]),
+               (112, 20, ["sombra_media", "roxo_escuro", "lilas", "rosa_poeira", "laranja_escuro"]),
+               (184, 15, ["roxo_escuro", "roxo", "lilas_claro", "laranja_escuro", "laranja_fogo"])], semente=5)
+    return t
 
 
 def ceu_noite():
     """Noite fechada: azul quase preto, roxo perto do chão e o horizonte esverdeado pelo
-    brilho do disco; poucas estrelas entre a fumaça."""
-    return ceu([(0, "sombra"), (80, "sombra_media"), (150, "azul_sombra"), (215, "roxo_escuro"), (250, "alien_profundo")],
-               estrelas=40, semente=3)
+    brilho do disco; nuvens de fumaça com a barriga verde e poucas estrelas nas brechas."""
+    t = ceu([(0, "sombra"), (80, "sombra_media"), (150, "azul_sombra"), (215, "roxo_escuro"), (250, "alien_profundo")],
+            estrelas=60, semente=3)
+    nuvens(t, [(44, 24, ["preto", "preto", "sombra_media", "azul_sombra", "roxo_escuro"]),
+               (128, 20, ["preto", "sombra", "azul_sombra", "roxo_escuro", "roxo"]),
+               (200, 15, ["sombra", "sombra_media", "roxo", "alien_profundo", "alien_esc"])], semente=9)
+    return t
 
 
 # ------------------------------------------------------------------ peças do cenário
@@ -328,52 +363,69 @@ def chao_batido(w, h=26, semente=0):
 
 
 # ------------------------------------------------------------------ camadas
+def noite_bd(wx):
+    """Escurecimento das peças de base_detalhe no ponto wx (0 na barraca-laboratório)."""
+    return (hora(wx) - 0.67) * 0.35
+
+
+def pilha_sacos(bd, colunas=3, linhas=2, semente=0):
+    t = Tela(colunas * 14 + 6, linhas * 7 + 4)
+    chao = t.h - 1
+    for j in range(linhas):
+        for k in range(colunas - j):
+            bd.saco(t, k * 14 + j * 7, chao - j * 7, 16, 8, semente=semente + j * 10 + k)
+    return t
+
+
 def camada_jogo():
+    import base_detalhe as bd
     alt = 200
     topo = 216 - alt
     t = Tela(LARGURA, alt)
     y = lambda wy: wy - topo  # noqa: E731
     yc = y(CHAO) - 1
-    # Chão: o vidro da borda (fim do trecho 1) vira terra batida em manchas.
-    t.colar(chao_batido(LARGURA, 26, semente=21), 0, y(CHAO) - 2)
-    colar_organico(t, f2.chao_vidro(260, 26, semente=14), 0, y(CHAO) - 2, borda=120, semente=4)
-    # Beira da cratera no fim: o chão escurece e brilha verde pelas rachaduras.
-    colar_organico(t, f2.chao_vidro(LARGURA - 1520, 26, semente=17), 1520, y(CHAO) - 2, borda=110, semente=5)
+    noite = np.array([noite_bd(x) for x in range(LARGURA)])
+    luzes = [(x, 34) for x in (400, 430, 520, 680, 752, 800, 1125, 1140, 1230)] + [(TROPA_X, 40), (LAB_X + 25, 46)]
+    verdes = [(1600, 50), (1690, 60), (1760, 50), (QUARENTENA_X, 34)]
+    t.colar(bd.chao_acampamento(LARGURA, 26, semente=21, noite=noite, luzes=luzes, verdes=verdes), 0, y(CHAO) - 2)
+    # O vidro da borda (fim do trecho 1) ainda entra no começo, misturando em manchas.
+    colar_organico(t, f2.chao_vidro(200, 26, semente=14), 0, y(CHAO) - 2, borda=110, semente=4)
     pecas = []
-    rng = np.random.default_rng(7)
-    import base_detalhe as bd
 
-    def por(peca, x, afundar=1, base=None, novo=False):
+    def por(peca, x, afundar=1, novo=True):
         pecas.append((x, peca, afundar, novo))
 
-    # Cerca de arame farpado fechando a base por trás (fica atrás de tudo).
-    por(bd.cerca(LARGURA - 100, semente=5, placas=(("ÁREA MILITAR", 60), ("PERIGO", 1500))), 20, 1, novo=True)
+    def nova(fn, wx, *a, **k):
+        bd.NOITE = noite_bd(wx)
+        p = fn(*a, **k)
+        bd.NOITE = 0.0
+        return p
 
-    # A) entrada: cancela quebrada caída, sacos, placa, barraca da tropa, torre e gerador.
-    por(f1.sacos_detalhados(4, 2, semente=3), 110)
-    por(placa("PROIBIDO", w=46, semente=5), 170)
-    por(barraca_grande(118, 60, semente=11, tipo="tropa"), TROPA_X - 59)
-    por(fx.caixas_municao(3, semente=2), 360)
-    por(torre_holofote(semente=1), TORRES[0][0] - 23)
-    por(gerador_pad(), GERADORES[0][0] - 27, 0)
-    por(poste_lampadas(58, 1), 395)
+    # Cerca de arame farpado fechando a base por trás.
+    por(nova(bd.cerca, 800, LARGURA - 40, semente=5, placas=(("ÁREA MILITAR", 60), ("PERIGO", 1480))), 20)
+    # A) entrada: sacos, placa, barraca da tropa, caixotes, torre, gerador e poste.
+    por(nova(pilha_sacos, 110, bd, 4, 2, 3), 96)
+    por(nova(bd.barraca, TROPA_X, "tropa", 11), TROPA_X - bd.PORTA_BARRACA)
+    por(nova(bd.torre_holofote, TORRES[0][0], 118, 1), TORRES[0][0] - 32)
+    por(nova(bd.base_gerador, GERADORES[0][0]), GERADORES[0][0] - 27, 0)
+    por(nova(bd.poste_lampadas, 400, 58, 1), 392)
     # B) laboratório, jaulas, quarentena, segunda torre.
-    por(bd.barraca_lab(semente=12), LAB_X - 98, 1, novo=True)
+    por(nova(bd.barraca, LAB_X, "lab", 12), LAB_X - 98)
     for (x, _a) in JAULAS:
-        por(jaula_base(40), x - 20, 0)
-    por(f1.sacos_detalhados(3, 2, semente=6), 770)
-    por(barraca_grande(116, 58, semente=13, tipo="quarentena"), QUARENTENA_X - 58)
-    por(poste_lampadas(58, 2), 760)
-    por(poste_lampadas(58, 3), 1090)
-    por(torre_holofote(semente=2), TORRES[1][0] - 23)
-    por(gerador_pad(), GERADORES[1][0] - 27, 0)
-    por(fx.caixas_municao(2, semente=4), 1110)
+        por(nova(jaula_base_nova, x, bd, 40), x - 20, 0)
+    por(nova(pilha_sacos, 780, bd, 3, 2, 6), 770)
+    por(nova(bd.poste_lampadas, 760, 58, 2), 752)
+    por(nova(bd.barraca, QUARENTENA_X, "quarentena", 13), QUARENTENA_X - bd.PORTA_BARRACA)
+    por(nova(bd.poste_lampadas, 1125, 58, 3), 1117)
+    por(nova(bd.torre_holofote, TORRES[1][0], 118, 2), TORRES[1][0] - 32)
+    por(nova(bd.base_gerador, GERADORES[1][0]), GERADORES[1][0] - 27, 0)
     # C) guindaste, sacos do metralhador e o elevador na beira.
-    por(guindaste(3), GUINDASTE_X - 26)
-    por(f1.sacos_detalhados(4, 3, semente=8), 1545)
-    por(elevador(2), ELEVADOR_X - 46)
-    # Peças novas (base_detalhe) já vêm pintadas na hora certa: o anoitecer pula os pixels delas.
+    por(nova(bd.guindaste, GUINDASTE_X, 3), GUINDASTE_X - 26)
+    por(nova(pilha_sacos, 1545, bd, 4, 3, 8), 1540)
+    por(nova(bd.elevador, FIM, 2), FIM - 50)
+    # Peças novas já vêm pintadas na hora certa: o anoitecer pula os pixels delas.
     fixo = np.zeros(t.px.shape, bool)
+    fixo[y(CHAO) - 2:] = True
     for x, p, afundar, novo in pecas:
         f1.sombra_contato(t, int(x) + p.w / 2, yc + 1, p.w * (0.9 if novo else 1.05))
         y0 = yc - p.h + afundar
@@ -382,19 +434,12 @@ def camada_jogo():
         mm = m[max(0, -y0):, :sub.shape[1]][:sub.shape[0]]
         sub[mm] = p.px[max(0, -y0):, :sub.shape[1]][:sub.shape[0]][mm]
         fixo[max(0, y0):y0 + p.h, int(x):int(x) + p.w][mm] = novo
-    # A noite vai caindo: escurece a camada em faixas, mais forte para a direita.
     for x0 in range(0, LARGURA, 40):
         faixa = Tela(min(40, LARGURA - x0), alt)
         faixa.px = t.px[:, x0:x0 + 40].copy()
         anoitecer(faixa, hora(x0 + 20) * 0.85)
         sel = ~fixo[:, x0:x0 + 40]
         t.px[:, x0:x0 + 40][sel] = faixa.px[sel]
-    # Luz das lâmpadas e da janela do sarilho no chão (amarela, morna).
-    for x in (430, 520, 680, 800, 1140, 1230):
-        luz_no_chao(t, x, yc + 4, 30, 6, semente=x)
-    # Brilho verde da cratera no chão perto do elevador.
-    for x in (1600, 1690, 1760):
-        luz_no_chao(t, x, yc + 4, 40, 7, cores=("alien_profundo", "alien_esc"), semente=x)
     # Cabo elétrico no chão do gerador até as torres.
     for (gx, gid) in GERADORES:
         tx = [tx for (tx, g) in TORRES if g == gid][0]
@@ -404,18 +449,72 @@ def camada_jogo():
     return t, topo
 
 
+def jaula_base_nova(bd, w=40):
+    """Estrado de tábuas da jaula com palha suja, ossos roídos e gosma."""
+    t = Tela(w, 9)
+    for k, x in enumerate(range(0, w, 5)):
+        bd.tabua(t, x, 3, 5, 6, semente=k + w, vertical=True)
+    for x in range(2, w - 2, 2):
+        t.ponto(x, 2, "corda_n2" if x % 4 else "corda_n3")
+        t.ponto(x + 1, 1 + (x % 3 == 0), "corda_n1")
+    t.chapado(t.elipse(w * 0.62, 2, 5, 1.2), "alien_esc")
+    t.ponto(w * 0.6, 1.6, "alien_luz")
+    t.linha(w * 0.25, 1, w * 0.35, 2, "lona_n6")
+    t.ponto(w * 0.25, 0.4, "lona_n6")
+    t.contorno("mad_n1")
+    return t
+
+
 def camada_perto():
-    """Perto (0,75): caminhões estacionados da Volante, tambores, caixas empilhadas,
-    barracas de lado e postes; tudo escurecendo para a noite."""
+    """Perto (0,75): o miolo do acampamento atrás da cerca, no mesmo nível de detalhe das
+    peças de jogo, um pouco mais apagado: barracões de tábua e zinco com janelas acesas
+    (ALMOXARIFADO, RÁDIO com antena, RANCHO), caixa d'água na torre, caminhões da Volante,
+    tambores, caixotes com lona, barracas e a linha de postes de telégrafo com os fios
+    cruzando a tela; mastro da bandeira."""
+    import base_detalhe as bd
+    import veiculos as vc
     fator = 0.75
     W = int(LARGURA * fator + 548)
-    alt = 120
+    alt = 200
     base = alt - 2
     t = Tela(W, alt)
-    rng = np.random.default_rng(51)
     lx = lambda wx: int(wx * fator)  # noqa: E731
     pecas = []
-    import veiculos as vc
+
+    def nova(fn, wx, *a, **k):
+        bd.NOITE = noite_bd(wx) + 0.08
+        bd.CONTRASTE = 0.85
+        p = fn(*a, **k)
+        bd.NOITE, bd.CONTRASTE = 0.0, 1.0
+        return p
+    # Postes de telégrafo e os fios (atrás de tudo).
+    postes = list(range(-40, int(W / fator) + 300, 300))
+    xs_p = []
+    for k, wx in enumerate(postes):
+        p = nova(bd.poste_telegrafo, wx, 132, k)
+        x = lx(wx)
+        f1.colar(t, p, x, base - p.h + 2)
+        xs_p.append((x, base - p.h + 2))
+    for (xa, ya), (xb, yb) in zip(xs_p[:-1], xs_p[1:]):
+        for (ix, iy) in bd.ISOLADORES[:6]:
+            bd.fios(t, xa + ix, ya + iy - 1, xb + ix, yb + iy - 1, flecha=9 + ix * 0.1, cor="sombra")
+    # Aterro do miolo do acampamento: terra socada com muro de toras e sacos na frente
+    # (levanta os barracões acima da cerca).
+    ATERRO = 34
+    rng = np.random.default_rng(52)
+    topo_a = base - ATERRO + (ruido(1, W, 8, 3)[0] * 1.5).astype(int)
+    m = t.yy >= topo_a[None, :]
+    noite = np.array([noite_bd(x / fator) + 0.06 for x in range(W)])
+    va = 0.6 - (t.yy - topo_a[None, :]) / ATERRO * 0.3 + ruido(alt, W, (1, 4), 7) * 0.05
+    va = np.where(t.yy < topo_a[None, :] + 1.5, 0.85, va)
+    bd.CONTRASTE = 0.8
+    bd.pintar(t, m, va - noite[None, :], bd.CHAO)
+    for x in range(0, W, 5):
+        bd.NOITE = noite[x]
+        bd.cilindro(t, x + 2, base + 2, x + 2 + rng.uniform(-0.6, 0.6), topo_a[x] + 6, 2.2, 2.0, semente=x, rachas=1,
+                    nos=0, topo_cortado=True, escurecer=0.05)
+    bd.NOITE, bd.CONTRASTE = 0.0, 1.0
+    base = int(base - ATERRO + 4)
     cam = vc.caminhao(0) if hasattr(vc, "caminhao") else None
     for k, wx in enumerate((150, 980)):
         if cam is not None:
@@ -423,74 +522,180 @@ def camada_perto():
             c.px = cam.px.copy()
             if k:
                 c.espelhar()
-            pecas.append((lx(wx), c, wx))
-    for k, wx in enumerate((420, 760, 1260)):
-        pecas.append((lx(wx), fx.barraca(int(rng.integers(70, 90)), int(rng.integers(38, 46)), semente=k + 60), wx))
-    for k, wx in enumerate((330, 600, 1100, 1400)):
-        tb = Tela(30, 20)
-        for j in range(3):
-            tb.cel(tb.retangulo(j * 9 + 1, 4, 8, 16), ["sombra", "vermelho_esc", "vermelho_medio", "vermelho"], sombra=1)
-            tb.chapado(tb.retangulo(j * 9 + 1, 7, 8, 1), "cinza_escuro")
-        tb.contorno("sombra")
-        pecas.append((lx(wx), tb, wx))
+            anoitecer(c, hora(wx) * 0.75 + 0.15)
+            pecas.append((lx(wx), c))
+    pecas.append((lx(40), nova(bd.barracao, 40, 120, 64, "ALMOXARIFADO", 1)))
+    pecas.append((lx(372), nova(bd.caixa_dagua, 372, 124, 2)))
+    pecas.append((lx(540), nova(bd.barracao, 540, 92, 60, "RÁDIO", 3, antena=True)))
+    pecas.append((lx(1140), nova(bd.barracao, 1140, 104, 62, "RANCHO", 4)))
+    pecas.append((lx(1480), nova(bd.barracao, 1480, 96, 58, "OFICINA", 5)))
+    for k, wx in enumerate((330, 820, 1300)):
+        pecas.append((lx(wx), nova(bd.tambores, wx, 5, k)))
+    for k, wx in enumerate((700, 1400)):
+        pecas.append((lx(wx), nova(bd.caixotes_lona, wx, k)))
+    for k, wx in enumerate((260, 760, 1050, 1620)):
+        pecas.append((lx(wx), nova(bd.barraca_pequena, wx, 52, 30, k, bd.OLIVA)))
     # Mastro sem a bandeira (a bandeira tremula num sprite à parte).
     ms = Tela(10, 120)
     ms.volume(ms.capsula(4, 119, 4, 2, 1.4), f1.METAL, achatado=1, suave=0.3)
     ms.chapado(ms.elipse(4, 2, 2, 2), "amarelo_fogo")
     ms.volume(ms.retangulo(0, 114, 9, 6), fx.CAL, achatado=1, suave=0.3)
     ms.contorno("sombra")
-    pecas.append((lx(880), ms, 880))
-    for x, p, wx in sorted(pecas, key=lambda e: -e[1].h):
-        anoitecer(p, hora(wx) * 0.75 + 0.15)
+    anoitecer(ms, hora(880) * 0.75 + 0.15)
+    pecas.append((lx(880), ms))
+    global MASTRO_Y
+    MASTRO_Y = base - ms.h + 2
+    for x, p in sorted(pecas, key=lambda e: -e[1].h):
         f1.colar(t, p, x, base - p.h + 2)
     return t, fator
 
 
+MASTRO_Y = 0
+
+
 def camada_meio():
-    """Longe (0,45): encosta da cratera subindo, coberta de barracas pequenas em fileiras,
-    torres de holofote em silhueta, fogueiras do acampamento e a cratera no fim."""
+    """Meio (0,45): a borda levantada da cratera atrás do acampamento, subindo em terraços
+    de terra cortada com muro de toras e de sacos; barracas pequenas em fileiras com luz na
+    porta, andaimes com rampas, torres de vigia acesas, varais de lâmpadas e fogueiras;
+    no fim, a beira da cratera iluminada de verde por baixo."""
+    import base_detalhe as bd
     fator = 0.45
     W = int(LARGURA * fator + 548)
-    alt = 220
+    alt = 230
     t = Tela(W, alt)
-    xs = np.arange(W)
-    zona = xs / fator
-    alto = (alt - 40 - np.clip((zona - 200) / 1400, 0, 1) * 34 + ruido(1, W, 26, 9)[0] * 5).astype(int)
-    morro = t.yy >= alto[None, :]
-    prof = (t.yy - alto[None, :]).astype(float)
-    v = 0.7 - np.clip(prof, 0, 40) / 40 * 0.45 + ruido(alt, W, (1.5, 6), 33) * 0.08
-    pintar_niveis(t, morro, v, ["preto", "marrom_noite", "couro_profundo", "terra_escura", "terra"])
-    for x in range(W):
-        t.px[alto[x], x] = IDX["terra_media"]
     rng = np.random.default_rng(8)
-
-    def assentar_morro(p, x):
+    xs = np.arange(W)
+    # Terraços: degraus de altura que sobem para a direita, com o ruído da terra.
+    degraus = []
+    x = 0
+    nivel = alt - 70
+    while x < W:
+        larg = int(rng.integers(90, 170))
+        degraus.append((x, x + larg, nivel))
+        x += larg
+        nivel = int(np.clip(nivel + rng.choice([-26, -18, 14, -10]), 70, alt - 56))
+    alto = np.zeros(W, int)
+    for (a, b, n) in degraus:
+        alto[a:min(W, b)] = n
+    alto = (alto + ruido(1, W, 3, 9)[0] * 1.2).astype(int)
+    terra = t.yy >= alto[None, :]
+    prof = t.yy - alto[None, :]
+    # Terra cortada em camadas (estratos) com pedras.
+    v = 0.62 - np.clip(prof, 0, 60) / 60 * 0.3 + np.sin((t.yy + ruido(alt, W, (2, 20), 4) * 3) / 3.2) * 0.06 \
+        + ruido(alt, W, (1, 3), 5) * 0.05
+    v = np.where(prof < 2, 0.82, v)
+    # Encosta: riscos de enxurrada descendo, manchas de cascalho e de mato seco.
+    v = v + (np.abs(np.sin(t.xx / 7 + ruido(alt, W, (6, 1), 11) * 2)) > 0.96) * -0.12
+    v = v + (ruido(alt, W, (3, 6), 12) > 1.1) * 0.08
+    v = v - (ruido(alt, W, (2, 4), 13) > 1.3) * 0.1
+    noite = np.array([noite_bd(x / fator) for x in xs])
+    bd.CONTRASTE = 0.5
+    bd.pintar(t, terra, v + 0.12 - noite[None, :], bd.CHAO)
+    bd.CONTRASTE = 1.0
+    # Muro de arrimo em cada degrau: toras em pé ou sacos.
+    for k, (a, b, n) in enumerate(degraus[1:], 1):
+        pa, pb, pn = degraus[k - 1]
+        if pn == n or a >= W:
+            continue
+        topo, fundo = min(pn, n), max(pn, n)
+        x0 = a - 4 if n < pn else a
+        bd.NOITE = noite_bd(a / fator) - 0.04
+        bd.CONTRASTE = 0.55
+        if k % 2:
+            for xx in range(x0, x0 + 8, 3):
+                bd.cilindro(t, xx, fundo + 2, xx, topo - 2, 1.4, 1.4, semente=xx, rachas=0, nos=0, topo_cortado=True)
+        else:
+            for j, yy in enumerate(range(fundo, topo - 2, -6)):
+                bd.saco(t, x0 - 4 + (j % 2) * 3, yy, 12, 6, semente=xx if False else j + k)
+        bd.NOITE, bd.CONTRASTE = 0.0, 1.0
+    # Peças nos terraços.
+    def por(fn, x, *a, **kw):
         x = int(x)
+        if x < 0 or x >= W - 10:
+            return None
+        bd.NOITE = noite_bd(x / fator) - 0.04
+        bd.CONTRASTE = 0.6
+        p = fn(*a, **kw)
+        bd.NOITE, bd.CONTRASTE = 0.0, 1.0
         fim = min(W - 1, x + p.w)
-        yy = int(max(alto[x:fim + 1])) if fim > x else alto[x]
-        f1.colar(t, p, x, yy - p.h + 3)
+        if alto[x:fim + 1].max() - alto[x:fim + 1].min() > 4:
+            return None  # não fica em cima de degrau (nada flutuando)
+        yy = int(max(alto[x:fim + 1]))
+        f1.colar(t, p, x, yy - p.h + 2)
         return yy
-    # Barracas pequenas em fileiras subindo a encosta, com luz de lampião na porta.
-    x = 20
-    while x < W - 30:
-        b = fx.barraca(int(rng.integers(26, 38)), int(rng.integers(14, 20)), semente=int(x))
-        anoitecer(b, hora(x / fator) * 0.8 + 0.2)
-        yb = assentar_morro(b, x)
-        if rng.random() < 0.5:
-            t.ponto(x + b.w // 2, yb - 3, "amarelo_fogo")
-            f2.registrar_fogo("meio", x + b.w // 2 + 0.5, yb - 1, 1.6, int(x)) if rng.random() < 0.2 else None
-        x += int(rng.integers(34, 70))
-    # Torres de holofote em silhueta (os fachos são animados no jogo).
-    for wx in (300, 900, 1500):
-        tr = torre_holofote(46, semente=wx)
-        tr.px[tr.px != VAZIO] = IDX["sombra_media"]
-        assentar_morro(tr, int(wx * fator))
-    # Fumaça das fogueiras do acampamento subindo.
+    # Pedras grandes meio enterradas na encosta.
+    for _ in range(W // 40):
+        x = int(rng.integers(0, W - 1))
+        yy = int(alto[x] + rng.integers(8, 50))
+        if yy >= alt - 2:
+            continue
+        r = float(rng.uniform(3, 7))
+        e = t.elipse(x, yy, r * 1.4, r) & terra
+        bd.CONTRASTE = 0.55
+        bd.pintar(t, e, 0.95 - ((t.xx - x) + (t.yy - yy)) / (3 * r) - noite[x], bd.CHAO)
+        bd.CONTRASTE = 1.0
+    for k, (a, b, n) in enumerate(degraus):
+        x = a + 8
+        while x < b - 40:
+            r = rng.random()
+            if r < 0.55:
+                yb = por(bd.barraca_pequena, x, int(rng.integers(30, 44)), int(rng.integers(18, 24)), int(x), bd.OLIVA,
+                         rng.random() < 0.6)
+                x += int(rng.integers(44, 60))
+            elif r < 0.7:
+                por(bd.andaime, x, 44, int(rng.integers(40, 70)), int(x))
+                x += 52
+            elif r < 0.82:
+                tr = torre_vigia_fundo(bd, int(x))
+                por(lambda tr=tr: tr, x)
+                x += 40
+            else:
+                por(bd.tambores, x, 3, int(x))
+                x += 40
+        # Varal de lâmpadas acesas ao longo do terraço.
+        if k % 2 == 0 and b - a > 100:
+            y0 = n - 26
+            for xx in range(a + 10, min(W, b - 10)):
+                yy = y0 + math.sin((xx - a - 10) / (b - a - 20) * math.pi) * 5
+                t.ponto(xx, yy, "sombra")
+                if (xx - a) % 9 == 0:
+                    t.ponto(xx, yy + 1, "ouro_escuro")
+                    t.ponto(xx, yy + 2, "amarelo_claro")
+    # Fogueiras do acampamento com fumaça (animadas).
     for k, wx in enumerate((520, 1180)):
         fxp = int(wx * fator)
         f2.registrar_fogo("meio", fxp, alto[fxp] + 2, 3.5, 70 + k)
         f2.registrar_fumaca("meio", fxp, alto[fxp] - 2, 90, 12, f2.FUMACA_ESCURA_C, semente=80 + k, vento=-0.3, fino=1.6)
+    # Beira da cratera no fim: crista com brilho verde vindo de baixo.
+    ini = int(1380 * fator)
+    for x in range(ini, W):
+        f = min(1, (x - ini) / 80)
+        y = alto[x]
+        if f > 0:
+            t.ponto(x, y, "alien_medio" if f > 0.5 else "alien_esc")
+            if f > 0.6:
+                t.ponto(x, y + 1, "alien_esc")
     return t, fator
+
+
+def torre_vigia_fundo(bd, semente=0):
+    """Torre de vigia pequena para o fundo, com a guarita acesa."""
+    t = Tela(30, 64)
+    base = 63
+    for (a, b) in ((3, 9), (27, 21)):
+        bd.cilindro(t, a, base, b, 16, 1.2, 1.0, semente=semente + a, rachas=0, nos=0)
+    for y in range(24, base - 4, 12):
+        bd.cilindro(t, 6, y, 24, y + 10, 0.7, 0.7, semente=y, rachas=0, nos=0)
+        bd.cilindro(t, 24, y, 6, y + 10, 0.7, 0.7, semente=y + 1, rachas=0, nos=0)
+    bd.tabua(t, 4, 6, 22, 11, semente=semente)
+    t.chapado(t.retangulo(8, 9, 14, 5), "lona_q2")
+    t.chapado(t.elipse(13, 11, 3, 2), "lona_q3")
+    zinco(t, t.poligono([(2, 6), (15, 0), (28, 6)]), semente) if False else None
+    roof = t.poligono([(2, 7), (15, 1), (28, 7)])
+    bd.zinco(t, roof, semente, 0.6)
+    corpo = t.px != VAZIO
+    t.px[ndimage.binary_dilation(corpo) & ~corpo] = IDX["mad_n1"]
+    return t
 
 
 def camada_longe():
@@ -529,25 +734,60 @@ def camada_longe():
 
 
 def camada_frente():
-    """Na frente (1,1): sacos de areia, arame farpado e caixotes em silhueta, espalhados."""
+    """Na frente (1,1): passa por cima do chão, escura e com a beirada pega pela luz:
+    touceiras de capim seco alto, sacos de areia, rolo de arame farpado, caixote quebrado e
+    pedras. Espalhadas sem tapar o jogo (só a faixa de baixo)."""
+    import base_detalhe as bd
     fator = 1.1
     W = int(LARGURA * fator + 548)
-    alt = 26
+    alt = 34
     t = Tela(W, alt)
     rng = np.random.default_rng(61)
-    x = 200
+    chao = alt - 1
+
+    def capim(x):
+        for k in range(int(rng.integers(9, 16))):
+            a = rng.uniform(-0.8, 0.8)
+            L = rng.uniform(8, 22)
+            x0 = x + rng.uniform(-6, 6)
+            for j in range(int(L)):
+                f = j / L
+                px = x0 + math.sin(a) * j + a * f * f * 6
+                py = chao - j
+                t.ponto(px, py, "preto" if f < 0.75 else "sombra")
+                if j % 3 == 0 and a < 0:
+                    t.ponto(px - 1, py, "sombra_media")
+            t.ponto(x0 + math.sin(a) * L + a * 6, chao - L, "chao_n3")
+
+    x = 60
     while x < W - 60:
         r = rng.random()
-        if r < 0.55:
-            s = f1.sacos_detalhados(3, 1, semente=int(x))
+        if r < 0.45:
+            capim(x)
+            if rng.random() < 0.5:
+                capim(x + rng.uniform(8, 16))
+        elif r < 0.65:
+            bd.NOITE = 0.42
+            bd.saco(t, x, chao, 18, 9, semente=int(x))
+            bd.saco(t, x + 14, chao, 17, 9, semente=int(x) + 1)
+            bd.saco(t, x + 7, chao - 8, 17, 8, semente=int(x) + 2)
+            bd.NOITE = 0.0
+        elif r < 0.82:
+            # Rolo de arame farpado (espiral) com farpas.
+            for k in range(70):
+                a = k / 70 * math.pi * 10
+                px = x + k * 0.7 + math.cos(a) * 3
+                py = chao - 6 + math.sin(a) * 5
+                t.ponto(px, py, "sombra" if math.sin(a) > 0 else "preto")
+                if k % 6 == 0:
+                    t.ponto(px, py - 1, "cinza_escuro")
         else:
-            s = Tela(40, 12)
-            fio(s, 0, 6, 39, 6, flecha=2, farpas=6, cor="preto", luz="sombra")
-            for xp in (2, 37):
-                s.linha(xp, 2, xp, 11, "preto")
-        s.px[s.px != VAZIO] = IDX["sombra"]
-        f1.colar(t, s, x, alt - s.h)
-        x += int(rng.integers(260, 480))
+            bd.NOITE = 0.42
+            e = t.elipse(x + 10, chao - 3, 12, 6)
+            bd.pintar(t, e, 0.8 - ((t.xx - x) + (t.yy - chao + 9)) / 24, bd.CHAO)
+            bd.NOITE = 0.0
+            capim(x + 20)
+        x += int(rng.integers(170, 340))
     return t, fator
 
 
@@ -720,6 +960,10 @@ def plataforma_elevador():
     return t
 
 
+# Peças vivas no nível novo (base_detalhe) substituem as de cima.
+from base_detalhe import holofote, gerador, jaula, pedaco_disco, lampada, bandeira, plataforma_elevador  # noqa: E402,F811
+
+
 # ------------------------------------------------------------------ dados
 def dados_fase():
     """Dados do trecho 2 (assets/fases/fase2b.json), lidos por src/scenes/Fase2bScene.js."""
@@ -769,8 +1013,8 @@ def dados_fase():
             "geradores": [{"x": x, "id": g} for (x, g) in GERADORES],
             "jaulas": [{"x": x, "alien": a} for (x, a) in JAULAS],
             "guindaste": {"x": PONTA_LANCA[0], "y": PONTA_LANCA[1] + 2, "comprimento": 70},
-            "lampadas": [{"x0": 395 + 5, "x1": 760 + 5, "y": CHAO - 58 + 4, "gerador": 0},
-                         {"x0": 760 + 5, "x1": 1090 + 5, "y": CHAO - 58 + 4, "gerador": 1}],
+            "lampadas": [{"x0": 400, "x1": 760, "y": CHAO - 58 + 4, "gerador": 0},
+                         {"x0": 760, "x1": 1125, "y": CHAO - 58 + 4, "gerador": 1}],
             "elevador": {"x": FIM, "y": CHAO},
             "noite": {"de": 0, "ate": 1300},
         },
@@ -817,9 +1061,9 @@ def exportar(saida, raiz):
     d["fogos"] = fogos
     d["fogo"] = {"w": f2.FOGO_W, "h": f2.FOGO_H, "n": f2.FOGO_N}
     # Bandeira no mastro da camada de perto (mastro em wx 880, fator 0,75).
-    d["bandeira"] = {"camada": "perto", "x": int(880 * fp) + 5, "y": 3}
+    d["bandeira"] = {"camada": "perto", "x": int(880 * fp) + 5, "y": MASTRO_Y + 3}
     d["camadas"] = {"jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp}, "meio": {"base": 192, "fator": fm},
-                    "longe": {"base": 160, "fator": fl}, "borda": {"base": 160, "fator": fl}, "frente": {"base": 222, "fator": ff}}
+                    "longe": {"base": 160, "fator": fl}, "borda": {"base": 160, "fator": fl}, "frente": {"base": 220, "fator": ff}}
     pasta = raiz / "assets/fases"
     (pasta / "fase2b.json").write_text(json.dumps(d, ensure_ascii=False, separators=(",", ":")))
 
@@ -867,7 +1111,7 @@ def previa(caminho, cams=(0, 450, 900, 1252)):
         o.alpha_composite(jogo.imagem(), (-cam, topo + DY))
         for (p, x, y) in vivas:
             o.alpha_composite(p.imagem(), (int(x - cam), int(y + DY)))
-        o.alpha_composite(frente.imagem(), (-int(cam * ff), 222 - frente.h + DY))
+        o.alpha_composite(frente.imagem(), (-int(cam * ff), 220 - frente.h + DY))
         ims.append(o)
     out = Image.new("RGBA", (548 * 2, 308 * ((len(ims) + 1) // 2)))
     for k, im in enumerate(ims):

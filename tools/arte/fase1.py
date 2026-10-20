@@ -56,12 +56,12 @@ def cortar(t):
 # ================================================================ acabamento
 def _mapa_escuro():
     """Para cada cor da paleta, a cor mais parecida que seja mais escura (sombra de contato)."""
-    from motor import RGB
+    from motor import RGB, N_BASE
     lum = RGB.astype(float) @ np.array([0.3, 0.59, 0.11])
     mapa = np.arange(len(RGB))
     for i in range(len(RGB)):
         melhor, dist = i, 1e9
-        for j in range(len(RGB)):
+        for j in range(len(RGB) if i >= N_BASE else N_BASE):
             if lum[j] >= lum[i] * 0.86 or lum[j] < lum[i] * 0.45:
                 continue
             ci = RGB[i] / max(lum[i], 1)

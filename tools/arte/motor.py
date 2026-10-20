@@ -16,6 +16,9 @@ NOMES = list(CORES)
 IDX = {n: i for i, n in enumerate(NOMES)}
 RGB = np.array([[int(CORES[n][i:i + 2], 16) for i in (1, 3, 5)] for n in NOMES], dtype=np.uint8)
 VAZIO = -1
+# As 64 primeiras cores são as originais; as de depois (crepúsculo) só servem às peças novas,
+# então os mapas de sombra/luz das cores antigas continuam escolhendo entre as antigas.
+N_BASE = 64
 
 # Rampas do escuro para o claro.
 RAMPAS = {
