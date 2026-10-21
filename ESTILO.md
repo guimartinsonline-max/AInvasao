@@ -118,6 +118,8 @@ Resumo de estudo dos jogos (MS1 a MS3, MSX, MS6, Awakening) e de entrevistas do 
   - **Uma cor de ambiente por cena.** Tudo puxa para a mesma luz (sertão de tarde: ocre quente, sombra arroxeada; selva: oliva; noite: azul). Cacto, árvore, telha e pedra entram nesse tom, nada de cor viva solta. Rampas da cena `amb_*`.
   - **Formas grandes com textura dentro:** casa ocupando metade da altura da tela, telha canal em fileiras, reboco caído mostrando a trama, rachadura, lasca, pedra encaixada no chão. Poucas peças grandes em vez de muitas pequenas.
   - **Fundo enevoado** (pouco contraste, mais claro) fechando o horizonte, e **camada de frente** escura (capim, xique-xique) nos cantos.
+  - **Céu e montanhas quietos (aprovado em 21/10, "mil vezes melhor"):** céu em degradê longo e suave na cor de ambiente (azul-acinzentado em cima, pêssego enevoado no horizonte), com fiapos finos de nuvem quase da cor do céu; nada de nuvem branca recortada. Montanhas como formas por planos (uma face clara virada para o sol, outra na sombra), quase da cor do céu, com névoa no pé. Nada de ruído aleatório fazendo borrão ou risco.
+  - **Conferir sempre lado a lado com o print de referência**, na mesma escala de pixel, e tirar as cores do próprio print.
 - Nível mínimo: o da barraca LAB (`tools/arte/base_detalhe.py`).
 - Camadas: céu, fundo distante (mais claro e de menor contraste, `nevoa()`), meio, perto, chão de jogo, frente (1,1 de parallax). **Fundo cheio até o alto.**
 - Fundo pintado inteiro para o trecho: **sem repetição visível**.
