@@ -28,11 +28,10 @@ AMB = {
     "telha": ["#3a1a22", "#5e2629", "#86372e", "#a84c34", "#c6663e", "#dc8650", "#eca86a"],
     "madeira": ["#24181e", "#3e2826", "#5c3c30", "#7c543c", "#9c6e4a", "#ba8a5c"],
     "verde": ["#1e2422", "#2e3a2a", "#465230", "#626c38", "#7f8642", "#a2a058", "#c4bc76"],
-    "longe": ["#6e5a68", "#7f6870", "#917676", "#a2857c", "#b29382", "#c0a08a", "#cdad92", "#d9ba9a", "#e4c7a4"],
-    "serra": ["#7a809f", "#878ba7", "#9596ad", "#a3a1b3", "#b1abb7", "#beb5bb", "#cabfbf", "#d5c8c2"],
+    "longe": ["#a08680", "#a88c82", "#b09384", "#b89a87", "#c0a18a", "#c8a88e", "#cfb092", "#d6b897", "#dcbf9c"],
+    "serra": ["#9a909c", "#a297a0", "#aa9da3", "#b2a3a5", "#baa9a7", "#c2afa9", "#cab5ab", "#d1bbad"],
     "meio": ["#6a4e52", "#82604e", "#9c744e", "#b48a58", "#c8a066", "#d8b478"],
-    "ceu": ["#4f74a6", "#5d81af", "#6c8eb8", "#7e9cbf", "#92abc6", "#a8b9cb", "#bdc5cc", "#d0cfca",
-            "#e0d6c6", "#ecdcc2"],
+    "ceu": ["#868ca6", "#8f93a9", "#9799ab", "#a09fad", "#a9a5ae", "#b2abad", "#bab0ad", "#c3b6ac", "#cbbbab", "#d3c0ab", "#dac6ad", "#e0cbb0"],
     "nuvem": ["#6f7392", "#82829e", "#9692aa", "#aaa3b4", "#bdb3bc", "#cfc2c2", "#dfd0c8", "#ecdccc",
               "#f6e8d4", "#fcf2e0"],
     "frente": ["#1a1218", "#2a1c20", "#3c2826", "#52362c"],
@@ -83,67 +82,80 @@ def campo(sy, sx, sem):
 
 
 def ceu(t):
-    """Céu de tarde: degradê longo (azul em cima, horizonte quente e enevoado) e bancos
-    de nuvem com volume: luz vem do sol baixo à esquerda, então a borda virada para ele
-    acende em creme e a barriga cai num lilás acinzentado. Sem contorno."""
-    y = YY / 175.0
-    luz = np.clip(y + 0.025 * campo(6, 30, 70), 0, 0.999)
-    t.pinta(np.ones((H, W), bool), "ceu", quantiza_limpo(luz, 10))
-    # densidade das nuvens: bolos grandes + rolos médios + fiapos, esticados na horizontal
-    D = 1.0 * campo(16, 40, 71) + 0.35 * campo(7, 16, 72) + 0.12 * campo(2.5, 6, 73)
-    faixa = np.exp(-((YY - 48) / 30.0) ** 2) * 1.6 + np.exp(-((YY - 112) / 10.0) ** 2) * 0.9
-    D = D + faixa - 1.35
-    D = np.where(YY > 150, -1, D)
-    m = D > 0
-    # luz: compara com a densidade no rumo do sol (cima-esquerda)
-    sol = np.roll(np.roll(D, 4, axis=0), 6, axis=1)
-    luz = 0.60 + 1.5 * (D - sol)
-    luz += 0.18 * np.clip(1 - D * 2.5, 0, 1)          # borda fina pega luz através
-    baixo = np.roll(D, -5, axis=0)
-    luz -= 0.22 * (baixo < 0)                          # barriga escura na base do bolo
-    luz -= 0.10 * np.clip((YY - 40) / 80, 0, 1)
-    t.pinta(m, "nuvem", quantiza_limpo(np.clip(luz, 0, 0.999), 10))
+    """Céu do jeito dos prints (ruínas do MS): degradê longo e suave, azul-acinzentado em
+    cima virando pêssego enevoado no horizonte, com faixas finas de estrato de pouco
+    contraste. Nada de nuvem branca recortada: o fundo fica quieto para a frente aparecer."""
+    y = np.clip(YY / 200.0, 0, 1) ** 0.9
+    borda = 0.012 * campo(1.5, 18, 70)                  # degraus do degradê irregulares
+    nivel = np.clip(y + borda, 0, 0.999)
+    k = np.clip((nivel * 12).astype(int), 0, 11)
+    # estratos: fiapos longos e finos, um tom mais escuro em cima e um mais claro perto do horizonte
+    fio = campo(1.2, 45, 71) + 0.6 * campo(3, 70, 72)
+    faixa = np.exp(-((YY - 40) / 28.0) ** 2) + 0.7 * np.exp(-((YY - 105) / 16.0) ** 2)
+    est = (fio * faixa) > 0.9
+    k = np.where(est & (YY < 80), k - 1, k)
+    k = np.where(est & (YY >= 80), k + 1, k)
+    k = ndimage.median_filter(np.clip(k, 0, 11), size=3)
+    t.img[:] = RGB["ceu"][k]
 
 
 # ---------------- serra ao longe e chapada (névoa) ----------------
+def montanha(t, picos, base, rampa, claro, escuro, sem):
+    """Montanhas como formas: cada pico com uma face acesa (esquerda, para o sol) e uma
+    face na sombra, divididas pela crista; grotões leves; o pé some na névoa."""
+    rng = np.random.default_rng(sem)
+    alt = np.full(W, base, float)
+    lado = np.zeros((H, W))
+    for (px, ph, pw) in picos:
+        perfil = base - ph * np.clip(1 - np.abs(XX[0] - px) / pw, 0, 1) ** 1.15
+        perfil += 1.5 * campo(1, 3, sem + px)[0] * (perfil < base)
+        alt = np.minimum(alt, perfil)
+    m = YY >= alt[None, :]
+    # face: pela inclinação da crista em cada coluna (subindo para a direita = virada para o sol)
+    inc = -np.gradient(ndimage.uniform_filter1d(alt, 3))
+    face = np.where(inc > 0.05, claro, np.where(inc < -0.05, escuro, (claro + escuro) / 2))
+    # a crista desce torta pela encosta: a divisão de luz inclina para baixo
+    deslocada = np.zeros((H, W))
+    for dy in range(0, 60, 4):
+        deslocada[np.clip(alt.astype(int) + dy, 0, H - 1), np.clip(np.arange(W) + dy // 3, 0, W - 1)] = 1
+    luz = np.broadcast_to(face[None, :], (H, W)).copy()
+    grotao = campo(5, 0.8, sem + 1)
+    luz += 0.06 * (grotao > 1.2) * (face[None, :] > 0.5) - 0.06 * (grotao > 1.2) * (face[None, :] <= 0.5)
+    prof = YY - alt[None, :]
+    luz += 0.35 * np.clip((prof - 10) / 50, 0, 1) * (1 - luz)       # névoa no pé
+    t.pinta(m, rampa, np.clip(luz, 0, 0.999))
+
+
 def serra(t):
-    """Serra distante azulada: cristas de pico, encostas viradas para o sol claras,
-    grotões verticais e névoa subindo do pé."""
-    n1 = campo(1, 24, 80)[0]; n2 = campo(1, 7, 81)[0]
-    topo = 118 - 30 * (1 - np.abs(n1)) ** 2 - 5 * n2
-    m = YY >= topo[None, :]
-    inclina = -np.gradient(ndimage.uniform_filter1d(topo, 5))  # >0: subindo para a direita (face para o sol)
-    grotao = campo(7, 1.2, 82)
-    prof = YY - topo[None, :]
-    luz = 0.42 + 0.30 * np.tanh(inclina * 1.5)[None, :] * np.exp(-prof / 45) + 0.10 * grotao
-    luz += 0.12 * (prof < 2)
-    luz += 0.40 * np.clip((prof - 15) / 45, 0, 1)      # névoa no pé
-    t.pinta(m, "serra", quantiza_limpo(np.clip(luz, 0, 0.999), 8))
+    montanha(t, [(40, 30, 70), (130, 44, 80), (250, 26, 60), (360, 38, 90), (470, 50, 85), (548, 30, 60)],
+             150, "serra", 0.72, 0.42, 80)
 
 
 def chapada(t):
-    """Mesas de arenito: topo chato aceso, paredão com relevo de verdade (colunas e
-    grotões que pegam luz do lado esquerdo), estratos, tálus e névoa na base."""
-    for fileira, (base_topo, amp, sem, desl) in enumerate(((122, 16, 3, 0.12), (146, 12, 6, 0.0))):
+    """Mesas de arenito no fundo, pintadas como planos grandes: topo aceso, face quase lisa
+    (clara na quina esquerda, mais escura à direita), poucas fendas, estratos leves e
+    névoa no pé. Pouco contraste, para não brigar com a frente."""
+    for fileira, (base_topo, amp, sem, desl) in enumerate(((140, 14, 3, 0.10), (160, 10, 6, 0.0))):
         perfil = base_topo + amp * ruido(40, sem, 1, W)[0]
-        topo = np.round(perfil / 10) * 10
+        degrau = np.round(perfil / 10) * 10
+        corte = np.r_[0, np.flatnonzero(np.diff(degrau)) + 1, W]
+        # encostas inclinadas entre uma mesa e outra e borda de cima gasta (não é caixa)
+        topo = np.round(ndimage.uniform_filter1d(degrau, 9))
         m = YY >= topo[None, :]
-        corte = np.r_[0, np.flatnonzero(np.diff(topo)) + 1, W]
+        inc = -np.gradient(ndimage.uniform_filter1d(topo, 3))
         u = np.zeros(W)
         for a, b in zip(corte[:-1], corte[1:]):
             u[a:b] = (np.arange(b - a) + 0.5) / (b - a)
-        # relevo: colunas verticais; a encosta virada para a esquerda acende
-        R = 1.0 * campo(10, 2.2, sem + 10) + 0.4 * campo(3, 1, sem + 11)
-        gx = np.gradient(R, axis=1)
         prof = YY - topo[None, :]
-        luz = 0.55 - 1.6 * gx + 0.10 * R
-        luz += 0.14 * (u < 0.12)[None, :] - 0.18 * (u > 0.85)[None, :]   # quina acesa / quina na sombra
-        luz = np.where(prof % 15 < 1, luz - 0.10, luz)                       # estratos
-        luz = np.where(prof < 3, 0.97, luz)                                  # topo
-        luz = np.where((prof >= 3) & (prof < 6), luz - 0.15, luz)            # sombra da aba do topo
-        luz = 0.62 + (luz - 0.62) * (0.55 if fileira == 0 else 0.7)          # névoa: pouco contraste
-        luz += 0.22 * np.clip((prof - 40) / 50, 0, 1) + desl                 # névoa na base
-        t.pinta(m, "longe", quantiza_limpo(np.clip(luz, 0, 0.999), 9))
+        luz = 0.62 - 0.22 * u[None, :] + 0.12 * (u < 0.08)[None, :]       # plano da face
+        luz = luz + (0.18 * (inc > 0.6) - 0.18 * (inc < -0.6))[None, :] * (prof < 40)  # encostas: luz/sombra
+        fenda = (campo(14, 0.6, sem + 10) > 1.9) & (prof > 6)
+        luz = np.where(fenda, luz - 0.12, luz)
+        luz = np.where((prof % 19 == 0) & (prof > 4), luz - 0.06, luz)    # estratos leves
+        luz = np.where(prof < 2, 0.90, luz)                                # topo
+        luz = np.where((prof >= 3) & (prof < 5), luz - 0.10, luz)          # sombra da aba
+        luz += 0.30 * np.clip((prof - 30) / 50, 0, 1) * (1 - luz) + desl  # névoa no pé
+        t.pinta(m, "longe", np.clip(luz, 0, 0.999))
 
 
 def morros(t):
