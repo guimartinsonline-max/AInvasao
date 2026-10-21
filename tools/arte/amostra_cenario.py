@@ -35,6 +35,9 @@ AMB = {
     "nuvem": ["#6f7392", "#82829e", "#9692aa", "#aaa3b4", "#bdb3bc", "#cfc2c2", "#dfd0c8", "#ecdccc",
               "#f6e8d4", "#fcf2e0"],
     "frente": ["#1a1218", "#2a1c20", "#3c2826", "#52362c"],
+    # tinta desbotada das fachadas da vila alta, na luz da tarde
+    "azul": ["#3e3448", "#54485c", "#6c6274", "#887e8c", "#a49aa4", "#c0b6b8"],
+    "rosa": ["#4e2830", "#6e3a3c", "#8e5250", "#ac6c62", "#c48a78", "#d8a690"],
 }
 RGB = {k: np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for c in v], np.uint8) for k, v in AMB.items()}
 RNG = np.random.default_rng(7)

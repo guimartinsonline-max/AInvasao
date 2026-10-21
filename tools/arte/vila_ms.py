@@ -218,16 +218,18 @@ def cruzeiro(sem=5):
 
 
 # ---------------------------------------------------------------- camadas
-def camada_paredao(h=130):
-    return cm.camada_paredao(h, ate=limite(0.2))
+# `ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura); as peças da vila
+# continuam sorteadas só até o limite dela, para não mudar quando a camada cresce.
+def camada_paredao(h=130, ate=None):
+    return cm.camada_paredao(h, ate=ate or limite(0.2))
 
 
-def camada_meio(h=90):
+def camada_meio(h=90, ate=None, planos_extra=()):
     """Os morros da caatinga continuam; no fim, num patamar, a vila alta vista de longe."""
     fator = 0.45
     lim = limite(fator)
     v0, v1 = 1780, 2010                       # patamar da vila alta ao longe
-    q = cm.camada_meio(h, ate=lim, planos_extra=[(v0, v1, 30)])
+    q = cm.camada_meio(h, ate=ate or lim, planos_extra=[(v0, v1, 30)] + list(planos_extra))
     rng = np.random.default_rng(21)
     x0 = cm.limite(fator) - 20
     # moitas e árvores pequenas enevoadas na encosta
@@ -265,12 +267,12 @@ def camada_meio(h=90):
     return q
 
 
-def camada_perto(h=160):
+def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): as casas da vila atrás da rua, uma de barro sem reboco,
     uma arrombada, árvores e mandacarus entre elas, moitas no pé."""
     fator = 0.75
     lim = limite(fator)
-    q = cm.camada_perto(h, ate=lim)
+    q = cm.camada_perto(h, ate=ate or lim)
     chao = h - 1
     rng = np.random.default_rng(32)
     x0 = cm.limite(fator)
@@ -300,18 +302,18 @@ def camada_perto(h=160):
     return q
 
 
-def camada_frente(h=44):
-    return cm.camada_frente(h, ate=limite(1.1))
+def camada_frente(h=44, ate=None):
+    return cm.camada_frente(h, ate=ate or limite(1.1))
 
 
-def camada_jogo(fase, alt=176, topo_mundo=40):
+def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
     """Plano do jogo: o chão da caatinga continua pela rua da vila (mais batido, menos
     pedra), a capela, o cruzeiro, o girau, potes e cabaças na luz da cena."""
     import fase1 as f1
     F = fase.FASE
     CH = f1.CHAO
-    q = cm.camada_jogo(fase, alt, topo_mundo, ate=VILA_FIM + 40)
-    w = q.w
+    q = cm.camada_jogo(fase, alt, topo_mundo, ate=ate or VILA_FIM + 40)
+    w = VILA_FIM + 120               # as contas do sorteio seguem a largura da vila
     y = lambda wy: wy - topo_mundo  # noqa: E731
     yc = y(CH) - 1
     rng = np.random.default_rng(73)
@@ -356,7 +358,9 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
     for x, peca in ((3170, f1.pote_barro(7)), (3400, f1.cabacas()), (3840, f1.pilao()), (3560, f1.pote_barro(8, 12))):
         q.assentar(amb(peca), x, yc)
     q.assentar(cm.cerca_varas(70, 26, sem=37), 3730, yc)
+    if ate:                          # o trecho seguinte continua daqui e faz a passagem
+        return q
     # a passagem para a vila alta: o chão novo some em manchas sobre o antigo
-    corte = np.clip((VILA_FIM + 40 - q.xx) / 120.0, 0, 1) + 0.25 * ruido(alt, w, 3, 99)
+    corte = np.clip((VILA_FIM + 40 - q.xx) / 120.0, 0, 1) + 0.25 * ruido(alt, q.w, 3, 99)
     q.a &= corte > 0.5
     return q
