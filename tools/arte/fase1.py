@@ -910,9 +910,10 @@ def camada_jogo():
     rng = np.random.default_rng(1)
     y = lambda wy: wy - topo  # noqa: E731
     import caatinga_detalhe as ca
-    # Os trechos da caatinga, da vila e da vila alta (x < FIM) vêm pintados no jeito novo (caatinga_ms, vila_ms):
-    # aqui as peças deles continuam sorteadas (a sequência aleatória do resto não muda), mas não são coladas.
-    from vila_alta_ms import ALTA_FIM as FIM
+    # Os trechos da caatinga, da vila, da vila alta e do campo de pouso (x < FIM) vêm pintados no jeito novo
+    # (caatinga_ms, vila_ms, vila_alta_ms, campo_ms): aqui as peças deles continuam sorteadas (a sequência
+    # aleatória do resto não muda), mas não são coladas.
+    from campo_ms import CAMPO_FIM as FIM
     # Enfeites atrás das plataformas: capim, xique-xique, pedras, caveira.
     for x in range(0, LARGURA_FASE, 9):
         if rng.random() < 0.55:
@@ -962,17 +963,7 @@ def camada_jogo():
         colar(t, cb, x0 - dx, y(CHAO) - (cb.h - 1))
     # (Giraus, capela, cruzeiro e objetos da vila de taipa: vila_ms.camada_jogo.)
     # (Casario de platibanda, toldos, casinha do fim e objetos da vila alta: vila_alta_ms.camada_jogo.)
-    import vila_campo as vca
-    # ---- Campo de pouso: hangar, marcas de pneu, balizas, tanque de gasolina, cerca e trincheira.
-    assentar(t, ca.hangar(150, 96, semente=4), HANGAR_X, yc + 1)
-    vca.marcas_pneu(t, HANGAR_X + 60, 5960, yc - 6, semente=3)
-    for x in range(5110, 5600, 96):
-        assentar(t, ca.baliza(x), x, yc + 1)
-    assentar(t, ca.tanque_gasolina(2), 5600, yc)
-    assentar(t, sacos_detalhados(4, 3, 4), 5700 - 3, yc, afundar=3)
-    assentar(t, cerca_farpada(90, 6), 5890, yc)
-    for x in (4870, 5080, 5620, 5940):
-        assentar(t, xiquexique(semente=x), x, yc)
+    # (Hangar, pista, balizas, tanque de gasolina, trincheira e cerca do campo de pouso: campo_ms.camada_jogo.)
     # ---- Leito de rio seco: canoa velha encalhada, ossada, ponte com corrimão.
     # (A canoa virou segredo: é sprite à parte, que o tiro arrebenta.)
     assentar(t, cranio_boi(), 6490, yc)
@@ -1055,7 +1046,7 @@ def camada_perto():
     for k, wx in enumerate((6900, 7060, 7360, 7550)):
         pecas.append((lx(wx), ca.para_dia(bd_.barraca_pequena(60, 34, k + 10, bd_.OLIVA, k % 2 == 0))))
     pecas.append((lx(7220), vc.caminhao(0)))
-    import vila_alta_ms as cm
+    import campo_ms as cm
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
         if cm.antigo(x, fator):  # o trecho da caatinga vem pintado no jeito novo
             colar(t, p, x, base - p.h + 2)
@@ -1119,7 +1110,7 @@ def camada_meio():
     # Caatinga miúda e espalhada: arbustos em tufos, algumas árvores secas sem folha.
     x = 0
     import caatinga_detalhe as ca
-    import vila_alta_ms as cm  # caatinga e vila vêm pintadas no jeito novo: não cola as peças delas
+    import campo_ms as cm  # caatinga e vila vêm pintadas no jeito novo: não cola as peças delas
     while x < W:
         h = int(rng.integers(20, 40))
         seca = rng.random() < 0.3
@@ -1170,7 +1161,7 @@ def camada_frente():
     t = Tela(W, alt)
     rng = np.random.default_rng(4)
     escuro = ["preto", "sombra", "sombra_media", "caatinga_esc", "terra_escura"]
-    import vila_alta_ms as cm
+    import campo_ms as cm
     x = 200
     while x < W - 40:
         novo = not cm.antigo(x, fator)  # o trecho da caatinga vem pintado no jeito novo
@@ -1205,12 +1196,12 @@ def exportar(saida, raiz):
     import rocha as rc
     from PIL import Image
     import caatinga_ms as cm
-    import vila_alta_ms as vm
+    import campo_ms as vm
     # Céu, nuvens e serra são da fase toda: já no jeito novo (céu e serra quietos e enevoados).
     cm.ceu().save(saida / "f1_ceu.png", optimize=True)
     cm.nuvens().save(saida / "f1_nuvens.png", optimize=True)
     paredao = ca.paredao(int(LARGURA_FASE * 0.2 + 548))
-    # Trechos da caatinga, da vila e da vila alta no jeito novo, emendados no resto da fase sem corte reto.
+    # Trechos da caatinga, da vila, da vila alta e do campo de pouso no jeito novo, emendados no resto da fase sem corte reto.
     novas = {
         "f1_jogo": cm.sobrepor(jogo.imagem(), vm.camada_jogo(sys.modules[__name__])),
         "f1_perto": cm.sobrepor(perto.imagem(), vm.camada_perto()),
