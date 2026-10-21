@@ -25,16 +25,19 @@ NOMES_AMB = [f"amb_{r}_{k + 1}" for r, cores in AMB.items() for k in range(len(c
 TODAS = np.concatenate([RGB[r] for r in AMB]).astype(int)
 
 
-# Camadas em que a passagem vem antes, para não cobrir peças da vila (casinhas ao longe).
-_LIMITE_FIXO = {0.45: 1310}
+# Câmera mais à direita ainda dentro da caatinga: a borda direita da tela chega no começo da vila.
+CAMERA_FIM = CAATINGA_FIM - TELA_W
+# Perto: para logo antes da 1ª casa antiga da vila (a borda dela só aparece no último pixel da tela).
+_LIMITE_FIXO = {0.75: 2360}
 
 
 def limite(fator):
-    """x da camada até onde vai o jeito novo: a passagem fica no meio da tela quando a do
-    chão de jogo também está."""
+    """x da camada até onde vai o jeito novo: tudo o que a câmera mostra enquanto está na
+    caatinga (até CAMERA_FIM) já é do jeito novo; a emenda com o antigo fica fora da tela
+    e só passa a aparecer quando se entra na vila."""
     if fator in _LIMITE_FIXO:
         return _LIMITE_FIXO[fator]
-    return int(CAATINGA_FIM * fator + TELA_W / 2 * (1 - fator))
+    return int(CAMERA_FIM * fator + TELA_W)
 
 
 def antigo(x, fator):
@@ -627,6 +630,29 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
     return q
 
 
+def casinha_longe(w=40, hp=16, sem=0):
+    """Casinha de taipa vista de longe: parede de cal acesa, lado na sombra, telhado de
+    canais em faixa, porta e janela escuras. Pouco detalhe, que a névoa come o resto."""
+    lado = max(5, w // 6)
+    th = max(6, hp // 2)
+    q = Quadro(w + lado + 3, hp + th + 1)
+    X, Y = q.xx, q.yy
+    yt = th + 1
+    parede = (X >= 1) & (X < w) & (Y >= yt)
+    q.pinta(parede, "cal", np.where(Y > q.h - 4, 0.55, 0.82 - 0.1 * X / w))
+    lat = (X >= w) & (X < w + lado) & (Y >= yt + (X - w) * 0.3)
+    q.pinta(lat, "cal", np.full(X.shape, 0.32))
+    rng = np.random.default_rng(sem)
+    px = int(rng.integers(4, max(5, w // 2 - 4)))
+    q.pinta((X >= px) & (X < px + 5) & (Y >= q.h - 9), "madeira", np.full(X.shape, 0.1))
+    jx = int(rng.integers(w // 2 + 2, max(w // 2 + 3, w - 8)))
+    q.pinta((X >= jx) & (X < jx + 4) & (Y >= yt + 4) & (Y < yt + 8), "madeira", np.full(X.shape, 0.1))
+    tel = (Y >= 1) & (Y <= yt + 1) & (X >= -1 + (yt + 1 - Y) * 0.3) & (X < w + lado + 2 - (yt + 1 - Y) * 0.1)
+    luz = np.where(X % 4 < 2, 0.62, 0.42) - 0.12 * (Y == yt + 1) + 0.12 * (Y <= 2)
+    q.pinta(tel, "telha", np.clip(luz, 0, 0.999))
+    return q
+
+
 # ---------------------------------------------------------------- peças antigas trazidas para a luz da cena
 def ambientar(img):
     """Peça antiga (com contorno, paleta própria) entra na cor de ambiente: cada material
@@ -673,7 +699,7 @@ def _xs(fator, margem=40):
 
 
 def camada_paredao(h=130):
-    return chapada(limite(0.2) + 140, h)
+    return chapada(limite(0.2) + 200, h)
 
 
 def camada_meio(h=90):
@@ -700,9 +726,15 @@ def camada_meio(h=90):
         if x + p.w < lim:
             q.colar(p, x - p.w / 2, topo[int(x)] + rng.uniform(2, 10) - p.h)
         x += rng.uniform(40, 110)
-    casinha = nevoa(casa(70, 36, 22, sem=12, alpendre=False, lado=12), 0.38)
+    casinha = nevoa(casinha_longe(46, 20, sem=12), 0.38)
     cx = int(900 * fator)
     q.colar(casinha, cx, topo[cx] + 8 - casinha.h)
+    # a vila vista de longe no morro (casinhas juntas), já no jeito novo
+    for k, wx in enumerate((3200, 3260, 3330, 3420, 3500)):
+        cx = int(wx * fator)
+        if cx + 70 < lim:
+            c = nevoa(casinha_longe(int(rng.integers(30, 44)), int(rng.integers(14, 19)), sem=70 + k), 0.38)
+            q.colar(c, cx, topo[cx] + 7 - c.h)
     for _ in range(int(w / 548 * 26)):
         cx = rng.uniform(0, lim); r = rng.uniform(4, 9)
         cy = np.interp(cx, np.arange(w), topo) + rng.uniform(4, 24)
