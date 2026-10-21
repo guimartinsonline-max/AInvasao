@@ -910,11 +910,16 @@ def camada_jogo():
     rng = np.random.default_rng(1)
     y = lambda wy: wy - topo  # noqa: E731
     import caatinga_detalhe as ca
+    # O trecho da caatinga (x < FIM) vem pintado no jeito novo (caatinga_ms): aqui as peças
+    # dele continuam sorteadas (a sequência aleatória do resto não muda), mas não são coladas.
+    from caatinga_ms import CAATINGA_FIM as FIM
     # Enfeites atrás das plataformas: capim, xique-xique, pedras, caveira.
     for x in range(0, LARGURA_FASE, 9):
         if rng.random() < 0.55:
             c = ca.capim(int(rng.integers(12, 20)), int(rng.integers(8, 14)), semente=x, seco=True)
-            colar(t, c, x + rng.integers(-3, 3), y(CHAO) - c.h + 1)
+            dx = rng.integers(-3, 3)
+            if x >= FIM:
+                colar(t, c, x + dx, y(CHAO) - c.h + 1)
     # Chão de terra batida; no leito do rio, lama seca rachada.
     import fase1_extra as ext
     t.colar(ca.chao_caatinga(LARGURA_FASE, 26, semente=3), 0, y(CHAO) - 2)
@@ -922,28 +927,30 @@ def camada_jogo():
     colar_suave(t, ext.chao_rachado(6840 - 5980, 26, semente=8), 5980, y(CHAO) - 2, borda=70, semente=8)
     yc = y(CHAO) - 1  # linha do chão na camada
     for x in (70, 205, 640, 1010, 1470, 1930, 2420, 2700, 2900, 3050, 3870, 6860, 7260, 7800):
-        assentar(t, ca.xiquexique(int(rng.integers(26, 38)), semente=x), x, yc)
+        p = ca.xiquexique(int(rng.integers(26, 38)), semente=x)
+        if x >= FIM:
+            assentar(t, p, x, yc)
     for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850, 3000, 3640, 6200, 6620, 7450, 7850)):
-        assentar(t, ca.pedra(int(rng.integers(18, 34)), int(rng.integers(11, 18)), semente=k + 20,
-                             rampa=ca.PEDRA if k % 2 else ca.PEDRA_Q), x, yc, afundar=2)
-    assentar(t, cranio_boi(), 1880, yc)
-    assentar(t, cranio_boi(), 2540, yc)
-    # Forquilhas secas (refém pendurado no galho), buracos e fogueiras.
+        p = ca.pedra(int(rng.integers(18, 34)), int(rng.integers(11, 18)), semente=k + 20,
+                     rampa=ca.PEDRA if k % 2 else ca.PEDRA_Q)
+        if x >= FIM:
+            assentar(t, p, x, yc, afundar=2)
+    # (Crânios, forquilhas, buracos, fogueiras e objetos miúdos da caatinga: caatinga_ms.camada_jogo.)
     for fx, falt in FASE["forquilhas"]:
-        assentar(t, forquilha(falt, semente=fx), fx, yc)
+        if fx >= FIM:
+            assentar(t, forquilha(falt, semente=fx), fx, yc)
     for bx_ in FASE["buracos"]:
-        bu = buraco()
-        colar(t, bu, bx_ - bu.w / 2, yc - bu.h + 3)
+        if bx_ >= FIM:
+            bu = buraco()
+            colar(t, bu, bx_ - bu.w / 2, yc - bu.h + 3)
     for gx_, _ in FASE["fogueiras"]:
-        fg = fogueira()
-        assentar(t, fg, gx_ - fg.w / 2, yc)
-    # Objetos miúdos do sertão espalhados pelo chão.
-    for x, peca in ((300, pote_barro(1)), (318, pote_barro(2, 11)), (860 - 40, pilao()), (1545, carroca_quebrada()),
-                    (1720, pote_barro(3)), (1910, roda_carroca(8)), (2080, pote_barro(4, 12)), (2450, pilao()),
-                    (2500, carroca_quebrada()), (180, cerca_farpada(70, 1)), (1950, cerca_farpada(100, 2))):
-        assentar(t, peca, x, yc)
+        if gx_ >= FIM:
+            fg = fogueira()
+            assentar(t, fg, gx_ - fg.w / 2, yc)
     # Lajedos e barranco (sólidos).
     for (sx, sy, sw, sh, *_), sem in zip([FASE["solidos"][k] for k in (1, 3, 4, 5, 6, 8, 10)], range(7)):
+        if sx < FIM:
+            continue
         lj = ca.lajedo(sw + 4, CHAO - sy + 6, semente=40 + sem)
         sombra_contato(t, sx + sw / 2, yc + 1, sw * 1.15, 3.5)
         colar(t, lj, sx - 2, y(sy) - 2)
@@ -953,18 +960,12 @@ def camada_jogo():
         dx = 26 if lado > 0 else 10  # rampa de terra do lado de fora
         sombra_contato(t, x0 - dx + cb.w / 2, yc + 1, cb.w * 1.05, 3.5)
         colar(t, cb, x0 - dx, y(CHAO) - (cb.h - 1))
-    # Trincheira de sacos de areia.
-    sx, sy, sw, sh = FASE["solidos"][2]
-    sa = sacos_detalhados(4, 3, 1)
-    assentar(t, sa, sx - 3, yc, afundar=3)
-    # Giraus: tábuas sobre forquilhas.
-    for k in (7, 9, 11):
+    # Giraus: tábuas sobre forquilhas (os da caatinga vêm no jeito novo).
+    for k in (11,):
         gx, gy, gw = FASE["solidos"][k][:3]
         gr = girau(gw, y(CHAO) - y(gy), semente=gx)
         sombra_contato(t, gx + gw / 2, yc + 1, gw * 1.1, 3)
         colar(t, gr, gx - 4, y(gy))
-    # Cerca no fim do primeiro trecho.
-    assentar(t, cerca_farpada(90, 3), 2860, yc)
     # ---- Vila de taipa: casas e capela (os soldados saem pelas portas), cruzeiro.
     # (As duas casas da vila são sprites à parte: a explosão arranca o telhado.)
     assentar(t, ca.capela(110, 130, semente=3), 3425, yc + 1)  # porta no centro do corpo: x 3468
@@ -1075,8 +1076,10 @@ def camada_perto():
     for k, wx in enumerate((6900, 7060, 7360, 7550)):
         pecas.append((lx(wx), ca.para_dia(bd_.barraca_pequena(60, 34, k + 10, bd_.OLIVA, k % 2 == 0))))
     pecas.append((lx(7220), vc.caminhao(0)))
+    import caatinga_ms as cm
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
-        colar(t, p, x, base - p.h + 2)
+        if cm.antigo(x, fator):  # o trecho da caatinga vem pintado no jeito novo
+            colar(t, p, x, base - p.h + 2)
     return t, fator
 
 
@@ -1137,6 +1140,7 @@ def camada_meio():
     # Caatinga miúda e espalhada: arbustos em tufos, algumas árvores secas sem folha.
     x = 0
     import caatinga_detalhe as ca
+    import caatinga_ms as cm  # o trecho da caatinga vem pintado no jeito novo: não cola as peças dele
     while x < W:
         h = int(rng.integers(20, 40))
         seca = rng.random() < 0.3
@@ -1145,7 +1149,8 @@ def camada_meio():
         else:
             a = ca.arvore(h, semente=int(x), folhas=not seca, seca=0.45)
         ca.nevoa(a, 0.2)
-        colar(t, a, x, alto[min(W - 1, x)] - a.h + 4)
+        if cm.antigo(x, fator):
+            colar(t, a, x, alto[min(W - 1, x)] - a.h + 4)
         x += int(rng.integers(10, 34))
     # Trilha de terra clara subindo e descendo os morros, pedras e cercas de varas ao longe.
     fase_t = 0.0
@@ -1159,14 +1164,15 @@ def camada_meio():
         xx = int(rng.integers(0, W - 30))
         p = ca.pedra(int(rng.integers(12, 26)), int(rng.integers(8, 14)), semente=xx, rampa=ca.PEDRA_Q)
         ca.nevoa(p, 0.2)
-        colar(t, p, xx, alto[xx] + int(rng.integers(4, 20)) - p.h + 4)
+        yy_ = alto[xx] + int(rng.integers(4, 20)) - p.h + 4
+        if cm.antigo(xx, fator):
+            colar(t, p, xx, yy_)
     for _ in range(W // 300):
         xx = int(rng.integers(0, W - 70))
         c = ca.cerca_varas(int(rng.integers(40, 70)), 14, semente=xx)
         ca.nevoa(c, 0.25)
-        colar(t, c, xx, alto[xx] + 10 - c.h)
-    casinha = ca.nevoa(ca.casa_taipa(56, 40, semente=12, quebrada=False, alpendre=False), 0.2)
-    colar(t, casinha, int(900 * fator), alto[int(900 * fator)] - 36)
+        if cm.antigo(xx, fator):
+            colar(t, c, xx, alto[xx] + 10 - c.h)
     # A vila vista de longe: casinhas juntas no morro.
     for k, wx in enumerate((3200, 3260, 3330, 3420, 3500, 3980, 4060, 4200, 4330, 4480)):
         c = ca.nevoa(ca.casa_taipa(int(rng.integers(40, 56)), int(rng.integers(30, 40)), semente=70 + k, quebrada=False,
@@ -1185,19 +1191,23 @@ def camada_frente():
     t = Tela(W, alt)
     rng = np.random.default_rng(4)
     escuro = ["preto", "sombra", "sombra_media", "caatinga_esc", "terra_escura"]
+    import caatinga_ms as cm
     x = 200
     while x < W - 40:
+        novo = not cm.antigo(x, fator)  # o trecho da caatinga vem pintado no jeito novo
         if rng.random() < 0.5:
             c = capim(22, semente=int(x))
             c.px[c.px != VAZIO] = IDX["sombra"]
-            colar(t, c, x, alt - c.h)
             c2 = capim(18, semente=int(x) + 1)
             c2.px[c2.px != VAZIO] = IDX["caatinga_esc"]
-            colar(t, c2, x + 6, alt - c2.h)
+            if not novo:
+                colar(t, c, x, alt - c.h)
+                colar(t, c2, x + 6, alt - c2.h)
         else:
             p = pedra(int(rng.integers(16, 30)), int(rng.integers(8, 14)), semente=int(x), musgo=False)
             p.px[p.px != VAZIO] = np.array([IDX[c] for c in escuro])[np.clip((p.px[p.px != VAZIO] % 5), 0, 4)]
-            colar(t, p, x, alt - p.h + 3)
+            if not novo:
+                colar(t, p, x, alt - p.h + 3)
         x += int(rng.integers(260, 520))
     return t, fator
 
@@ -1214,13 +1224,22 @@ def exportar(saida, raiz):
     import caatinga_detalhe as ca
     import cenario as cn
     import rocha as rc
-    ca.ceu_dia().imagem().save(saida / "f1_ceu.png", optimize=True)
-    ca.nuvens_cumulus().imagem().save(saida / "f1_nuvens.png", optimize=True)
-    serras = cn.serras(200, int(LARGURA_FASE * 0.08 + 548))
+    from PIL import Image
+    import caatinga_ms as cm
+    # Céu, nuvens e serra são da fase toda: já no jeito novo (céu e serra quietos e enevoados).
+    cm.ceu().save(saida / "f1_ceu.png", optimize=True)
+    cm.nuvens().save(saida / "f1_nuvens.png", optimize=True)
     paredao = ca.paredao(int(LARGURA_FASE * 0.2 + 548))
-    for nome, c in (("f1_jogo", jogo), ("f1_perto", perto), ("f1_meio", meio), ("f1_frente", frente),
-                    ("f1_serras", serras), ("f1_paredao", paredao)):
-        im = c.imagem()
+    # Trecho da caatinga no jeito novo, emendado no resto da fase sem corte reto.
+    novas = {
+        "f1_jogo": cm.sobrepor(jogo.imagem(), cm.camada_jogo(sys.modules[__name__])),
+        "f1_perto": cm.sobrepor(perto.imagem(), cm.camada_perto()),
+        "f1_meio": cm.emendar(meio.imagem(), cm.camada_meio(), sem=3),
+        "f1_frente": cm.sobrepor(frente.imagem(), cm.camada_frente()),
+        "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE * 0.08 + 548)).rgba(), "RGBA"),
+        "f1_paredao": cm.emendar(paredao.imagem(), cm.camada_paredao(), largura=200, sem=4),
+    }
+    for nome, im in novas.items():
         n = (im.width + PEDACO - 1) // PEDACO
         for k in range(n):
             im.crop((k * PEDACO, 0, min(im.width, (k + 1) * PEDACO), im.height)).save(saida / f"{nome}_{k}.png", optimize=True)
