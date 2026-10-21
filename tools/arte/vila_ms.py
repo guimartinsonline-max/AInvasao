@@ -230,6 +230,7 @@ def camada_meio(h=90, ate=None, planos_extra=()):
     lim = limite(fator)
     v0, v1 = 1780, 2010                       # patamar da vila alta ao longe
     q = cm.camada_meio(h, ate=ate or lim, planos_extra=[(v0, v1, 30)] + list(planos_extra))
+    oy = h - 90                               # folga em cima (ver caatinga_ms.camada_meio)
     rng = np.random.default_rng(21)
     x0 = cm.limite(fator) - 20
     # moitas e árvores pequenas enevoadas na encosta
@@ -252,7 +253,7 @@ def camada_meio(h=90, ate=None, planos_extra=()):
     k = 0
     while x < v1 - 40:
         c = nevoa(cm.casinha_longe(int(rng.integers(38, 54)), int(rng.integers(18, 26)), sem=90 + k), 0.36)
-        q.colar(c, x, 30 - c.h + 1)
+        q.colar(c, x, 30 + oy - c.h + 1)
         x += c.w + int(rng.integers(2, 10))
         k += 1
         if k == 2:                             # torre da matriz entre as casas
@@ -262,7 +263,7 @@ def camada_meio(h=90, ate=None, planos_extra=()):
             tq = Quadro(a.shape[1], a.shape[0])
             tq.img = cm.encaixar(a[..., :3]); tq.a = a[..., 3] > 140
             nevoa(tq, 0.36)
-            q.colar(tq, x, 30 - tq.h + 1)
+            q.colar(tq, x, 30 + oy - tq.h + 1)
             x += tq.w + 4
     return q
 

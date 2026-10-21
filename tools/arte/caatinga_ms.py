@@ -849,12 +849,14 @@ def camada_meio(h=90, ate=None, planos_extra=()):
     fator = 0.45
     w = limite(fator) + 120          # as contas do sorteio seguem a largura da caatinga
     q = Quadro((ate or limite(fator)) + 120, h)
+    oy = h - 90                      # folga em cima (camada mais alta): tudo desce junto, a base não muda
     rng = np.random.default_rng(11)
     lim = limite(fator) - 20
     vila = (int(3190 * fator), int(3560 * fator))
-    _morros(q, 40, (16, 32), (150, 280), 8, "longe", desl=0.10)            # fileira de trás, mais clara
-    topo = _morros(q, 60, (14, 30), (120, 240), 9, "meio",
-                   planos=[(vila[0] - 4, vila[1] + 4, 32), (int(900 * fator) - 4, int(900 * fator) + 50, 42)] + list(planos_extra))
+    _morros(q, 40 + oy, (16, 32), (150, 280), 8, "longe", desl=0.10)       # fileira de trás, mais clara
+    topo = _morros(q, 60 + oy, (14, 30), (120, 240), 9, "meio",
+                   planos=[(vila[0] - 4, vila[1] + 4, 32 + oy), (int(900 * fator) - 4, int(900 * fator) + 50, 42 + oy)]
+                   + [(a, b, y + oy) for a, b, y in planos_extra])
     # pedras claras aflorando e moitas miúdas na encosta
     for _ in range(int(w / 548 * 18)):
         cx = rng.uniform(0, lim)
@@ -878,12 +880,12 @@ def camada_meio(h=90, ate=None, planos_extra=()):
     # casinha sozinha num patamar e a vila no alto do morro (casas lado a lado, mesma base)
     cx = int(900 * fator)
     c = nevoa(casinha_longe(46, 22, sem=12), 0.36)
-    q.colar(c, cx, 42 - c.h + 1)
+    q.colar(c, cx, 42 + oy - c.h + 1)
     x = vila[0] + 4
     k = 0
     while x < min(vila[1], lim - 60):
         c = nevoa(casinha_longe(int(rng.integers(40, 56)), int(rng.integers(18, 28)), sem=70 + k), 0.36)
-        q.colar(c, x, 32 - c.h + 1)
+        q.colar(c, x, 32 + oy - c.h + 1)
         x += c.w + int(rng.integers(4, 16))
         k += 1
     return q

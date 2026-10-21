@@ -173,6 +173,10 @@ def sobrado(w, h, cor="azul", sem=0, sacada=False, letreiro=None):
     # reboco caído mostrando o adobe (borda de cima e da esquerda faz sombra no tijolo)
     caido = (fbm(h, w, sem + 11) > 0.85) & parede & (Y > P + 8) & (Y < h - 16)
     caido = ndimage.binary_opening(caido, np.ones((3, 3)))
+    rot, n_ = ndimage.label(caido)                  # mancha pequena solta parece defeito: só as grandes
+    if n_:
+        tam = ndimage.sum(caido, rot, range(1, n_ + 1))
+        caido = np.isin(rot, 1 + np.where(tam >= 60)[0])
     junta = ((Y % 5) == 0) | (((X + 4 * ((Y // 5) % 2)) % 9) == 0)
     lz = np.where(junta, 0.22, 0.58 - 0.1 * X / w + 0.12 * ((Y % 5) == 1))
     q.pinta(caido, "terra", lz)
@@ -269,9 +273,10 @@ def sobrado(w, h, cor="azul", sem=0, sacada=False, letreiro=None):
     escorre = (np.abs(X - (bx + 3 + 0.6 * np.sin(Y / 4.0))) < 1.2) & (Y > P + 1) & (Y < P + 10 + int(rng.integers(14, 34)))
     q.img[escorre & parede] = cm.escurecer(q.img[escorre & parede], 1)
     # lampião de parede num braço de ferro, entre a 1ª porta e a janela
-    lx_ = int(passo * 0.98)
-    if lx_ + 6 < w:
-        ly_ = h - 52
+    # (do lado da 1ª porta, na altura da verga: longe do letreiro e da janela)
+    lx_ = int(portas[0] + 12) if portas else w
+    if lx_ + 9 < w - 6:
+        ly_ = h - hp + 4
         q.pinta((Y == ly_ - 2 + (X - lx_) // 3) & (X >= lx_) & (X < lx_ + 6), "madeira", np.full((h, w), 0.1))
         lamp = (X >= lx_ + 4) & (X < lx_ + 8) & (Y >= ly_) & (Y < ly_ + 6)
         q.pinta(lamp, "cal", np.where(X == lx_ + 4, 0.95, 0.6))
@@ -434,7 +439,9 @@ def camada_frente(h=44):
     return vm.camada_frente(h, ate=limite(1.1))
 
 
-def camada_meio(h=90):
+def camada_meio(h=124):
+    # 124 de altura (era 90): folga em cima para as casinhas e a torre da vila alta ao longe
+    # não ficarem com o telhado cortado; a base continua no mesmo lugar.
     """Os morros continuam por planos; árvores ralas, um sítio com a casinha e a cerca."""
     fator = 0.45
     lim = limite(fator)
@@ -451,7 +458,9 @@ def camada_meio(h=90):
     x = x0 + 20.0
     while x < lim - 10:
         p = nevoa(cm.arvore(int(rng.uniform(34, 50)), sem=int(x) + 7, folhas=rng.random() > 0.3), 0.42)
-        q.colar(p, x - p.w / 2, topo[int(min(x, q.w - 1))] + rng.uniform(2, 8) - p.h)
+        py = topo[int(min(x, q.w - 1))] + rng.uniform(2, 8) - p.h
+        if py >= 0:                                  # nada cortado pelo alto da camada
+            q.colar(p, x - p.w / 2, py)
         x += rng.uniform(60, 120)
     sx = int((x0 + lim) / 2)
     c = nevoa(cm.casinha_longe(46, 20, sem=33), 0.36)
@@ -550,7 +559,7 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
     for x, peca in ((3884, f1.pote_barro(9)), (4110, f1.cabacas()), (4360, f1.pilao()), (4600, f1.pote_barro(10, 12)),
                     (4588, f1.roda_carroca(8)), (4470, f1.pote_barro(11)), (4482, f1.pote_barro(12, 10))):
         q.assentar(amb(peca), x, yc)
-    for x in (4100, 4600, 4836):
+    for x in (4100, 4600):
         q.assentar(cm.xiquexique(int(rng.integers(22, 30)), int(rng.integers(16, 22)), sem=x), x, yc, afundar=2)
     # bandeirinhas de São João esticadas de platibanda em platibanda, caindo no meio
     pares = [(casas[k][0] + casas[k][1] - 8, CH - casas[k][2] + 3, casas[k + 1][0] + 8, CH - casas[k + 1][2] + 3)
@@ -572,8 +581,10 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
                         q.img[yyy, xxx] = cm.RGB[rampa][int(np.clip((lz - 0.25 * (dx > 0)) * len(cm.RGB[rampa]), 0, len(cm.RGB[rampa]) - 1))]
                         q.a[yyy, xxx] = True
     # a passagem para o campo de pouso: o chão novo some em manchas sobre o antigo
-    corte = np.clip((ALTA_FIM + 40 - q.xx) / 120.0, 0, 1) + 0.25 * ruido(alt, q.w, 3, 199)
-    q.a &= corte > 0.5
+    # (só depois da casinha do fim: nenhuma peça da vila alta fica furada)
+    ini = cx_ + cw_ + 4
+    corte = np.clip((ALTA_FIM + 40 - q.xx) / (ALTA_FIM + 40 - ini), 0, 1) + 0.25 * ruido(alt, q.w, 3, 199)
+    q.a &= (corte > 0.5) | (q.xx < ini)
     return q
 
 
