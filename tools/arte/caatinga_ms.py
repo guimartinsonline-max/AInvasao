@@ -631,25 +631,18 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
 
 
 def casinha_longe(w=40, hp=16, sem=0):
-    """Casinha de taipa vista de longe: parede de cal acesa, lado na sombra, telhado de
-    canais em faixa, porta e janela escuras. Pouco detalhe, que a névoa come o resto."""
-    lado = max(5, w // 6)
-    th = max(6, hp // 2)
-    q = Quadro(w + lado + 3, hp + th + 1)
-    X, Y = q.xx, q.yy
-    yt = th + 1
-    parede = (X >= 1) & (X < w) & (Y >= yt)
-    q.pinta(parede, "cal", np.where(Y > q.h - 4, 0.55, 0.82 - 0.1 * X / w))
-    lat = (X >= w) & (X < w + lado) & (Y >= yt + (X - w) * 0.3)
-    q.pinta(lat, "cal", np.full(X.shape, 0.32))
-    rng = np.random.default_rng(sem)
-    px = int(rng.integers(4, max(5, w // 2 - 4)))
-    q.pinta((X >= px) & (X < px + 5) & (Y >= q.h - 9), "madeira", np.full(X.shape, 0.1))
-    jx = int(rng.integers(w // 2 + 2, max(w // 2 + 3, w - 8)))
-    q.pinta((X >= jx) & (X < jx + 4) & (Y >= yt + 4) & (Y < yt + 8), "madeira", np.full(X.shape, 0.1))
-    tel = (Y >= 1) & (Y <= yt + 1) & (X >= -1 + (yt + 1 - Y) * 0.3) & (X < w + lado + 2 - (yt + 1 - Y) * 0.1)
-    luz = np.where(X % 4 < 2, 0.62, 0.42) - 0.12 * (Y == yt + 1) + 0.12 * (Y <= 2)
-    q.pinta(tel, "telha", np.clip(luz, 0, 0.999))
+    """Casinha de taipa vista de longe: a mesma casa grande (telha canal, reboco, porta,
+    janela, parede lateral na sombra) pintada em tamanho cheio e reduzida pela média,
+    com cada pixel encaixado de volta na rampa. Fica com volume e detalhe, só menor."""
+    esc = 2.6
+    g = casa(int(w * esc), max(46, int(hp * esc)), max(34, int(hp * esc * 0.55)), sem=sem, alpendre=False,
+             lado=max(14, int(w * esc / 7)))
+    W, H = max(1, int(round(g.w / esc))), max(1, int(round(g.h / esc)))
+    rgba = np.dstack([g.img, (g.a * 255).astype(np.uint8)])
+    red = np.array(Image.fromarray(rgba, "RGBA").resize((W, H), Image.BOX))  # média com alfa pré-multiplicado
+    q = Quadro(W, H)
+    q.img = encaixar(red[..., :3])
+    q.a = red[..., 3] > 140
     return q
 
 
