@@ -196,10 +196,10 @@ folha([npcs.urubu(q) for q in range(3)], SAIDA / "urubu.png")
 folha([npcs.galinha(q) for q in range(6)], SAIDA / "galinha.png")
 folha([fx.roupa(q) for q in range(3)], SAIDA / "roupa.png")
 folha([fx.varal(q) for q in range(2)], SAIDA / "varal.png")
-for k, (_x, w_, h_, sem, buraco) in enumerate(fase1.FASE["casas"]):
-    px_ = 38 if k == 0 else None  # porta da primeira casa: onde os soldados saem (porta:3098)
-    folha([fx.casa_vila(w_, h_, sem, buraco, porta_x=px_), fx.casa_vila(w_, h_, sem, buraco, destelhada=True, porta_x=px_)],
-          SAIDA / f"casa_vila_{k}.png")
+import vila_ms  # noqa: E402  (casas da rua da vila no jeito do Metal Slug; a porta da 1ª é a porta:3098)
+assert fase1.FASE["casas"] == vila_ms.CASAS
+for k in range(len(vila_ms.CASAS)):
+    vila_ms.folha_casa(k).save(SAIDA / f"casa_vila_{k}.png", optimize=True)
 import caatinga_detalhe as cad  # noqa: E402
 folha([cad.ponte_segmento(fase1.FASE["ponte"][3], semente=2), cad.ponte_segmento(fase1.FASE["ponte"][3], quebrada=True, semente=2)],
       SAIDA / "ponte_seg.png")

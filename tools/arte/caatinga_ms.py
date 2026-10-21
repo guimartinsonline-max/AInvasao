@@ -526,10 +526,15 @@ def cata_vento(alt=96):
     return q
 
 
-def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
+def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30, porta=None, janela=None, parede="cal",
+         rombo=False, destelhada=False, sombra_beiral=False):
     """Casa de taipa grande da amostra aprovada: reboco de cal com barro subindo e
     escorridos, rachaduras, reboco caído mostrando a trama, porta de tábuas entreaberta,
-    janela com folha aberta, telha canal em fileiras, parede lateral na sombra e alpendre."""
+    janela com folha aberta, telha canal em fileiras, parede lateral na sombra e alpendre.
+    porta=(x na parede, largura, altura), janela=(x, y na parede, lado) ou False;
+    parede="terra": taipa sem reboco (barro com a trama aparecendo);
+    rombo: buraco grande no alto da parede; destelhada: só os caibros e ripas;
+    sombra_beiral: a sombra dura do beiral na parede (casas de perto)."""
     ox = 74 if alpendre else 16
     q = Quadro(ox + w + lado + 6, telhado + 4 + hp)
     X, Y = q.xx, q.yy
@@ -555,9 +560,12 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
     luz -= 0.25 * np.clip(1 - (Y - yt) / 14, 0, 1)
     esc = (ruido(1, q.w, 1.2, sem + 14)[0] > 1.4)[None, :] & (Y < yt + 30 + 20 * rz(8, 15))
     luz = np.where(esc & m, luz - 0.18, luz)
-    q.pinta(m, "cal", quantiza_limpo(np.clip(luz, 0, 0.999), 6))
+    if parede == "cal":
+        q.pinta(m, "cal", quantiza_limpo(np.clip(luz, 0, 0.999), 6))
+    else:
+        _parede_barro(q, m, x0, w, yt, yb, sem)
     # reboco caído mostrando a trama da taipa
-    buraco = (fbm(q.h, q.w, sem + 20) > 0.95) & m & (Y > yt + 18) & (Y < yb - 10)
+    buraco = (fbm(q.h, q.w, sem + 20) > (0.95 if parede == "cal" else 9)) & m & (Y > yt + 18) & (Y < yb - 10)
     buraco = ndimage.binary_opening(buraco, np.ones((3, 3)))
     vara = ((X % 7) < 2) | ((Y % 9) < 2)
     luz_b = np.where(vara, 0.62, 0.30) + 0.08 * rz(1.5, 21)
@@ -566,14 +574,14 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
     q.pinta(buraco, "terra", np.clip(luz_b, 0, 0.999))
     lab = ndimage.binary_dilation(buraco) & ~buraco & m
     acima = np.zeros_like(buraco); acima[:-1] = buraco[1:]
-    q.pinta(lab & acima, "cal", np.full((q.h, q.w), 0.999))
+    q.pinta(lab & acima, parede, np.full((q.h, q.w), 0.999 if parede == "cal" else 0.8))
     # parede lateral na sombra
     ml = (X >= x1) & (X < x1 + lado) & (Y >= yt + (X - x1) * 0.25) & (Y < yb)
     luz = 0.30 + 0.06 * rz(2.5, 16) - 0.15 * np.clip((Y - (yb - 20)) / 20, 0, 1)
-    q.pinta(ml, "cal", quantiza_limpo(np.clip(luz, 0, 0.999), 6))
+    q.pinta(ml, parede, quantiza_limpo(np.clip(luz * (1 if parede == "cal" else 0.8), 0, 0.999), 6))
     # porta de tábuas entreaberta
-    pw, ph = 28, min(48, hp - 20)
-    px0 = x0 + int(w * 0.33); px1 = px0 + pw; pyt = yb - ph
+    pdx, pw, ph = porta or (int(w * 0.33), 28, min(48, hp - 20))
+    px0 = x0 + pdx; px1 = px0 + pw; pyt = yb - ph
     mp = (X >= px0) & (X < px1) & (Y >= pyt) & (Y < yb)
     tab = (X - px0) % 7
     luz = 0.45 + 0.12 * (tab == 1) - 0.25 * (tab == 6) + 0.08 * rz(1.0, 17) + 0.1 * (Y < pyt + 3)
@@ -583,7 +591,10 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
               ((Y >= pyt - 3) & (Y < pyt) & (X >= px0 - 2) & (X <= px1))
     q.pinta(batente, "madeira", np.full((q.h, q.w), 0.25))
     # janela com folha aberta
-    jx0 = x0 + int(w * 0.63); jx1 = jx0 + 24; jy0 = yt + int(hp * 0.27); jy1 = jy0 + 24
+    jdx, jdy, jl = janela or (int(w * 0.63), int(hp * 0.27), 24)
+    jx0 = x0 + jdx; jx1 = jx0 + jl; jy0 = yt + jdy; jy1 = jy0 + jl
+    if janela is False:
+        jx0 = jx1 = jy0 = jy1 = -99
     mj = (X >= jx0) & (X < jx1) & (Y >= jy0) & (Y < jy1)
     q.pinta(mj, "madeira", np.where(X < jx0 + 8, 0.02, 0.15))
     fol = (X >= jx1) & (X < jx1 + 10) & (Y >= jy0 - 1 + (X - jx1) // 4) & (Y < jy1 + 1 - (X - jx1) // 4)
@@ -591,6 +602,13 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
     peit = (X >= jx0 - 2) & (X < jx1 + 2) & (Y >= jy1) & (Y < jy1 + 3)
     q.pinta(peit, "cal", np.where(Y == jy1, 0.99, 0.55))
     q.pinta(peit & (Y == jy1 + 2), "cal", np.full((q.h, q.w), 0.2))
+    if sombra_beiral:
+        # sombra do beiral: faixa dura recortada pelas bocas das telhas, um degrau abaixo
+        bico = 2 * (np.cos(((X - (x0 - 14)) % 9 / 9.0 - 0.45) * 2 * np.pi) > 0.2)
+        sb = (m | ml) & (Y < yt + 6 + bico) & ~((X >= px0) & (X < px1) & (Y >= pyt))
+        q.img[sb] = escurecer(q.img[sb], 2)
+    if rombo:
+        _rombo(q, x0, w, yt, yb, sem)
     # telhado de telha canal
     beiral_esq, beiral_dir = x0 - 14, x1 + lado + 4
     inclin = (X >= beiral_esq + (yt + 6 - Y) * 0.35) & (X < beiral_dir - (yt + 6 - Y) * 0.1)
@@ -612,6 +630,8 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
     q.pinta(boca, "telha", np.where(np.hypot(u - 0.45, (Y - yt - 4) / 6) < 0.35, 0.05, 0.45))
     cume = (Y >= ry0 - 4) & (Y < ry0 + 2) & (X >= beiral_esq + 50) & (X < beiral_dir - 16)
     q.pinta(cume, "telha", np.where(Y < ry0 - 1, 0.9, 0.35))
+    if destelhada:
+        _destelhar(q, mt | boca | cume, beiral_esq, yt, sem)
     # alpendre: puxado de palha sobre forquilhas
     if alpendre:
         ax0, ax1 = x0 - 68, x0 - 4
@@ -628,6 +648,87 @@ def casa(w=196, hp=98, telhado=54, sem=0, alpendre=True, lado=30):
         viga = (Y >= yt + 21) & (Y < yt + 25) & (X >= ax0 - 2) & (X < ax1 + 4)
         q.pinta(viga, "madeira", np.where(Y == yt + 21, 0.75, 0.3))
     return q
+
+
+def _parede_barro(q, m, x0, w, yt, yb, sem):
+    """Taipa sem reboco: barro amassado à mão em torrões, a trama de varas aparecendo
+    onde o barro caiu, mais escuro embaixo (respingo de chuva) e luz da esquerda."""
+    X, Y = q.xx, q.yy
+    torrao = fbm(q.h, q.w, sem + 50, (8, 4), (0.7, 0.3))
+    luz = 0.66 - 0.14 * (X - x0) / w + 0.06 * torrao
+    luz -= 0.20 * np.clip((Y - (yb - 18)) / 18, 0, 1)
+    luz -= 0.22 * np.clip(1 - (Y - yt) / 12, 0, 1)
+    # fiadas de barro amassado: uma linha de sombra torta a cada palmo
+    fiada = (Y - yt + np.round(1.5 * ruido(1, q.w, 6, sem + 52)[0])[None, :]) % 11
+    luz = np.where(fiada == 0, luz - 0.15, np.where(fiada == 1, luz + 0.07, luz))
+    q.pinta(m, "terra", quantiza_limpo(np.clip(luz, 0, 0.999), 6))
+    # remendos onde o barro caiu: a trama de varas (em pé) e ripas (deitadas) no fundo escuro
+    caiu = (fbm(q.h, q.w, sem + 51, (7, 3), (0.7, 0.3)) > 1.25) & m & (Y > yt + 10) & (Y < yb - 8)
+    from scipy import ndimage as _nd
+    caiu = _nd.binary_opening(caiu, np.ones((4, 4)))
+    vara = ((X - x0) % 6 < 2)
+    ripa = ((Y - yt) % 7 < 2)
+    lz = np.where(vara, 0.50 - 0.12 * ((X - x0) % 6 == 1), np.where(ripa, 0.36, 0.12))
+    q.pinta(caiu, "madeira", lz)
+    borda = caiu & ~_nd.binary_erosion(caiu)
+    em_baixo = np.zeros_like(caiu); em_baixo[1:] = caiu[:-1]
+    q.pinta(_nd.binary_dilation(caiu) & ~caiu & m & em_baixo, "terra", np.full((q.h, q.w), 0.85))
+
+
+def _rombo(q, x0, w, yt, yb, sem):
+    """Buraco grande no alto da parede (tiro de canhão): borda quebrada em degraus,
+    o escuro de dentro, a trama de varas partida aparecendo e barro solto na beira."""
+    X, Y = q.xx, q.yy
+    cx, cy = x0 + w * 0.80, yt + (yb - yt) * 0.30
+    r = min(w * 0.17, (yb - yt) * 0.30)
+    from scipy import ndimage as _nd
+    ang = np.arctan2(Y - cy, X - cx)
+    dente = 0.16 * np.sign(np.sin(ang * 7 + sem)) * (np.abs(np.sin(ang * 7 + sem)) > 0.3)
+    d = np.hypot((X - cx) / 1.2, Y - cy) / r + dente
+    m = (d < 1) & (X >= x0) & (X < x0 + w)
+    m = _nd.binary_opening(m, np.ones((2, 2)))
+    # espessura da parede: lado de baixo e da direita pegam luz (viram para cima/esquerda)
+    desl = np.zeros_like(m); desl[:-3, :-2] = m[3:, 2:]
+    esp = m & ~desl
+    q.pinta(m, "madeira", np.where(Y < cy, 0.03, 0.09))
+    vara = ((X - x0) % 8 < 2) & m & (np.abs(X - cx) < r * 0.9) & (ruido(q.h, q.w, (3, 1), sem + 61) > -0.2)
+    q.pinta(vara, "madeira", np.where((X - x0) % 8 == 0, 0.6, 0.38))
+    q.pinta(esp & (Y >= cy - r * 0.2), "terra", np.where(X > cx, 0.62, 0.78))
+    q.pinta(esp & (Y < cy - r * 0.2), "terra", np.full((q.h, q.w), 0.3))
+    beira = _nd.binary_dilation(m, np.ones((3, 3))) & ~m & (X >= x0) & (X < x0 + w) & (Y < cy)
+    q.pinta(beira, "terra", np.full((q.h, q.w), 0.45))
+
+
+def _destelhar(q, mt, beiral_esq, yt, sem):
+    """Telhado arrancado: sobra o escuro do vão, os caibros descendo a água,
+    as ripas atravessadas, uns cacos de telha presos no beiral."""
+    X, Y = q.xx, q.yy
+    q.a &= ~mt
+    vao = mt & (Y > Y[mt].min() + 3)
+    q.pinta(vao, "madeira", np.full((q.h, q.w), 0.03))
+    u = (X - beiral_esq) % 18
+    rr = np.random.default_rng(sem + 70)
+    y0r = Y[mt].min()
+    # caibros descendo a água, um ou outro quebrado no meio
+    quebra = {c: (y0r + rr.integers(8, 30) if rr.random() < 0.3 else 999) for c in np.unique(X[vao] // 18)}
+    qb = np.vectorize(quebra.get)(X // 18)
+    caibro = vao & (u < 3) & ((Y < qb) | (Y > qb + 7))
+    q.pinta(caibro, "madeira", np.where(u == 0, 0.8, np.where(u == 1, 0.55, 0.28)))
+    # ripas finas atravessadas, com falhas
+    falha = ruido(q.h, q.w, (1, 6), sem + 72) > 0.7
+    ripa = vao & ((Y - yt) % 9 == 0) & ~falha & ~caibro
+    q.pinta(ripa, "madeira", np.full((q.h, q.w), 0.45))
+    q.pinta(vao & ((Y - yt) % 9 == 1) & ~falha & ~caibro, "madeira", np.full((q.h, q.w), 0.14))
+    cume = mt & (Y <= y0r + 3)
+    q.pinta(cume, "madeira", np.where(Y == y0r, 0.75, 0.35))
+    # telhas que ficaram presas, em grupinhos, e a fileira do beiral
+    grupo = (fbm(q.h, q.w, sem + 71, (5, 2), (0.7, 0.3)) > 1.2) & vao
+    grupo |= vao & (Y > yt - 2) & (ruido(q.h, q.w, (1, 5), sem + 73) > 0.1)
+    tu = (X - beiral_esq) % 9 / 9.0
+    tv = ((Y - 4) % 11) / 11.0
+    lz = 0.30 + 0.55 * np.cos((tu - 0.38) * np.pi) - 0.22 * tv
+    lz = np.where((tu > 0.88) | (tu < 0.05) | (tv > 0.86), 0.1, lz)
+    q.pinta(grupo, "telha", quantiza_limpo(np.clip(lz, 0, 0.999), 7))
 
 
 def casinha_longe(w=40, hp=16, sem=0):
@@ -691,8 +792,9 @@ def _xs(fator, margem=40):
     return limite(fator) - margem
 
 
-def camada_paredao(h=130):
-    return chapada(limite(0.2) + 200, h)
+def camada_paredao(h=130, ate=None):
+    """`ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura)."""
+    return chapada((ate or limite(0.2)) + 200, h)
 
 
 def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
@@ -741,18 +843,18 @@ def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
     return topo.astype(int)
 
 
-def camada_meio(h=90):
+def camada_meio(h=90, ate=None, planos_extra=()):
     """Morros baixos ao longe em duas fileiras de formas próprias (por planos, sem ondas),
     caatinga rala, pedras, a vila no alto de um morro e uma casinha sozinha, tudo enevoado."""
     fator = 0.45
-    w = limite(fator) + 120
-    q = Quadro(w, h)
+    w = limite(fator) + 120          # as contas do sorteio seguem a largura da caatinga
+    q = Quadro((ate or limite(fator)) + 120, h)
     rng = np.random.default_rng(11)
     lim = limite(fator) - 20
     vila = (int(3190 * fator), int(3560 * fator))
     _morros(q, 40, (16, 32), (150, 280), 8, "longe", desl=0.10)            # fileira de trás, mais clara
     topo = _morros(q, 60, (14, 30), (120, 240), 9, "meio",
-                   planos=[(vila[0] - 4, vila[1] + 4, 32), (int(900 * fator) - 4, int(900 * fator) + 50, 42)])
+                   planos=[(vila[0] - 4, vila[1] + 4, 32), (int(900 * fator) - 4, int(900 * fator) + 50, 42)] + list(planos_extra))
     # pedras claras aflorando e moitas miúdas na encosta
     for _ in range(int(w / 548 * 18)):
         cx = rng.uniform(0, lim)
@@ -787,12 +889,12 @@ def camada_meio(h=90):
     return q
 
 
-def camada_perto(h=160):
+def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): as duas casas de taipa grandes, o curral com o cata-vento,
     árvores e mandacarus grandes, pedras e moitas no pé."""
     fator = 0.75
     lim = limite(fator)
-    q = Quadro(lim + 40, h)
+    q = Quadro((ate or lim) + 40, h)
     chao = h - 1
     rng = np.random.default_rng(2)
     lx = lambda wx: int(wx * fator)  # noqa: E731
@@ -825,10 +927,10 @@ def camada_perto(h=160):
     return q
 
 
-def camada_frente(h=44):
+def camada_frente(h=44, ate=None):
     """Na frente do Lampião (1,1): touceiras escuras de xique-xique e capim nos cantos."""
     fator = 1.1
-    lim = limite(fator)
+    lim = ate or limite(fator)
     q = Quadro(lim + 40, h)
     rng = np.random.default_rng(4)
     x = 140.0
@@ -850,21 +952,21 @@ def camada_frente(h=44):
     return q
 
 
-def camada_jogo(fase, alt=140, topo_mundo=76):
+def camada_jogo(fase, alt=140, topo_mundo=76, ate=None):
     """Plano do jogo do trecho: chão de terra batida com pedras encaixadas, lajedos, barranco
     e pedra grande nos sólidos, e os objetos de cena antigos trazidos para a luz da cena."""
     import fase1 as f1
     F = fase.FASE
     CH = f1.CHAO
-    w = CAATINGA_FIM + 80
-    q = Quadro(w, alt)
+    w = CAATINGA_FIM + 80            # as contas do sorteio seguem a largura da caatinga
+    q = Quadro(max(w, (ate or 0) + 80), alt)
     y = lambda wy: wy - topo_mundo  # noqa: E731
     yc = y(CH) - 1
     rng = np.random.default_rng(63)
     # chão
-    topo = np.minimum(y(CH) - 2, y(CH) - 2 + np.round(1.5 * ruido(1, w, 8, 60)[0]))
+    topo = np.minimum(y(CH) - 2, y(CH) - 2 + np.round(1.5 * ruido(1, q.w, 8, 60)[0]))
     m = q.yy >= topo[None, :]
-    luz = 0.64 - 0.30 * np.clip((q.yy - y(CH)) / 24, 0, 1) + 0.05 * ruido(alt, w, 6, 61)
+    luz = 0.64 - 0.30 * np.clip((q.yy - y(CH)) / 24, 0, 1) + 0.05 * ruido(alt, q.w, 6, 61)
     luz = np.where(q.yy < topo[None, :] + 2, 0.88, luz)
     q.pinta(m, "terra", quantiza_limpo(np.clip(luz, 0, 0.999), 8))
     for _ in range(int(w / 548 * 70)):
@@ -930,6 +1032,8 @@ def camada_jogo(fase, alt=140, topo_mundo=76):
         gx, gy, gw = sol[k][:3]
         q.sombra(gx + gw / 2, yc + 1, gw * 1.1, 3)
         q.colar(amb(f1.girau(gw, y(CH) - y(gy), semente=gx)), gx - 4, y(gy))
+    if ate:                          # o trecho seguinte continua daqui e faz a passagem
+        return q
     # a passagem para a vila: o chão novo some em manchas sobre o antigo
     corte = np.clip((CAATINGA_FIM + 40 - q.xx) / 120.0, 0, 1) + 0.25 * ruido(alt, w, 3, 99)
     q.a &= corte > 0.5
