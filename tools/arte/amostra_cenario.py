@@ -28,10 +28,13 @@ AMB = {
     "telha": ["#3a1a22", "#5e2629", "#86372e", "#a84c34", "#c6663e", "#dc8650", "#eca86a"],
     "madeira": ["#24181e", "#3e2826", "#5c3c30", "#7c543c", "#9c6e4a", "#ba8a5c"],
     "verde": ["#1e2422", "#2e3a2a", "#465230", "#626c38", "#7f8642", "#a2a058", "#c4bc76"],
-    "longe": ["#8e7a80", "#a48a86", "#b89c8a", "#caae92", "#d9bf9c", "#e6cfa8"],
+    "longe": ["#6e5a68", "#7f6870", "#917676", "#a2857c", "#b29382", "#c0a08a", "#cdad92", "#d9ba9a", "#e4c7a4"],
+    "serra": ["#7a809f", "#878ba7", "#9596ad", "#a3a1b3", "#b1abb7", "#beb5bb", "#cabfbf", "#d5c8c2"],
     "meio": ["#6a4e52", "#82604e", "#9c744e", "#b48a58", "#c8a066", "#d8b478"],
-    "ceu": ["#5c86b6", "#6f97c2", "#86a9cc", "#9fbad4", "#b9cbd9", "#d2dadb", "#e6e2d6"],
-    "nuvem": ["#a4a4bc", "#bdb8c8", "#d4ccd2", "#e6dcd8", "#f4ecdf"],
+    "ceu": ["#4f74a6", "#5d81af", "#6c8eb8", "#7e9cbf", "#92abc6", "#a8b9cb", "#bdc5cc", "#d0cfca",
+            "#e0d6c6", "#ecdcc2"],
+    "nuvem": ["#6f7392", "#82829e", "#9692aa", "#aaa3b4", "#bdb3bc", "#cfc2c2", "#dfd0c8", "#ecdccc",
+              "#f6e8d4", "#fcf2e0"],
     "frente": ["#1a1218", "#2a1c20", "#3c2826", "#52362c"],
 }
 RGB = {k: np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for c in v], np.uint8) for k, v in AMB.items()}
@@ -74,53 +77,73 @@ def quantiza_limpo(luz, niveis):
 
 
 # ---------------- céu ----------------
+def campo(sy, sx, sem):
+    r = ndimage.gaussian_filter(np.random.default_rng(sem).random((H, W)), (sy, sx), mode="wrap")
+    return (r - r.mean()) / r.std()
+
+
 def ceu(t):
-    y = YY / 150.0
-    luz = np.clip(y + 0.05 * ruido(20)[..., ] * 0.6 + 0.04 * np.sin(XX / 37.0 + YY / 15.0), 0, 0.999)
-    t.pinta(np.ones((H, W), bool), "ceu", quantiza_limpo(luz, 7))
-    # nuvens grandes: cúmulos de bolhas, base reta, luz cima-esquerda, sem contorno
-    for cx, cy, esc in ((90, 52, 1.0), (330, 34, 1.3), (500, 70, 0.8)):
-        d = np.full((H, W), 9.0)
-        lx = np.zeros((H, W))
-        for k in range(9):
-            ox = (k - 4) * 15 * esc + RNG.normal(0, 4)
-            oy = -abs(k - 4) * -3 * esc - (12 - abs(k - 4) * 3) * esc + RNG.normal(0, 2)
-            rr = (14 - abs(k - 4) * 1.6) * esc
-            dd = np.hypot(XX - cx - ox, (YY - cy - oy) * 1.1) / rr
-            sel = dd < d
-            d = np.minimum(d, dd)
-            # normal da bolha para a luz
-            nx = (XX - cx - ox) / rr
-            ny = (YY - cy - oy) / rr
-            lx = np.where(sel, -0.6 * nx - 0.8 * ny, lx)
-        m = (d < 1) & (YY < cy + 6 * esc)
-        luz = np.clip(0.55 + 0.45 * lx + 0.1 * ruido(2), 0, 0.999)
-        luz = np.where(YY > cy + 1 * esc, luz * 0.55, luz)  # barriga em sombra
-        t.pinta(m, "nuvem", quantiza_limpo(luz, 5))
+    """Céu de tarde: degradê longo (azul em cima, horizonte quente e enevoado) e bancos
+    de nuvem com volume: luz vem do sol baixo à esquerda, então a borda virada para ele
+    acende em creme e a barriga cai num lilás acinzentado. Sem contorno."""
+    y = YY / 175.0
+    luz = np.clip(y + 0.025 * campo(6, 30, 70), 0, 0.999)
+    t.pinta(np.ones((H, W), bool), "ceu", quantiza_limpo(luz, 10))
+    # densidade das nuvens: bolos grandes + rolos médios + fiapos, esticados na horizontal
+    D = 1.0 * campo(16, 40, 71) + 0.35 * campo(7, 16, 72) + 0.12 * campo(2.5, 6, 73)
+    faixa = np.exp(-((YY - 48) / 30.0) ** 2) * 1.6 + np.exp(-((YY - 112) / 10.0) ** 2) * 0.9
+    D = D + faixa - 1.35
+    D = np.where(YY > 150, -1, D)
+    m = D > 0
+    # luz: compara com a densidade no rumo do sol (cima-esquerda)
+    sol = np.roll(np.roll(D, 4, axis=0), 6, axis=1)
+    luz = 0.60 + 1.5 * (D - sol)
+    luz += 0.18 * np.clip(1 - D * 2.5, 0, 1)          # borda fina pega luz através
+    baixo = np.roll(D, -5, axis=0)
+    luz -= 0.22 * (baixo < 0)                          # barriga escura na base do bolo
+    luz -= 0.10 * np.clip((YY - 40) / 80, 0, 1)
+    t.pinta(m, "nuvem", quantiza_limpo(np.clip(luz, 0, 0.999), 10))
 
 
-# ---------------- chapada ao longe (névoa) ----------------
+# ---------------- serra ao longe e chapada (névoa) ----------------
+def serra(t):
+    """Serra distante azulada: cristas de pico, encostas viradas para o sol claras,
+    grotões verticais e névoa subindo do pé."""
+    n1 = campo(1, 24, 80)[0]; n2 = campo(1, 7, 81)[0]
+    topo = 118 - 30 * (1 - np.abs(n1)) ** 2 - 5 * n2
+    m = YY >= topo[None, :]
+    inclina = -np.gradient(ndimage.uniform_filter1d(topo, 5))  # >0: subindo para a direita (face para o sol)
+    grotao = campo(7, 1.2, 82)
+    prof = YY - topo[None, :]
+    luz = 0.42 + 0.30 * np.tanh(inclina * 1.5)[None, :] * np.exp(-prof / 45) + 0.10 * grotao
+    luz += 0.12 * (prof < 2)
+    luz += 0.40 * np.clip((prof - 15) / 45, 0, 1)      # névoa no pé
+    t.pinta(m, "serra", quantiza_limpo(np.clip(luz, 0, 0.999), 8))
+
+
 def chapada(t):
-    """Mesas de arenito ao longe: topo aceso, face de cada mesa clara na esquerda e
-    escura na direita, veios verticais de chuva, estratos e tálus. Pouco contraste (névoa)."""
-    for fileira, (base_topo, amp, sem, desl) in enumerate(((108, 16, 3, 0.10), (138, 12, 6, 0.0))):
+    """Mesas de arenito: topo chato aceso, paredão com relevo de verdade (colunas e
+    grotões que pegam luz do lado esquerdo), estratos, tálus e névoa na base."""
+    for fileira, (base_topo, amp, sem, desl) in enumerate(((122, 16, 3, 0.12), (146, 12, 6, 0.0))):
         perfil = base_topo + amp * ruido(40, sem, 1, W)[0]
-        topo = np.round(perfil / 10) * 10                        # mesas de topo chato
+        topo = np.round(perfil / 10) * 10
         m = YY >= topo[None, :]
-        # trechos de mesmo topo = uma mesa; posição dentro dela dá a luz da face
         corte = np.r_[0, np.flatnonzero(np.diff(topo)) + 1, W]
         u = np.zeros(W)
         for a, b in zip(corte[:-1], corte[1:]):
             u[a:b] = (np.arange(b - a) + 0.5) / (b - a)
-        veio = ndimage.gaussian_filter(np.random.default_rng(sem).random((H, W)), (9, 0.7))
-        veio = (veio - veio.mean()) / veio.std()
-        luz = 0.62 + 0.22 * np.clip(0.25 - u, 0, 1)[None, :] * 4 * 0.25 - 0.20 * (u > 0.82)[None, :]
-        luz = luz + 0.07 * veio
-        luz = np.where((YY - topo[None, :]) % 17 < 2, luz - 0.14, luz)          # estratos
-        luz = np.where(YY < topo[None, :] + 3, 0.95, luz)                       # borda de cima
-        luz -= 0.20 * np.clip((YY - topo[None, :] - 45) / 40, 0, 1)             # tálus
-        luz += desl
-        t.pinta(m, "longe", quantiza_limpo(np.clip(luz, 0, 0.999), 6))
+        # relevo: colunas verticais; a encosta virada para a esquerda acende
+        R = 1.0 * campo(10, 2.2, sem + 10) + 0.4 * campo(3, 1, sem + 11)
+        gx = np.gradient(R, axis=1)
+        prof = YY - topo[None, :]
+        luz = 0.55 - 1.6 * gx + 0.10 * R
+        luz += 0.14 * (u < 0.12)[None, :] - 0.18 * (u > 0.85)[None, :]   # quina acesa / quina na sombra
+        luz = np.where(prof % 15 < 1, luz - 0.10, luz)                       # estratos
+        luz = np.where(prof < 3, 0.97, luz)                                  # topo
+        luz = np.where((prof >= 3) & (prof < 6), luz - 0.15, luz)            # sombra da aba do topo
+        luz = 0.62 + (luz - 0.62) * (0.55 if fileira == 0 else 0.7)          # névoa: pouco contraste
+        luz += 0.22 * np.clip((prof - 40) / 50, 0, 1) + desl                 # névoa na base
+        t.pinta(m, "longe", quantiza_limpo(np.clip(luz, 0, 0.999), 9))
 
 
 def morros(t):
@@ -383,6 +406,7 @@ def personagem(t, folha, quadro, fw, fh, x, pe_y, pe_x):
 def montar():
     t = Tela()
     ceu(t)
+    serra(t)
     chapada(t)
     morros(t)
     arvore(t, 128, CHAO)
