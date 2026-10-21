@@ -695,46 +695,95 @@ def camada_paredao(h=130):
     return chapada(limite(0.2) + 200, h)
 
 
+def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
+    """Fileira de morros: cada morro é uma forma própria (largura, altura e caimento
+    diferentes), iluminada por planos como a serra: encosta virada para o sol clara,
+    a outra na sombra, crista acesa. `planos` força trechos planos (x0, x1, y)."""
+    rng = np.random.default_rng(sem)
+    w = q.w
+    xs = np.arange(w, dtype=float)
+    topo = np.full(w, float(q.h))
+    incl = np.zeros(w)
+    x = -rng.uniform(0, 80)
+    while x < w + 100:
+        lw = rng.uniform(*larg)
+        ah = rng.uniform(*alt)
+        pico = x + lw * rng.uniform(0.3, 0.7)          # crista fora do meio: um lado mais íngreme
+        t = np.where(xs < pico, (pico - xs) / (pico - x), (xs - pico) / (x + lw - pico))
+        perfil = base - ah * np.clip(1 - t, 0, 1) ** 1.4 * (1 - 0.15 * np.clip(1 - t, 0, 1))
+        perfil = np.where((t >= 0) & (t <= 1), perfil, q.h)
+        novo = perfil < topo
+        incl = np.where(novo, np.where(xs < pico, 1.0, -1.0) * np.clip(ah / max(1, pico - x), 0, 1), incl)
+        topo = np.minimum(topo, perfil)
+        x += lw * rng.uniform(0.55, 0.8)
+    topo = np.minimum(topo, base + 4)
+    if planos:
+        for x0, x1, y in planos:
+            sel = (xs >= x0) & (xs < x1)
+            topo[sel] = y
+            incl[sel] = 0
+            for lado, x_ in ((-1, x0), (1, x1)):              # ombro descendo para os lados
+                d = np.abs(xs - x_)
+                ombro = (d < 80) & ((xs < x0) if lado < 0 else (xs >= x1))
+                alvo = y + (d / 80) ** 1.3 * 34
+                novo = ombro & (alvo < topo)
+                incl = np.where(novo, -lado * 0.6, incl)
+                topo = np.where(novo, alvo, topo)
+    topo = np.round(topo + 0.6 * ruido(1, w, 2, sem + 1)[0])
+    m = q.yy >= topo[None, :]
+    prof = q.yy - topo[None, :]
+    luz = 0.56 + 0.24 * incl[None, :] - 0.004 * prof + desl
+    luz = np.where(prof < 2, luz + 0.20, luz)                       # crista acesa
+    # grotas descendo a encosta (riscos largos e poucos, não ondas)
+    grota = (ruido(q.h, w, (6, 1.2), sem + 2) > 1.5) & (prof > 4)
+    luz = np.where(grota, luz - 0.08, luz)
+    q.pinta(m, rampa_luz, quantiza_limpo(np.clip(luz, 0, 0.999), 6))
+    return topo.astype(int)
+
+
 def camada_meio(h=90):
-    """Morros baixos de capim riscado, moitas, árvores e a casinha ao longe, tudo enevoado."""
+    """Morros baixos ao longe em duas fileiras de formas próprias (por planos, sem ondas),
+    caatinga rala, pedras, a vila no alto de um morro e uma casinha sozinha, tudo enevoado."""
     fator = 0.45
     w = limite(fator) + 120
     q = Quadro(w, h)
-    topo = np.maximum(4, 20 + 9 * ruido(1, w, 30, 8)[0])
-    m = q.yy >= topo[None, :]
-    prof = q.yy - topo[None, :]
-    risco = ((q.xx + q.yy // 2 + (ruido(h, w, 1.5, 9) * 2).astype(int)) % 5 == 0) & (ruido(h, w, 2, 19) > -0.2)
-    luz = 0.66 - 0.006 * prof + 0.12 * risco + 0.30 * (prof < 3)
-    q.pinta(m, "meio", quantiza_limpo(np.clip(luz, 0, 0.999), 6))
     rng = np.random.default_rng(11)
     lim = limite(fator) - 20
-    # árvores e mandacarus pequenos ao longe, clareados pela névoa
-    x = 30.0
-    while x < lim:
-        if rng.random() < 0.25:
-            p = moita(int(rng.uniform(24, 40)), int(rng.uniform(10, 16)), sem=int(x))
-        else:
-            p = arvore(int(rng.uniform(34, 52)), sem=int(x), folhas=rng.random() > 0.2)
-        nevoa(p, 0.42)
-        if x + p.w < lim:
-            q.colar(p, x - p.w / 2, topo[int(x)] + rng.uniform(2, 10) - p.h)
-        x += rng.uniform(40, 110)
-    casinha = nevoa(casinha_longe(46, 20, sem=12), 0.38)
-    cx = int(900 * fator)
-    q.colar(casinha, cx, topo[cx] + 8 - casinha.h)
-    # a vila vista de longe no morro (casinhas juntas), já no jeito novo
-    for k, wx in enumerate((3200, 3260, 3330, 3420, 3500)):
-        cx = int(wx * fator)
-        if cx + 70 < lim:
-            c = nevoa(casinha_longe(int(rng.integers(30, 44)), int(rng.integers(14, 19)), sem=70 + k), 0.38)
-            q.colar(c, cx, topo[cx] + 7 - c.h)
-    for _ in range(int(w / 548 * 26)):
-        cx = rng.uniform(0, lim); r = rng.uniform(4, 9)
-        cy = np.interp(cx, np.arange(w), topo) + rng.uniform(4, 24)
-        d = np.hypot(q.xx - cx, (q.yy - cy) * 1.4) / r + 0.15 * ruido(h, w, 1, int(cx))
+    vila = (int(3190 * fator), int(3560 * fator))
+    _morros(q, 40, (16, 32), (150, 280), 8, "longe", desl=0.10)            # fileira de trás, mais clara
+    topo = _morros(q, 60, (14, 30), (120, 240), 9, "meio",
+                   planos=[(vila[0] - 4, vila[1] + 4, 32), (int(900 * fator) - 4, int(900 * fator) + 50, 42)])
+    # pedras claras aflorando e moitas miúdas na encosta
+    for _ in range(int(w / 548 * 18)):
+        cx = rng.uniform(0, lim)
+        p = nevoa(pedra(int(rng.uniform(8, 14)), int(rng.uniform(5, 8)), sem=int(cx), topo=0.9), 0.3)
+        q.colar(p, cx, topo[int(cx)] + rng.uniform(3, 14))
+    for _ in range(int(w / 548 * 30)):
+        cx = rng.uniform(0, lim); r = rng.uniform(3, 6)
+        cy = topo[int(cx)] + rng.uniform(3, 26)
+        d = np.hypot(q.xx - cx, (q.yy - cy) * 1.4) / r
         mm = (d < 1) & (q.yy < cy + 2)
         lz = 0.5 - 0.35 * (q.xx - cx) / r - 0.45 * (q.yy - cy) / r
-        q.pinta(mm, "verde", np.clip(lz * 0.55 + 0.18, 0, 0.999))
+        q.pinta(mm, "verde", np.clip(lz * 0.5 + 0.2, 0, 0.999))
+    # árvores pequenas ao longe, clareadas pela névoa
+    x = 30.0
+    while x < lim:
+        p = nevoa(arvore(int(rng.uniform(34, 50)), sem=int(x), folhas=rng.random() > 0.2), 0.42)
+        dentro_vila = vila[0] - 30 < x < vila[1] + 30
+        if x + p.w < lim and not dentro_vila:
+            q.colar(p, x - p.w / 2, topo[int(x)] + rng.uniform(2, 8) - p.h)
+        x += rng.uniform(50, 120)
+    # casinha sozinha num patamar e a vila no alto do morro (casas lado a lado, mesma base)
+    cx = int(900 * fator)
+    c = nevoa(casinha_longe(46, 22, sem=12), 0.36)
+    q.colar(c, cx, 42 - c.h + 1)
+    x = vila[0] + 4
+    k = 0
+    while x < min(vila[1], lim - 60):
+        c = nevoa(casinha_longe(int(rng.integers(40, 56)), int(rng.integers(18, 28)), sem=70 + k), 0.36)
+        q.colar(c, x, 32 - c.h + 1)
+        x += c.w + int(rng.integers(4, 16))
+        k += 1
     return q
 
 
