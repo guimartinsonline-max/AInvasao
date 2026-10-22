@@ -33,25 +33,23 @@ def antigo(x, fator):
 
 # ---------------------------------------------------------------- casas da rua (sprites)
 # x, largura, altura, semente, rombo. A porta da 1ª casa fica em x 3098 (os soldados saem por ela).
-CASAS = [[3040, 170, 124, 21, False], [3664, 150, 112, 22, True]]
+CASAS = [[3040, 168, 130, 21, False], [3664, 150, 122, 22, True]]
 PORTA_CASA0 = 3098
 
 
 def casa_rua(k, destelhada=False):
-    """Casa de taipa da rua, no porte do Lampião (porta mais alta que ele), pintada como a
-    casa grande da caatinga. A 2ª é de barro sem reboco e tem um rombo de canhão."""
+    """Casa de taipa da rua em 2.5D (predios25.casa25, 22/10): a fachada de frente, a parede
+    do lado fugindo para trás e o telhado em perspectiva; porta mais alta que o Lampião.
+    A 2ª é de barro sem reboco e tem um rombo de canhão."""
+    import predios25 as p25
     x, W, H, sem, rombo = CASAS[k]
     if k == 0:
-        w, lado, tel = 124, 24, 42
-        hp = H - tel - 4
-        pdx = PORTA_CASA0 - x - 16 - 13          # centro da porta (26 de largura) em x 3098
-        q = cm.casa(w, hp, tel, sem=sem, alpendre=False, lado=lado, porta=(pdx, 26, 50),
-                    janela=(84, 18, 22), destelhada=destelhada, sombra_beiral=True)
+        pdx = PORTA_CASA0 - x - 6 - 14            # centro da porta (28 de largura) em x 3098
+        q = p25.casa25(W=124, HP=80, G=28, sem=sem, porta=(pdx, 28, 56), janela=(84, 22, 20, 22),
+                       destelhada=destelhada)
     else:
-        w, lado, tel = 106, 22, 38
-        hp = H - tel - 4
-        q = cm.casa(w, hp, tel, sem=sem, alpendre=False, lado=lado, porta=(18, 24, 48),
-                    janela=False, parede="terra", rombo=rombo, destelhada=destelhada, sombra_beiral=True)
+        q = p25.casa25(W=106, HP=74, G=26, sem=sem, parede="terra", porta=(18, 26, 54), janela=None,
+                       rombo=rombo, destelhada=destelhada)
     assert (q.w, q.h) == (W, H), (q.w, q.h, W, H)
     return q
 
@@ -341,11 +339,11 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
         c = cm.capim(rng.uniform(5, 9), int(x), folhas=int(rng.integers(3, 6)))
         q.colar(c, x, yc - c.h + 2)
         x += rng.uniform(20, 56)
-    # capela (porta em x 3468, por onde a Volante sai) e cruzeiro
-    cp = capela()
-    q.sombra(3468, yc + 1, cp.w * 0.95, 3.5)
-    q.colar(cp, 3468 - 61, yc - cp.h + 2)
-    q.assentar(cruzeiro(), 3585, yc)
+    # capela: sprite à parte em 2.5D (predios25.capela25, porta em x 3468). O cruzeiro fica
+    # recuado como as casas (chao_largo.RECUO): nada alto na linha onde se anda.
+    import chao_largo as cl
+    q.sombra(3592, yc - cl.RECUO + 1, 22, 2.5)
+    q.assentar(cruzeiro(), 3585, yc - cl.RECUO)
     # pedras e xique-xiques soltos
     for k, x in enumerate((3000, 3640)):
         q.assentar(cm.pedra(int(rng.integers(18, 28)), int(rng.integers(10, 14)), sem=k + 80), x, yc, afundar=2)

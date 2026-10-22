@@ -58,10 +58,10 @@ export function carregarSprites(cena) {
   for (const [nome, q] of Object.entries(AMBIENTE)) {
     cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
   }
-  cena.load.spritesheet('casa_vila_0', s('casa_vila_0'), { frameWidth: 170, frameHeight: 124 });
-  cena.load.spritesheet('casa_vila_1', s('casa_vila_1'), { frameWidth: 150, frameHeight: 112 });
+  cena.load.spritesheet('casa_vila_0', s('casa_vila_0'), { frameWidth: 168, frameHeight: 130 });
+  cena.load.spritesheet('casa_vila_1', s('casa_vila_1'), { frameWidth: 150, frameHeight: 122 });
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
-  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje', 'f1_ceu', 'f1_nuvens', 'f1_chao']) {
+  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje', 'f1_ceu', 'f1_nuvens', 'f1_chao', 'f1_capela']) {
     cena.load.image(nome, s(nome));
   }
   // Camadas da fase 1, em pedaços.

@@ -331,41 +331,64 @@ COMIDAS_MS = {
 
 
 def caixote():
-    """Caixote de tábuas vermelho-ferrugem de luz: tábuas com veio e nó, travessa
-    em X, cantoneiras de ferro com rebite e marca de estêncil."""
-    W, H = 24, 18
+    """Caixote de tábuas em 2.5D (22/10): frente de tábuas com veio e nó, travessa em X,
+    tampa de tábuas vista de cima fugindo para trás, lateral na sombra, cantoneiras de ferro
+    com rebite e marca de estêncil. Frente 28x32 (o sólido), tampa de 5 px por cima."""
+    FW, FH, D, S = 28, 32, 5, 6
+    W, H = FW + S, FH + D
     t = Tela(W, H)
     rng = np.random.default_rng(8)
-    # Tábuas horizontais (4 px cada), luz em cima de cada uma e fresta escura.
-    for y in range(1, H - 1):
-        k = (y - 1) % 4
-        for x in range(1, W - 1):
-            v = [4, 3, 3, 1][k]
-            if x > W - 5 and v > 1:
+    y0 = D                                    # topo da frente
+    # Frente: tábuas horizontais de 5 px, luz em cima de cada uma, fresta escura.
+    for y in range(y0, H):
+        k = (y - y0) % 5
+        for x in range(FW):
+            v = [5, 4, 4, 3, 1][k]
+            if x > FW - 5 and v > 1:
                 v -= 1
             cor = FUBA[v]
-            if k in (1, 2) and rng.random() < 0.18:
+            if k in (1, 2, 3) and rng.random() < 0.16:
                 cor = FUBA[max(1, v - 1)]  # veio
             pinta(t, x, y, cor)
-    # Nós da madeira.
-    for (x, y) in ((6, 6), (16, 10), (11, 14)):
-        pinta(t, x, y, "fuba_1")
-        pinta(t, x + 1, y, "fuba_2")
+    for (x, y) in ((7, y0 + 7), (19, y0 + 13), (12, y0 + 22)):
+        pinta(t, x, y, "fuba_1"); pinta(t, x + 1, y, "fuba_2")
     # Travessa em X, com volume.
-    for (a, b) in (((3, 3), (20, 14)), ((3, 14), (20, 3))):
-        m = t.capsula(a[0], a[1], b[0], b[1], 1.3)
+    for (a, b) in (((4, y0 + 4), (FW - 5, H - 5)), ((4, H - 5), (FW - 5, y0 + 4))):
+        m = t.capsula(a[0], a[1], b[0], b[1], 1.5)
         sombrear2d(t, m, FUBA[1:6], deslocar=0.2)
-    # Cantoneiras de ferro nos quatro cantos e na lateral.
-    for x in (1, W - 4):
-        for y in range(1, H - 1):
+    # Tampa: tábuas fugindo para trás (paralelogramo), acesa de cima.
+    for y in range(D):
+        off = D - y                                       # sobe e anda para a direita
+        for x in range(FW):
+            xx = x + int(round(off * S / D))
+            v = 6 if (x // 7) % 2 == 0 else 5
+            if x % 7 == 6:
+                v = 3                                     # fresta entre tábuas
+            if y == D - 1:
+                v = 6                                     # quina da frente acesa
+            pinta(t, xx, y, FUBA[v])
+    # Lateral: tábuas na sombra fugindo para trás.
+    for x in range(FW, W):
+        k = x - FW
+        topo = D - int(round(k * D / S)) if k else D
+        for y in range(topo, H - int(round(k * D / S))):
+            v = [2, 2, 1, 2, 1][(y - topo) % 5]
+            pinta(t, x, y, FUBA[v])
+    # Cantoneiras de ferro na frente e na quina da lateral.
+    for x in (0, FW - 3):
+        for y in range(y0, H):
             for dx in range(3):
-                cor = ACO[[4, 3, 2][dx]] if x == 1 else ACO[[3, 2, 1][dx]]
+                cor = ACO[[4, 3, 2][dx]] if x == 0 else ACO[[3, 2, 1][dx]]
                 pinta(t, x + dx, y, cor)
-        for y in (2, H // 2, H - 3):
+        for y in (y0 + 2, y0 + FH // 2, H - 3):
             pinta(t, x + 1, y, "aco_6")
             pinta(t, x + 2, y + 1, "aco_1")
-    # Ferrugem escorrendo das cantoneiras.
-    for (x, y) in ((2, 6), (2, 7), (W - 3, 12), (W - 3, 13)):
+    for x in range(FW - 1, W):                         # cantoneira da tampa
+        pinta(t, x, D - 1 - int(round((x - FW + 1) * D / S)), ACO[4])
+    # Estêncil apagado e ferrugem escorrendo.
+    for (x, y) in ((11, y0 + 9), (12, y0 + 9), (14, y0 + 9), (15, y0 + 9), (13, y0 + 10)):
+        pinta(t, x, y, "fuba_2")
+    for (x, y) in ((2, y0 + 7), (2, y0 + 8), (FW - 2, y0 + 15), (FW - 2, y0 + 16)):
         pinta(t, x, y, "fuba_3")
     return contornar(t)
 

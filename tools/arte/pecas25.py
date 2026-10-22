@@ -241,3 +241,249 @@ if __name__ == '__main__':
         im = Image.fromarray(q.rgba(), 'RGBA')
         out.alpha_composite(im, (x, 78 - im.height)); x += im.width + 8
     out.resize((1600, 320), Image.NEAREST).save('pecas25.png')
+
+
+def rochedo(W=110, TOPO=20, BAIXO=60, D=19, sem=3, rampa='cal'):
+    """Rochedo de arenito saindo do chão da frente: tampo irregular onde se pisa (o meio dele
+    na altura do sólido), quina gasta e a frente em camadas que descem até sair pela borda de
+    baixo da tela. TOPO: px do meio do tampo até a quina da frente; BAIXO: px da quina até o
+    pé (fora da tela). Sem canto reto: as beiradas são tortas e o pé alarga."""
+    rng = np.random.default_rng(sem)
+    h = D + BAIXO
+    q = Quadro(W + 16, h)
+    X, Y = q.xx, q.yy
+    ox = 8
+    xs = np.arange(q.w)
+    n1 = ruido(1, q.w, 4, sem)[0]
+    n2 = ruido(1, q.w, 9, sem + 1)[0]
+    # silhueta: lados tortos, o pé abre para fora
+    def lado(y, esq):
+        k = (y - D) / max(1, BAIXO)
+        base = 3 + 2 * np.sin(y * 0.21 + sem) + 1.2 * np.sin(y * 0.53 + sem * 2)
+        return (ox + base - 5 * np.clip(k, 0, 1)) if esq else (ox + W - base + 5 * np.clip(k, 0, 1))
+    xe = np.array([lado(y, True) for y in range(h)])
+    xd = np.array([lado(y, False) for y in range(h)])
+    # tampo: borda de trás e da frente tortas, cantos arredondados
+    tras = 1.5 + 1.3 * n1 + 0.0 * xs
+    frente = D + 1.2 * n2
+    u = np.clip((xs - ox) / W, 0, 1)
+    canto = 6 * (1 - np.sqrt(np.clip(1 - ((u - 0.5) / 0.5) ** 2 * 0.85, 0, 1)))
+    tras = tras + canto
+    corpo = (X >= xe[Y]) & (X < xd[Y]) & (Y >= tras[X])
+    tampo = corpo & (Y < frente[X])
+    face = corpo & ~tampo
+    # luz do tampo: claro, mais escuro para trás, granulado e bacias de água da chuva
+    nt = ruido(h, q.w, (1.2, 3), sem + 2)
+    prof = np.clip((Y - tras[X]) / np.maximum(1, frente[X] - tras[X]), 0, 1)
+    P(q, tampo, rampa, (0.66 + 0.08 * nt - 0.14 * (1 - prof) - 0.1 * (X - ox) / W)[tampo])
+    bacia = tampo & (ruido(h, q.w, (1.5, 4), sem + 3) > 1.5)
+    P(q, bacia, rampa, 0.42)
+    # face: camadas do arenito acompanhando a quina, blocos e fissuras, mais escura embaixo
+    camada = ((Y - frente[X]) + 2.5 * ruido(h, q.w, (2, 14), sem + 4)) / 6.0
+    banda = np.floor(camada)
+    tom = 0.5 + 0.08 * ((banda * 37 + sem) % 3 - 1)
+    lateral = np.clip((X - xe[Y]) / np.maximum(1, xd[Y] - xe[Y]), 0, 1)
+    luz = tom + 0.16 * (1 - lateral) ** 2 - 0.22 * lateral ** 3 - 0.22 * np.clip((Y - D) / BAIXO, 0, 1) \
+        + 0.05 * ruido(h, q.w, (1, 3), sem + 5)
+    luz = np.where((camada - banda) < 0.16, luz - 0.18, luz)          # junta entre camadas
+    luz = np.where(((camada - banda) > 0.16) & ((camada - banda) < 0.3), luz + 0.06, luz)  # beira acesa
+    P(q, face, rampa, luz[face])
+    # fissuras verticais com a beirada esquerda acesa
+    for _ in range(int(W / 22) + 1):
+        x = rng.uniform(ox + 8, ox + W - 8); y = float(frente[int(x)] + rng.uniform(0, 4))
+        comp = rng.uniform(10, BAIXO * 0.8)
+        for _ in range(int(comp)):
+            xi, yi = int(round(x)), int(round(y))
+            if 0 <= yi < h and face[yi, xi]:
+                P(q, (X == xi) & (Y == yi), rampa, 0.08)
+                if xi - 1 >= 0 and face[yi, xi - 1]:
+                    P(q, (X == xi - 1) & (Y == yi), rampa, 0.72)
+            x += rng.choice([-0.6, 0, 0, 0.6]); y += 1
+    # quina da frente gasta e acesa
+    quina = face & (Y - frente[X] < 1.5) & (Y - frente[X] >= 0)
+    P(q, quina, rampa, 0.92)
+    # líquen e capim no pé das camadas
+    lq = (face | tampo) & (ruido(h, q.w, (1.5, 2), sem + 6) > 1.55)
+    P(q, lq, 'verde', 0.5)
+    for _ in range(int(W / 18)):
+        x = int(rng.uniform(ox + 4, ox + W - 4)); y = int(rng.uniform(D + 8, h - 4))
+        if face[y, x]:
+            for d in range(-2, 3):
+                hh = 3 + (2 - abs(d))
+                P(q, (X == x + d) & (Y >= y - hh) & (Y <= y), 'verde', 0.35 + 0.1 * (d < 0))
+    return q, dict(D=D, chao=h - 1)
+
+
+def sacos2(W=56, ALT=26, D=19, sem=7):
+    """Trincheira de sacos de estopa: cada saco é um travesseiro estufado com as orelhas
+    amarradas, trama da estopa, costura e vinco; fileiras desencontradas e, em cima, os
+    sacos deitados indo para trás (o tampo), com sombra entre eles."""
+    rng = np.random.default_rng(sem)
+    h = D + ALT + 2
+    q = Quadro(W + 8, h)
+    X, Y = q.xx, q.yy
+    tram = ((X + Y) % 3 == 0) | ((X - Y) % 4 == 0)
+
+    def saco(cx, cy, rx, ry, base, vira=1.0):
+        # travesseiro: superelipse, mais cheio no meio
+        d = (np.abs((X - cx) / rx) ** 2.6 + np.abs((Y - cy) / ry) ** 2.2)
+        anel = (d < 1.22) & ~(d < 1)
+        P(q, anel, 'meio', 0.08)
+        m = d < 1
+        nx, ny = (X - cx) / rx, (Y - cy) / ry
+        luz = base + 0.22 * (-nx * 0.6 - ny) * vira - 0.18 * d
+        luz = np.where(tram, luz - 0.05, luz)
+        P(q, m, 'meio', np.clip(luz, 0.02, 0.97)[m])
+        # orelhas amarradas nas pontas
+        for s in (-1, 1):
+            ox_ = cx + s * (rx + 0.5)
+            o = (np.abs(X - ox_) <= 1) & (np.abs(Y - cy) <= 1)
+            P(q, o, 'meio', base - 0.12)
+        # costura de cima e vinco de baixo
+        P(q, m & (np.abs(Y - (cy - ry * 0.55)) < 0.5) & ((X % 2) == 0), 'meio', base - 0.25)
+        P(q, m & (np.abs(Y - (cy + ry * 0.5)) < 0.5) & (np.abs(X - cx) < rx * 0.5), 'meio', base - 0.3)
+        return m
+
+    # tampo: duas fileiras de sacos deitados, a de trás menor e mais escura
+    for r, (yy, esc, b) in enumerate(((5, 0.85, 0.5), (D - 4, 1.0, 0.74))):
+        off = 5 if r % 2 else 0
+        n = int(W / (18 * esc)) + 2
+        for i in range(n):
+            cx = 7 + off + i * 18 * esc + rng.uniform(-1, 1)
+            if cx > W + 2:
+                continue
+            saco(cx, yy + rng.uniform(-0.5, 0.5), 10.5 * esc, 6.5 * esc, b + rng.uniform(-0.05, 0.05))
+    # frente: fileiras de baixo para cima (a de cima por último), desencontradas
+    linhas = max(2, int(round(ALT / 9.5)))
+    for r in range(linhas):
+        cy = h - 7 - r * 9.4
+        off = 9 if r % 2 else 0
+        for i in range(int(W / 18) + 2):
+            cx = 7 + off + i * 18 + rng.uniform(-0.8, 0.8)
+            if cx > W + 3:
+                continue
+            saco(cx, cy, 10.5, 6.6, 0.6 + rng.uniform(-0.07, 0.05))
+    # um saco furado vazando areia
+    fx = int(W * 0.6)
+    P(q, (np.abs(X - fx) <= 1) & (Y > h - 7) & (Y < h), 'terra', 0.85)
+    P(q, (np.abs(X - fx) <= 3) & (Y == h - 1), 'terra', 0.75)
+    return q, dict(D=D, chao=h - 1)
+
+
+def rochedo2(W=110, D=19, BAIXO=60, sem=3, rampa='cal'):
+    """Rochedo de arenito com volume de verdade: dois ou três blocos arredondados colados,
+    fenda entre eles, tampo largo e mais claro onde se pisa, lados estufados e o pé abrindo
+    até sair pela borda de baixo da tela. Luz de cima e da esquerda pela forma (mapa de altura)."""
+    from scipy import ndimage as nd
+    rng = np.random.default_rng(sem)
+    h = D + BAIXO
+    pad = 10
+    q = Quadro(W + 2 * pad, h)
+    X, Y = q.xx.astype(float), q.yy.astype(float)
+    nb = max(1, int(round(W / 55)))
+    # silhueta: cada bloco é uma cúpula achatada; o pé alarga para fora
+    m = np.zeros((h, q.w), bool)
+    cortes = np.linspace(pad, pad + W, nb + 1)
+    for i in range(nb):
+        a, b = cortes[i], cortes[i + 1]
+        cx, rx = (a + b) / 2, (b - a) / 2 + 3
+        topo = 1 + rng.uniform(0, 3)
+        k = np.clip((Y - topo) / (h - topo), 0, 1)
+        larg = rx * (0.82 + 0.35 * np.sqrt(k)) + 1.5 * np.sin(Y * 0.31 + i * 3 + sem)
+        dome = topo + 5 * (np.abs(X - cx) / rx) ** 3
+        m |= (np.abs(X - cx) < larg) & (Y >= dome)
+    m = nd.binary_opening(m, np.ones((3, 3)))
+    # mapa de altura: distância à borda (arredonda as beiradas) + ruído grosso
+    dist = nd.distance_transform_edt(m)
+    alt = np.sqrt(np.minimum(dist, 14) / 14) * 14 + 1.6 * ruido(h, q.w, (3, 4), sem)
+    gy, gx = np.gradient(nd.gaussian_filter(alt, 1.2))
+    # o tampo (onde se pisa) é virado para cima: soma a luz de cima nele
+    frente = D + 1.5 * ruido(1, q.w, 5, sem + 8)[0][None, :]
+    tampo = m & (Y < frente)
+    # lado: claro à esquerda, escuro à direita, pela distância às beiradas de cada linha
+    esq = np.where(m.any(1), m.argmax(1), 0)[:, None]
+    dir_ = np.where(m.any(1), q.w - 1 - m[:, ::-1].argmax(1), q.w)[:, None]
+    lat = np.clip((X - esq) / np.maximum(1, dir_ - esq), 0, 1)
+    luz = 0.5 + 0.18 * (1 - lat) ** 2 - 0.2 * lat ** 3 + 0.05 * (-gx) * 3 + 0.05 * (-gy) * 2 \
+        - 0.2 * np.clip((Y - D) / BAIXO, 0, 1)
+    luz = np.where(tampo, 0.74 + 0.06 * ruido(h, q.w, (1, 3), sem + 9) - 0.12 * (1 - Y / D) - 0.08 * lat, luz)
+    # camadas do arenito: bandas tortas seguindo o tampo, juntas escuras
+    camada = (Y - D + 2.2 * ruido(h, q.w, (2, 12), sem + 4)) / 6.5
+    fr = camada - np.floor(camada)
+    face = ~tampo
+    luz = np.where(face & (fr < 0.14), luz - 0.15, luz)
+    luz = np.where(face & (fr > 0.14) & (fr < 0.26), luz + 0.05, luz)
+    # fenda entre os blocos
+    for i in range(1, nb):
+        c = cortes[i] + rng.uniform(-3, 3)
+        fen = np.abs(X - c - 1.2 * np.sin(Y * 0.4)) < (0.6 + 1.2 * np.clip((Y - 2) / h, 0, 1))
+        luz = np.where(fen, 0.06, np.where(np.abs(X - c + 1.5) < 0.7, luz + 0.1, luz))
+    # trincas finas
+    for _ in range(int(W / 30) + 1):
+        x = rng.uniform(pad + 6, pad + W - 6); y = rng.uniform(D, D + 8)
+        for _ in range(int(rng.uniform(8, BAIXO * 0.6))):
+            xi, yi = int(round(x)), int(round(y))
+            if 0 <= yi < h and 0 <= xi < q.w:
+                luz[yi, xi] = 0.1
+                if xi > 0:
+                    luz[yi, xi - 1] += 0.08
+            x += rng.choice([-0.7, 0, 0.7]); y += 1
+    luz += 0.04 * ruido(h, q.w, (0.8, 2), sem + 7)
+    P(q, m, rampa, np.clip(luz, 0.02, 0.97)[m])
+    # beirada do tampo gasta e acesa
+    quina = m & ~tampo & (Y < frente + 1.5)
+    P(q, quina, rampa, 0.88)
+    P(q, m & ~tampo & (Y >= frente + 1.5) & (Y < frente + 3), rampa, 0.3)   # sombra embaixo da quina
+    # pouco líquen, só nas partes viradas para cima
+    lq = m & (ruido(h, q.w, (1.5, 2), sem + 6) > 1.9) & (Y < D + 10)
+    P(q, lq, 'verde', 0.5)
+    q.ox = pad
+    return q, dict(D=D, chao=h - 1)
+
+
+def _cerca_linha(q, p0, p1, h0, h1, passo, sem, esc=0.0):
+    """Varas fincadas de p0 a p1 (pés), altura indo de h0 a h1, duas travessas seguindo."""
+    rng = np.random.default_rng(sem)
+    (x0, y0), (x1, y1) = p0, p1
+    comp = max(1.0, np.hypot(x1 - x0, y1 - y0))
+    n = max(2, int(comp / passo) + 1)
+    # travessas (atrás das varas)
+    for fr in (0.38, 0.7):
+        for t in np.linspace(0, 1, int(comp) * 2 + 2):
+            x = x0 + (x1 - x0) * t; y = y0 + (y1 - y0) * t
+            hh = h0 + (h1 - h0) * t
+            yy = y - hh * (1 - fr)
+            r = 1.4 * (hh / max(h0, h1))
+            m = (np.abs(q.xx - x) <= 0.6) & (np.abs(q.yy - yy) <= r)
+            P(q, m, 'madeira', np.where(q.yy[m] < yy - 0.3, 0.75, 0.42) - esc)
+    for i in range(n):
+        t = i / (n - 1)
+        x = x0 + (x1 - x0) * t + rng.uniform(-0.6, 0.6); y = y0 + (y1 - y0) * t
+        hh = (h0 + (h1 - h0) * t) * rng.uniform(0.85, 1.0)
+        r = max(0.8, 2.0 * (h0 + (h1 - h0) * t) / max(h0, h1))
+        m = (np.abs(q.xx - x) <= r) & (q.yy <= y) & (q.yy >= y - hh)
+        u = (q.xx[m] - x) / r
+        luz = 0.62 - 0.38 * u - esc - 0.15 * (q.yy[m] > y - 3)
+        luz = np.where(q.yy[m] < y - hh + 1.5, 0.85 - esc, luz)
+        P(q, m, 'madeira', np.clip(luz, 0.02, 0.95))
+        for fr in (0.38, 0.7):
+            yy = y - hh * (1 - fr)
+            mm = (np.abs(q.xx - x) <= r + 0.5) & (np.abs(q.yy - yy) <= 0.8)
+            P(q, mm, 'cal', 0.55 - esc)
+
+
+def curral(W=170, H=40, D=26, sem=9):
+    """Curral visto um pouco de cima: cerca de trás menor e mais escura, os lados fugindo em
+    diagonal e a cerca da frente; chão de dentro pisado e mais escuro."""
+    h = H + D + 4
+    q = Quadro(W + 4, h)
+    yf, yt = h - 2, h - 2 - D
+    ins = D * 0.9
+    # chão pisado de dentro
+    m = poly(q.w, q.h, [(2 + ins, yt), (W - ins, yt), (W, yf), (2, yf)])
+    P(q, m, 'terra', 0.45 + 0.04 * ruido(q.h, q.w, (1, 4), sem)[m])
+    _cerca_linha(q, (2 + ins, yt), (W - ins, yt), H * 0.78, H * 0.78, 12, sem, esc=0.12)
+    _cerca_linha(q, (2 + ins, yt), (2, yf), H * 0.78, H, 8, sem + 1, esc=0.06)
+    _cerca_linha(q, (W - ins, yt), (W, yf), H * 0.78, H, 8, sem + 2, esc=0.08)
+    _cerca_linha(q, (2, yf), (W, yf), H, H, 13, sem + 3)
+    return q

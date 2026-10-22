@@ -910,7 +910,8 @@ def camada_perto(h=160, ate=None):
     for k, (wx, alt, br) in enumerate(((250, 84, 2), (880, 96, 2), (1290, 70, 1), (1880, 92, 2), (2560, 80, 2))):
         b = ((-15, 34, 64), (15, 44, 70)) if br == 2 else ((15, 30, 56),)
         pecas.append((lx(wx), mandacaru(alt, sem=200 + k, bracos=b)))
-    pecas.append((lx(1460), cerca_varas(150, 40, 9)))
+    import pecas25 as p5
+    pecas.append((lx(1440), p5.curral(170, 40, 26, sem=9)))   # curral em 2.5D (cerca fugindo para trás)
     pecas.append((lx(1640), cata_vento(100)))
     pecas.append((lx(640), casa(196, 98, 54, sem=5)))
     pecas.append((lx(2380), casa(150, 84, 46, sem=8, alpendre=False, lado=24)))

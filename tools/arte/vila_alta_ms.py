@@ -538,11 +538,8 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
     for k, (x, w_, h_, cor, sac) in enumerate(casas):
         q.colar(sobrado(w_, h_, cor, sem=50 + k, sacada=sac, letreiro=NOMES[k]), x, y(CH) - h_)
         q.sombra(x + w_ / 2, yc + 1, w_ * 1.02, 3)
-    # casinha baixa no fim (o topo do telhado é o degrau para descer)
+    # (a casinha baixa do fim saiu a pedido do Guilherme, 22/10)
     cx_, cw_, ch_ = f1.CASINHA_FIM
-    cs = cm.casa(40, 30, 22, sem=88, alpendre=False, lado=10, porta=(12, 14, 24), janela=False, sombra_beiral=True)
-    q.sombra(cx_ + cw_ / 2, yc + 1, cw_, 3)
-    q.colar(cs, cx_, y(CH) - ch_)
     # capim no pé das paredes
     x = ALTA_INI - 20.0
     while x < ALTA_FIM:

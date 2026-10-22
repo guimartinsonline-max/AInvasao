@@ -550,11 +550,14 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
             q.colar(c, x, yc - c.h + 2)
         x += rng.uniform(22, 56)
     # hangar, com a hélice de reserva encostada e os pneus do lado
+    # (recuado como as casas da vila: chao_largo.RECUO)
+    import chao_largo as cl
+    R = cl.RECUO
     hg = hangar(sem=4)
-    q.sombra(f1.HANGAR_X + hg.w / 2 + 6, yc + 1, hg.w * 1.05, 3.5)
-    q.colar(hg, f1.HANGAR_X, y(CH) - hg.h + 1)
-    q.assentar(helice(46), f1.HANGAR_X - 8, yc, afundar=1)
-    q.assentar(pneus(3, 1), f1.HANGAR_X + hg.w + 2, yc, afundar=1)
+    q.sombra(f1.HANGAR_X + hg.w / 2 + 6, yc - R + 1, hg.w * 1.05, 3.5)
+    q.colar(hg, f1.HANGAR_X, y(CH) - R - hg.h + 1)
+    q.assentar(helice(46), f1.HANGAR_X - 8, yc - R, afundar=1)
+    q.assentar(pneus(3, 1), f1.HANGAR_X + hg.w + 2, yc - R, afundar=1)
     # balizas da pista
     for x in range(5110, 5560, 96):
         q.assentar(baliza(x), x, yc, afundar=3)

@@ -765,12 +765,12 @@ FASE = {
         [1170, 152, 110, 42],
         [1280, 138, 60, 56],
         [1340, 160, 50, 34],
-        [1622, 158, 66, 6, True],     # girau de madeira do curral
+        [1622, 158, 66, 36],          # girau de madeira do curral (sólido: ninguém passa por baixo nem tiro atravessa)
         [2120, 170, 90, 24],          # barranco
-        [2300, 150, 72, 6, True],     # girau
+        [2300, 150, 72, 44],          # girau (sólido)
         [2780, 172, 30, 22],          # pedra grande
         # --- vila de taipa
-        [3290, 160, 64, 6, True],     # girau da vila
+        [3290, 160, 64, 34],          # girau da vila (sólido)
         # --- leito de rio seco: barrancos em degrau e a ponte por cima
         [6040, 176, 40, 18],
         [6072, 146, 52, 48],
@@ -786,7 +786,6 @@ FASE = {
         [4252, CHAO - 112 + 38, 84, 4, True],  # sacada do sobrado caiado
         # Degrau entre telhados colados de alturas diferentes (só lá em cima: a rua passa por baixo).
         [4004, CHAO - 100, 4, 16], [4246, CHAO - 112, 4, 20],
-        [CASINHA_FIM[0], CHAO - CASINHA_FIM[2], CASINHA_FIM[1], 6, True],
         [4290, 176, 48, 18],          # sacos de areia na rua da vila alta
         # --- arena do trem: giraus da estação
         *[[x, topo, w, 6, True] for x, w, topo in GIRAUS_ARENA],
@@ -885,7 +884,7 @@ FASE = {
     "buracos": [1862, 2382],
     "fim": 8540,
     # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
-    "casas": [[3040, 170, 124, 21, False], [3664, 150, 112, 22, True]],  # x, largura, altura, semente, rombo (vila_ms.CASAS)
+    "casas": [[3040, 168, 130, 21, False], [3664, 150, 122, 22, True]],  # x, largura, altura, semente, rombo (vila_ms.CASAS)
     "varais": [3795],
     "jumentos": [2680],  # jumento blindado esperando (o Lampião monta e atravessa a vila nele)
     "ponte": [6124, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
@@ -1212,7 +1211,12 @@ def exportar(saida, raiz):
     # o fundo perde o que ficaria atrás das construções da rua e as peças baixas viram 2.5D.
     import chao_largo as cl
     novas["f1_jogo"] = cl.limpar_chao_jogo(novas["f1_jogo"], topo, vm.CAMPO_FIM)
-    occ = cl.ocupacao(novas["f1_jogo"], topo, [c[:3] for c in FASE["casas"]], LARGURA_FASE)
+    # capela da vila em 2.5D (sprite à parte, recuada como as casas; a porta fica em x 3468)
+    import predios25 as p25
+    cp, cpx = p25.capela25()
+    Image.fromarray(cp.rgba(), "RGBA").save(saida / "f1_capela.png", optimize=True)
+    capela = [3468 - cpx, CHAO_MUNDO_RECUO := 194 - cl.RECUO, cp.w, cp.h]
+    occ = cl.ocupacao(novas["f1_jogo"], topo, [c[:3] for c in FASE["casas"]] + [(capela[0], cp.w, cp.h)], LARGURA_FASE)
     novas["f1_perto"] = cl.tirar_sobrepostos(novas["f1_perto"], fp, novas["f1_perto"].height - 1, occ)
     novas["f1_meio"] = cl.tirar_sobrepostos(novas["f1_meio"], fm, novas["f1_meio"].height - 1, occ, morro=True)
     cl.textura_chao().save(saida / "f1_chao.png", optimize=True)
@@ -1242,6 +1246,9 @@ def exportar(saida, raiz):
     }
     dados["chao"] = {"hz": cl.HZ, "faixas": cl.faixas(), "descer": cl.DESCE}
     dados["pecas25"] = pecas25
+    dados["capela"] = capela
+    dados["recuo"] = CHAO_MUNDO_RECUO       # pé das casas e da capela (atrás da linha onde se anda)
+    dados["portasFundo"] = [3098, 3468]      # portas recuadas: quem sai delas desce o degrau
     pasta = raiz / "assets/fases"
     pasta.mkdir(parents=True, exist_ok=True)
     (pasta / "fase1.json").write_text(json.dumps(dados, ensure_ascii=False, separators=(",", ":")))

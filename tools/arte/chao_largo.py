@@ -27,6 +27,9 @@ CHAO_MUNDO = 194
 DESCE = 22          # a câmera desce 22 px em relação ao jeito antigo (y -70 em vez de -92)
 FRENTE = 19         # as peças 2.5D apoiam a frente 19 px à frente da linha onde se anda
 TEX_W = 1024
+# Construções altas (casas, capela, cruzeiro) ficam recuadas: a frente delas apoia RECUO px
+# atrás da linha onde se anda (nunca em cima dela), para não parecer que o Lampião anda colado.
+RECUO = 22
 
 
 def textura_chao(sem=12):
@@ -162,16 +165,16 @@ def pecas_fase1(F):
     def poe(q, x):
         out.append((q, int(x), fg - (q.h - 1)))
 
-    # lajedos de arenito (do mais baixo para o mais alto: o alto fica na frente da emenda)
+    # rochedos de arenito saindo do chão da frente até a borda de baixo da tela (do mais baixo
+    # para o mais alto: o alto fica na frente da emenda); o meio do tampo na altura do sólido
     lajes = [(sol[k], 40 + k, 'cal') for k in (1, 3, 4, 5, 6, 10)] + [(sol[8], 48, 'terra')]
     for (sx, sy, sw, *_), sem, rampa in sorted(lajes, key=lambda e: -e[0][1]):
-        alt = int(round(fg - D / 2 - sy))
-        q, _ = p5.laje(W=sw + 8, ALT=alt, D=D, sem=sem, rampa=rampa)
-        poe(q, sx - 4)
+        topo = int(round(sy - D / 2))
+        q, _ = p5.rochedo2(W=sw, D=D, BAIXO=250 - topo - D, sem=sem, rampa=rampa)
+        out.append((q, int(sx - q.ox), topo))
     # trincheiras de sacos
-    for k in (2, 32):
-        sx, sy, sw = sol[k][:3]
-        q, _ = p5.sacos(W=sw + 6, ALT=int(fg - D / 2 - sy - 1), D=D, sem=sx)
+    for sx, sy, sw, *_ in [s for s in sol if s[:2] in ([884, 176], [4290, 176])]:
+        q, _ = p5.sacos2(W=sw + 6, ALT=int(fg - D / 2 - sy - 1), D=D, sem=sx)
         poe(q, sx - 3)
     # giraus (plataforma de um lado só: o meio do tampo na altura dela)
     for k in (7, 9, 11):

@@ -2,7 +2,9 @@
 // uma sombra achatada embaixo (menor quanto mais alto ele está) e quem anda no chão deixa
 // pegadas que somem devagar. Tudo em pool: nada é criado durante o jogo.
 const PEGADAS = 60;
-const VIDA_PEGADA = 3200; // ms
+const VIDA_PEGADA = 3600; // ms
+const ALFA_PEGADA = 0.34; // suave
+const PASSO = 14; // px entre uma pegada e outra
 
 export class Sombras {
   // solidos: [[x, y, w, h], ...] do mapa, para achar o chão embaixo de quem pula.
@@ -15,8 +17,11 @@ export class Sombras {
       g.fillStyle(0x1a1016, 0.26).fillEllipse(16, 4, 20, 5);
       g.generateTexture('sombra_chao', 32, 8);
       g.clear();
-      g.fillStyle(0x1a1016, 1).fillRect(1, 0, 3, 2).fillRect(0, 1, 1, 1).fillRect(5, 0, 2, 2);
-      g.generateTexture('pegada', 7, 2);
+      // Pegada em forma de pé visto de cima, achatado pela perspectiva: calcanhar atrás,
+      // vão do arco e a planta com os dedos na frente (aponta para a direita); borda mais clara.
+      g.fillStyle(0x1a1016, 0.55).fillRect(0, 1, 3, 2).fillRect(5, 0, 4, 4).fillRect(9, 1, 1, 2);
+      g.fillStyle(0x1a1016, 1).fillRect(1, 1, 2, 2).fillRect(6, 1, 3, 2);
+      g.generateTexture('pegada', 10, 4);
       g.destroy();
     }
     this.sombras = new Map(); // alvo -> imagem
@@ -48,7 +53,7 @@ export class Sombras {
   pisar(x, y, dir, t) {
     const p = this.pegadas[this.proxima];
     this.proxima = (this.proxima + 1) % PEGADAS;
-    p.setPosition(Math.round(x), Math.round(y)).setFlipX(dir < 0).setVisible(true).setAlpha(0.6);
+    p.setPosition(Math.round(x), Math.round(y)).setFlipX(dir < 0).setVisible(true).setAlpha(ALFA_PEGADA);
     p.nasceu = t;
     p.setDepth(y < 192 ? 10.6 : 4.8);
   }
@@ -70,14 +75,14 @@ export class Sombras {
         .setScale((a.largura / 32) * k, k).setAlpha(Math.max(0.4, k));
       // em cima de peça 2.5D (lajedo, girau): a sombra vai no tampo, na frente da peça
       s.setDepth(chao < 192 ? 10.6 : 4.9);
-      // pegadas: um passo a cada 9 px andados no chão
+      // pegadas: um passo a cada PASSO px andados no chão
       if (a.anda && alto < 1) {
         const ult = a.alvo.ultimaPegada;
-        if (ult === undefined || Math.abs(a.x - ult) >= 9) {
+        if (ult === undefined || Math.abs(a.x - ult) >= PASSO) {
           a.alvo.ultimaPegada = a.x;
           a.alvo.passo = !a.alvo.passo;
           const dir = ult === undefined ? 1 : Math.sign(a.x - ult);
-          this.pisar(a.x - dir * 3, chao + (a.alvo.passo ? 1 : -1), dir, t);
+          this.pisar(a.x - dir * 3, chao + (a.alvo.passo ? 2 : -1), dir, t);
         }
       } else if (alto >= 1) {
         a.alvo.ultimaPegada = undefined;
@@ -90,7 +95,7 @@ export class Sombras {
       if (!p.visible) continue;
       const idade = t - p.nasceu;
       if (idade > VIDA_PEGADA) p.setVisible(false);
-      else p.setAlpha(0.6 * (1 - idade / VIDA_PEGADA));
+      else p.setAlpha(ALFA_PEGADA * (1 - idade / VIDA_PEGADA));
     }
   }
 }

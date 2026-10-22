@@ -98,7 +98,10 @@ export class Fase1Scene extends CenaJogo {
     this.sombras = new Sombras(this, d.solidos.filter((s) => s[1] < 194 || s[2] < 8000));
     this.caixotes = new Caixotes(this, d.caixotes);
     // Cenário vivo: casas da vila (perdem o telhado), varal, ponte que quebra.
-    d.casas.forEach(([x, w, h], k) => new CasaVila(this, `casa_vila_${k}`, x, 195, w, h));
+    // Casas e capela recuadas (pé atrás da linha onde se anda, chão largo).
+    const recuo = d.recuo ?? 195;
+    d.casas.forEach(([x, w, h], k) => new CasaVila(this, `casa_vila_${k}`, x, recuo, w, h));
+    if (d.capela) this.add.image(d.capela[0], d.capela[1], 'f1_capela').setOrigin(0, 1).setDepth(5);
     for (const x of d.varais) new Varal(this, x, 195);
     this.ponte = new Ponte(this, d.ponte);
   }
@@ -233,10 +236,19 @@ export class Fase1Scene extends CenaJogo {
         if (porta) {
           // Sai pela porta de uma casa, da capela ou de uma barraca: começa atrás da parede.
           const px = Number(lado.slice(6));
-          const inimigo = this.adicionarInimigo(px, this.chaoAbaixo(px, 120), tipo, opcoes || {});
+          // Porta recuada (casa e capela da vila): aparece no degrau e desce até a rua.
+          const fundo = (this.dados.portasFundo || []).includes(px);
+          const py = fundo ? this.dados.recuo - 1 : this.chaoAbaixo(px, 120);
+          const inimigo = this.adicionarInimigo(px, py, tipo, opcoes || {});
           inimigo.virar(this.jogador.x > px ? 1 : -1);
-          inimigo.setDepth(4);
-          this.time.delayedCall(420, () => inimigo.setDepth(9));
+          if (fundo) {
+            // sai do escuro da porta já na frente da parede
+            inimigo.setDepth(9).setAlpha(0);
+            this.tweens.add({ targets: inimigo, alpha: 1, duration: 220 });
+          } else {
+            inimigo.setDepth(4);
+            this.time.delayedCall(420, () => inimigo.setDepth(9));
+          }
           onda.vivos.push(inimigo);
           onda.faltam--;
           return;
@@ -539,6 +551,10 @@ export class Fase1Scene extends CenaJogo {
     }
     for (const jm of this.jumentos || []) {
       if (jm.s.x < x0 || jm.s.x > x1) continue;
+      // Em cima de peça 2.5D (lajedo, girau, sacos) fica na frente dela, como o Lampião.
+      const emCima = jm.s.y < 191;
+      jm.s.setDepth(emCima ? 10.8 : 9);
+      jm.mg.setDepth(emCima ? 11.4 : 11);
       lista.push({ alvo: jm, x: jm.s.x, pe: jm.s.y, largura: 52, visivel: jm.s.visible, anda: !jm.livre });
     }
     this.sombras.atualizar(this.time.now, lista);
