@@ -4,7 +4,7 @@ import { BOCAS } from './maos.js';
 import { AMBIENTE } from './objetos/Ambiente.js';
 import { TREM } from './objetos/Trem.js';
 import { VERSAO } from './config.js';
-import { PEDACOS } from './fase1_pedacos.js';
+import { PEDACOS, PECAS25 } from './fase1_pedacos.js';
 
 // Personagens e cenário vêm de PNGs gerados por tools/arte/exportar.py.
 // Aqui ficam só as texturas pequenas de efeitos, desenhadas em código.
@@ -61,13 +61,15 @@ export function carregarSprites(cena) {
   cena.load.spritesheet('casa_vila_0', s('casa_vila_0'), { frameWidth: 170, frameHeight: 124 });
   cena.load.spritesheet('casa_vila_1', s('casa_vila_1'), { frameWidth: 150, frameHeight: 112 });
   cena.load.spritesheet('touceiras', s('touceiras'), { frameWidth: TOUCEIRA.largura, frameHeight: TOUCEIRA.altura });
-  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje', 'f1_ceu', 'f1_nuvens']) {
+  for (const nome of ['ceu', 'nuvens', 'serras', 'paredoes', 'planicie', 'caatinga', 'chao', 'caixote', 'laje', 'f1_ceu', 'f1_nuvens', 'f1_chao']) {
     cena.load.image(nome, s(nome));
   }
   // Camadas da fase 1, em pedaços.
   for (const [nome, n] of Object.entries(PEDACOS)) {
     for (let k = 0; k < n; k++) cena.load.image(`${nome}_${k}`, s(`${nome}_${k}`));
   }
+  // Peças baixas em 2.5D (lajedo, girau, sacos, carro de boi), na frente da linha onde se anda.
+  for (let k = 0; k < PECAS25; k++) cena.load.image(`f1_p25_${k}`, s(`f1_p25_${k}`));
 }
 
 export function gerarSprites(cena) {

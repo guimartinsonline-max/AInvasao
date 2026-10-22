@@ -555,7 +555,7 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
         q.colar(td, x, y(152))
     # objetos de rua na luz da cena
     amb = lambda t: ambientar(t.imagem())  # noqa: E731
-    q.assentar(amb(f1.sacos_detalhados(4, 3, 3)), 4290 - 3, yc, afundar=3)
+    # (os sacos agora são peça 2.5D à parte: chao_largo.pecas_fase1)
     for x, peca in ((3884, f1.pote_barro(9)), (4110, f1.cabacas()), (4360, f1.pilao()), (4600, f1.pote_barro(10, 12)),
                     (4588, f1.roda_carroca(8)), (4470, f1.pote_barro(11)), (4482, f1.pote_barro(12, 10))):
         q.assentar(amb(peca), x, yc)

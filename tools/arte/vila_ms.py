@@ -353,12 +353,9 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
         q.assentar(cm.xiquexique(int(rng.integers(24, 32)), int(rng.integers(18, 24)), sem=x), x, yc, afundar=2)
     # girau da vila e os objetos miúdos, na luz da cena
     amb = lambda t: ambientar(t.imagem())  # noqa: E731
-    gx, gy, gw = F["solidos"][11][:3]
-    q.sombra(gx + gw / 2, yc + 1, gw * 1.1, 3)
-    q.colar(amb(f1.girau(gw, y(CH) - y(gy), semente=gx)), gx - 4, y(gy))
+    # (o girau agora é peça 2.5D à parte: chao_largo.pecas_fase1)
     for x, peca in ((3170, f1.pote_barro(7)), (3400, f1.cabacas()), (3840, f1.pilao()), (3560, f1.pote_barro(8, 12))):
         q.assentar(amb(peca), x, yc)
-    q.assentar(cm.cerca_varas(70, 26, sem=37), 3730, yc)
     if ate:                          # o trecho seguinte continua daqui e faz a passagem
         return q
     # a passagem para a vila alta: o chão novo some em manchas sobre o antigo

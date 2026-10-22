@@ -100,7 +100,7 @@ export class CenaJogo extends Phaser.Scene {
     this.corte = this.add.image(0, 0, 'corte').setVisible(false).setDepth(20);
 
     const cam = this.cameras.main;
-    cam.setBounds(0, -DY, largura, ALTURA);
+    cam.setBounds(0, this.camY, largura, ALTURA);
     cam.startFollow(this.jogador.corpo, true, 0.12, 0.12);
     cam.setDeadzone(24, ALTURA);
     this.olhar = 0;
@@ -316,6 +316,11 @@ export class CenaJogo extends Phaser.Scene {
     this.tweens.add({ targets: b, y: pe - 10, duration: 140, yoyo: true, repeat: 5 });
     this.tweens.add({ targets: b, x: x + lado * 260, duration: 1600, onComplete: () => b.destroy() });
     this.efeitos.poeira(x, pe, 6);
+  }
+
+  // Topo da câmera no mundo (a fase com chão largo desce a câmera).
+  get camY() {
+    return -DY;
   }
 
   // Primeira superfície sólida abaixo de (x, y).

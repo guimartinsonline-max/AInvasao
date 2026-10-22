@@ -12,6 +12,7 @@ import { tocarMusica, pararMusica, som } from '../som.js';
 import { Biplano } from '../objetos/Biplano.js';
 import { Segredo } from '../objetos/Segredos.js';
 import { LAMPIAO, REFEM } from '../quadros.js';
+import { Sombras } from '../objetos/Sombras.js';
 
 // Fase 1 é só contra a Volante: nada de arma alienígena.
 const PREMIOS_F1 = PREMIOS.filter((a) => a !== 'desintegrador');
@@ -38,6 +39,11 @@ export class Fase1Scene extends CenaJogo {
 
   get tudoVolta() {
     return false;
+  }
+
+  // Chão largo: a câmera desce para o chão da frente aparecer (o mundo continua com o chão em 194).
+  get camY() {
+    return -DY + ((this.dados && this.dados.chao && this.dados.chao.descer) || 0);
   }
 
   configurar() {
@@ -67,6 +73,16 @@ export class Fase1Scene extends CenaJogo {
     pintada('f1_serras', d.serras.base, d.serras.fator, -7);
     pintada('f1_paredao', d.paredao.base, d.paredao.fator, -6);
     pintada('f1_meio', d.meio.base, d.meio.fator, -3);
+    // Chão largo: do horizonte até a borda de baixo, em faixas (o longe anda devagar, a frente
+    // mais rápido que o plano do jogo), como o chão do Metal Slug.
+    const chao = this.dados.chao;
+    if (chao) {
+      for (const [y, alt, fator] of chao.faixas) {
+        const f = this.add.tileSprite(0, chao.hz + y, LARGURA, alt, 'f1_chao').setOrigin(0).setScrollFactor(0).setDepth(-2.5);
+        f.tilePositionY = y;
+        this.camadas.push([f, fator]);
+      }
+    }
     pintada('f1_perto', d.perto.base, d.perto.fator, -2);
     pintada('f1_frente', d.frente.base, d.frente.fator, 25);
   }
@@ -77,6 +93,9 @@ export class Fase1Scene extends CenaJogo {
       this.add.image(k * PEDACO, d.camadas.jogo.y, `f1_jogo_${k}`).setOrigin(0).setDepth(5);
     }
     for (const [x, y, w, h, umLado] of d.solidos) this.solido(x, y, w, h, !!umLado);
+    // Peças baixas em 2.5D: na frente de quem anda no chão, atrás de quem está em cima delas.
+    for (const [k, x, y] of d.pecas25 || []) this.add.image(x, y, `f1_p25_${k}`).setOrigin(0).setDepth(10.5);
+    this.sombras = new Sombras(this, d.solidos.filter((s) => s[1] < 194 || s[2] < 8000));
     this.caixotes = new Caixotes(this, d.caixotes);
     // Cenário vivo: casas da vila (perdem o telhado), varal, ponte que quebra.
     d.casas.forEach(([x, w, h], k) => new CasaVila(this, `casa_vila_${k}`, x, 195, w, h));
@@ -176,12 +195,12 @@ export class Fase1Scene extends CenaJogo {
     const [x0, x1b] = onda.trava;
     const x1 = Math.max(x1b, x0 + LARGURA);
     const inicio = Math.min(x0, Math.floor(cam.scrollX));
-    cam.setBounds(inicio, -DY, x1 - inicio, ALTURA);
+    cam.setBounds(inicio, this.camY, x1 - inicio, ALTURA);
     if (inicio < x0) {
       const borda = { x: inicio };
       this.tweens.add({
         targets: borda, x: x0, duration: Math.min(900, (x0 - inicio) * 6), ease: 'Sine.easeInOut',
-        onUpdate: () => { if (this.onda === onda) cam.setBounds(borda.x, -DY, x1 - borda.x, ALTURA); },
+        onUpdate: () => { if (this.onda === onda) cam.setBounds(borda.x, this.camY, x1 - borda.x, ALTURA); },
       });
     }
     if (onda.chefe) this.entradaChefe(onda.chefe, () => this.soltarOnda(onda));
@@ -325,7 +344,7 @@ export class Fase1Scene extends CenaJogo {
     this.onda = null;
     // Solta a câmera sem deixar voltar para trás (ela segue o Lampião suave, sem pulo).
     this.minX = Math.max(this.minX, Math.floor(this.cameras.main.scrollX));
-    this.cameras.main.setBounds(this.minX, -DY, this.larguraMundo - this.minX, ALTURA);
+    this.cameras.main.setBounds(this.minX, this.camY, this.larguraMundo - this.minX, ALTURA);
     this.seta.setVisible(true);
     this.tweens.killTweensOf(this.seta);
     this.seta.setAlpha(1);
@@ -482,9 +501,47 @@ export class Fase1Scene extends CenaJogo {
 
   // ------------------------------------------------------------ a cada quadro
   atualizarFundo(cam, dt) {
+    this.atualizarSombras();
     this.ventoNuvens += dt * 0.004;
     for (const [camada, fator] of this.camadas) camada.tilePositionX = Math.round(cam.scrollX * fator);
     this.nuvens[0].tilePositionX = Math.round(cam.scrollX * this.nuvens[1] + this.ventoNuvens);
+  }
+
+  // Sombra e pegadas de todo mundo; quem está em cima de peça 2.5D (ou pulando por cima)
+  // fica na frente dela.
+  atualizarSombras() {
+    if (!this.sombras) return;
+    const lista = [];
+    const cam = this.cameras.main;
+    const x0 = cam.scrollX - 60;
+    const x1 = cam.scrollX + LARGURA + 60;
+    const j = this.jogador;
+    if (j && j.corpo && j.corpo.body) {
+      const b = j.corpo.body;
+      lista.push({ alvo: j, x: b.center.x, pe: b.bottom, largura: 26, visivel: j.visual.visible, anda: Math.abs(b.velocity.x) > 20 });
+      j.visual.setDepth(b.bottom < 191 ? 11 : 10);
+    }
+    for (const a of this.alvos.getChildren()) {
+      if (!a.body || a.voa || a.x < x0 || a.x > x1) continue;
+      const b = a.body;
+      const solto = b.allowGravity !== false;
+      lista.push({ alvo: a, x: b.center.x, pe: b.bottom, largura: Math.max(14, b.width * 1.1),
+        visivel: a.active && a.visible && solto, anda: Math.abs(b.velocity.x) > 20 });
+      if (a.depth >= 8 && a.depth <= 11) a.setDepth(b.bottom < 191 ? 11 : (a.profundidadeChao || (a.profundidadeChao = a.depth)));
+    }
+    for (const it of this.itens.grupo.getChildren()) {
+      if (!it.active || it.x < x0 || it.x > x1) continue;
+      lista.push({ alvo: it, x: it.x, pe: it.y, largura: 18, visivel: it.visible, anda: false });
+    }
+    for (const c of this.caixotes.lista) {
+      if (c.x < x0 || c.x > x1) continue;
+      lista.push({ alvo: c, x: c.x, pe: c.y, largura: c.cfg.largura + 4, visivel: c.vivo, anda: false });
+    }
+    for (const jm of this.jumentos || []) {
+      if (jm.s.x < x0 || jm.s.x > x1) continue;
+      lista.push({ alvo: jm, x: jm.s.x, pe: jm.s.y, largura: 52, visivel: jm.s.visible, anda: !jm.livre });
+    }
+    this.sombras.atualizar(this.time.now, lista);
   }
 
   atualizarFase(t, dt) {
@@ -509,7 +566,7 @@ export class Fase1Scene extends CenaJogo {
     // A câmera não volta para trás (como no Metal Slug).
     if (!this.onda && cam.scrollX > this.minX) {
       this.minX = Math.floor(cam.scrollX);
-      cam.setBounds(this.minX, -DY, this.larguraMundo - this.minX, ALTURA);
+      cam.setBounds(this.minX, this.camY, this.larguraMundo - this.minX, ALTURA);
     }
     // O Lampião não sai da tela.
     const v = cam.worldView;
@@ -539,7 +596,7 @@ export class Fase1Scene extends CenaJogo {
     const prof = -3.5; // atrás dos morros (f1_meio): some atrás deles ao cair
     const x0 = cam.scrollX + LARGURA + 40;
     const x1 = cam.scrollX + 110;
-    const yChao = this.dados.camadas.meio.base - 22;
+    const yChao = this.dados.camadas.meio.base - 22 + DY + this.camY; // atrás dos morros, na tela
     const disco = this.add.image(x0, -50, 'disco_voador', 0).setDepth(prof).setScale(0.4).setTint(0xd9a07a);
     const rastro = this.time.addEvent({
       delay: 45, loop: true, callback: () => {

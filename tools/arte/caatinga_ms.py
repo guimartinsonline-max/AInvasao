@@ -1009,31 +1009,12 @@ def camada_jogo(fase, alt=140, topo_mundo=76, ate=None):
             fg = amb(f1.fogueira())
             q.assentar(fg, gx - fg.w / 2, yc)
     for x, peca in ((300, f1.pote_barro(1)), (318, f1.pote_barro(2, 11)), (820, f1.pilao()),
-                    (1545, f1.carroca_quebrada()), (1720, f1.pote_barro(3)), (1910, f1.roda_carroca(8)),
-                    (2080, f1.pote_barro(4, 12)), (2450, f1.pilao()), (2500, f1.carroca_quebrada()),
-                    (180, f1.cerca_farpada(70, 1)), (1950, f1.cerca_farpada(100, 2)), (2860, f1.cerca_farpada(90, 3)),
+                    (1720, f1.pote_barro(3)), (1910, f1.roda_carroca(8)),
+                    (2080, f1.pote_barro(4, 12)), (2450, f1.pilao()),
                     (1880, f1.cranio_boi()), (2540, f1.cranio_boi())):
         q.assentar(amb(peca), x, yc)
-    # sólidos: lajedos, barranco e a pedra grande
-    sol = F["solidos"]
-    for k in (1, 3, 4, 5, 6):
-        sx, sy, sw = sol[k][:3]
-        q.sombra(sx + sw / 2, yc + 1, sw * 1.15, 3.5)
-        q.colar(lajedo(sw + 4, CH - sy + 6, sem=40 + k), sx - 2, y(sy) - 2)
-    sx, sy, sw = sol[8][:3]
-    br = barranco(sw + 4, CH - sy + 2, sem=48)
-    q.colar(br, sx - 2 - 22, y(CH) - br.h + 2)
-    sx, sy, sw = sol[10][:3]
-    pg = pedra(sw + 10, CH - sy + 6, sem=410, topo=0.88)
-    q.sombra(sx + sw / 2, yc + 1, sw * 1.2, 3)
-    q.colar(pg, sx - 5, y(sy) - 2)
-    # trincheira de sacos e giraus
-    sx = sol[2][0]
-    q.assentar(amb(f1.sacos_detalhados(4, 3, 1)), sx - 3, yc, afundar=3)
-    for k in (7, 9):
-        gx, gy, gw = sol[k][:3]
-        q.sombra(gx + gw / 2, yc + 1, gw * 1.1, 3)
-        q.colar(amb(f1.girau(gw, y(CH) - y(gy), semente=gx)), gx - 4, y(gy))
+    # Lajedos, barranco, pedra grande, trincheira de sacos, giraus e carros de boi agora são
+    # peças 2.5D à parte (chao_largo.pecas_fase1), na frente da linha onde se anda.
     if ate:                          # o trecho seguinte continua daqui e faz a passagem
         return q
     # a passagem para a vila: o chão novo some em manchas sobre o antigo

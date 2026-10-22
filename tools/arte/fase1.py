@@ -1208,6 +1208,18 @@ def exportar(saida, raiz):
         "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE * 0.08 + 548)).rgba(), "RGBA"),
         "f1_paredao": cm.emendar(paredao.imagem(), vm.camada_paredao(), largura=200, sem=4),
     }
+    # Chão largo (22/10): o chão pintado sai do plano do jogo (vira faixas com parallax próprio),
+    # o fundo perde o que ficaria atrás das construções da rua e as peças baixas viram 2.5D.
+    import chao_largo as cl
+    novas["f1_jogo"] = cl.limpar_chao_jogo(novas["f1_jogo"], topo, vm.CAMPO_FIM)
+    occ = cl.ocupacao(novas["f1_jogo"], topo, [c[:3] for c in FASE["casas"]], LARGURA_FASE)
+    novas["f1_perto"] = cl.tirar_sobrepostos(novas["f1_perto"], fp, novas["f1_perto"].height - 1, occ)
+    novas["f1_meio"] = cl.tirar_sobrepostos(novas["f1_meio"], fm, novas["f1_meio"].height - 1, occ, morro=True)
+    cl.textura_chao().save(saida / "f1_chao.png", optimize=True)
+    pecas25 = []
+    for k, (q, px, py) in enumerate(cl.pecas_fase1(FASE)):
+        Image.fromarray(q.rgba(), "RGBA").save(saida / f"f1_p25_{k}.png", optimize=True)
+        pecas25.append([k, px, py])
     for nome, im in novas.items():
         n = (im.width + PEDACO - 1) // PEDACO
         for k in range(n):
@@ -1218,13 +1230,18 @@ def exportar(saida, raiz):
         pedacos[nome] = n
     (raiz / "src/fase1_pedacos.js").write_text(
         "// Gerado por tools/arte/fase1.py: quantos pedaços (de " + str(PEDACO) + " px) tem cada camada da fase 1.\n"
-        "export const PEDACO = " + str(PEDACO) + ";\nexport const PEDACOS = " + json.dumps(pedacos) + ";\n")
+        "export const PEDACO = " + str(PEDACO) + ";\nexport const PEDACOS = " + json.dumps(pedacos) + ";\n"
+        "export const PECAS25 = " + str(len(pecas25)) + ";\n")
     dados = dict(FASE)
+    # As bases das camadas de fundo subiram com o chão largo: o pé do plano de trás fica na
+    # beira de trás do chão (y 216 na tela), os morros e o paredão subiram junto.
     dados["camadas"] = {
-        "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp},  # perto: 160 de altura
-        "meio": {"base": 192, "fator": fm}, "frente": {"base": 216, "fator": ff},
-        "serras": {"base": 168, "fator": 0.08}, "paredao": {"base": 176, "fator": 0.2},
+        "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194 - 70, "fator": fp},  # perto: 160 de altura
+        "meio": {"base": 192 - 76, "fator": fm}, "frente": {"base": 216, "fator": ff},
+        "serras": {"base": 168, "fator": 0.08}, "paredao": {"base": 176 - 38, "fator": 0.2},
     }
+    dados["chao"] = {"hz": cl.HZ, "faixas": cl.faixas(), "descer": cl.DESCE}
+    dados["pecas25"] = pecas25
     pasta = raiz / "assets/fases"
     pasta.mkdir(parents=True, exist_ok=True)
     (pasta / "fase1.json").write_text(json.dumps(dados, ensure_ascii=False, separators=(",", ":")))
