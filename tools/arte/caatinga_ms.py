@@ -905,9 +905,9 @@ def camada_perto(h=160, ate=None):
     pecas.append((lx(100), pedra(64, 36, 300, topo=0.8)))
     pecas.append((lx(1150), pedra(80, 42, 301, topo=0.8)))
     pecas.append((lx(2180), pedra(56, 30, 302, topo=0.8)))
-    for k, (wx, alt) in enumerate(((20, 150), (560, 128), (1000, 156), (1700, 138), (2050, 150), (2700, 140))):
+    for k, (wx, alt) in enumerate(((20, 150), (400, 128), (1000, 156), (1700, 138), (2050, 150), (2700, 140))):
         pecas.append((lx(wx), arvore(alt, sem=100 + k, folhas=k != 3)))
-    for k, (wx, alt, br) in enumerate(((330, 84, 2), (880, 96, 2), (1290, 70, 1), (1880, 92, 2), (2560, 80, 2))):
+    for k, (wx, alt, br) in enumerate(((250, 84, 2), (880, 96, 2), (1290, 70, 1), (1880, 92, 2), (2560, 80, 2))):
         b = ((-15, 34, 64), (15, 44, 70)) if br == 2 else ((15, 30, 56),)
         pecas.append((lx(wx), mandacaru(alt, sem=200 + k, bracos=b)))
     pecas.append((lx(1460), cerca_varas(150, 40, 9)))
