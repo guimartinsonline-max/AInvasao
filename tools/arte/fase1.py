@@ -788,8 +788,6 @@ FASE = {
         [4004, CHAO - 100, 4, 16], [4246, CHAO - 112, 4, 20],
         [CASINHA_FIM[0], CHAO - CASINHA_FIM[2], CASINHA_FIM[1], 6, True],
         [4290, 176, 48, 18],          # sacos de areia na rua da vila alta
-        # --- campo de pouso: trincheira depois da pista
-        [5700, 176, 56, 18],
         # --- arena do trem: giraus da estação
         *[[x, topo, w, 6, True] for x, w, topo in GIRAUS_ARENA],
     ],

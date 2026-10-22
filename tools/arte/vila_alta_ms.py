@@ -495,7 +495,6 @@ def camada_perto(h=160, ate=None):
         (lx(4500), casa(120, 88, 42, sem=62, alpendre=False, lado=20, porta=(80, 20, 36), janela=(20, 14, 18),
                         parede="terra")),
         (lx(4690), cm.arvore(146, sem=152, folhas=True)),
-        (lx(4760), casa(100, 80, 38, sem=63, alpendre=False, lado=16, porta=(24, 20, 36), janela=(66, 14, 18))),
     ]
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
         if x + p.w <= lim + 40:

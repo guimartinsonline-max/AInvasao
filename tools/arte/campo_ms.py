@@ -3,9 +3,12 @@
 Continua a pintura da vila alta (`vila_alta_ms`) sem emenda: chão, morros, chapada e o
 plano de trás são a mesma pintura, só que vão até o fim do campo de pouso, e por cima entram
 as peças dele: o hangar de zinco da Aviação Militar (com o lado e o teto em arco recuando),
-a pista com marca de pneu, balizas e pedras caiadas, o tanque de gasolina, a trincheira e a
-cerca da guarda; atrás, a caixa d'água de madeira, o galpão, o mastro do rádio e a casinha
-do telegrafista.
+a pista com marca de pneu, balizas e pedras caiadas; atrás, a caixa d'água de madeira ao
+longe, o galpão e o mastro do rádio.
+
+Construção de fundo em 2.5D de verdade (pedido de 22/10): a lateral vai para trás com
+perspectiva (cada fatia mais funda um pouco menor) e fica apoiada no mesmo chão; nunca
+uma cunha de "chão" pintada no pé dela.
 
 Mesmas regras: sem contorno, cor de ambiente da tarde (rampas `amb_*`; o zinco usa a rampa
 `azul`, cinza puxado para o lilás da sombra), formas grandes com textura dentro (chapa
@@ -15,11 +18,10 @@ entra no rio seco.
 """
 import numpy as np
 from PIL import Image
-from scipy import ndimage
 
 import caatinga_ms as cm
 import vila_alta_ms as va
-from caatinga_ms import Quadro, ambientar, nevoa, quantiza_limpo, ruido
+from caatinga_ms import Quadro, nevoa, quantiza_limpo, ruido
 from base_detalhe import ACENTOS, FONTE5
 
 CAMPO_INI = va.ALTA_FIM         # 4860
@@ -97,42 +99,48 @@ def hangar(FW=150, H=124, SW=30, SH=12, sem=4, nome="AVIAÇÃO MILITAR", estrela
 
     frente = (X < FW) & (Y >= arco_y(X))
     q.pinta(frente, "madeira", np.full((H, W), 0.3))              # fundo: nenhum furo na frente
-    # --- teto e lado recuando: o contorno da frente arrastado para trás (cima-direita)
+    # --- o corpo do hangar indo para trás em 2.5D: cada fatia mais funda é um pouco menor
+    # (perspectiva) e fica apoiada no MESMO chão; nada de chão falso no pé da lateral.
     ang = np.full((H, W), np.nan)
     lado = np.zeros((H, W), bool)
+    tt = np.zeros((H, W))
     na = int(np.pi * rx * 2.5)
     a = np.linspace(0, np.pi, na)
+    enc = 0.07                                           # quanto a ponta de trás encolhe
     for t in np.linspace(1, 0, SW * 3):
-        dx, dy = t * SW, -t * SH
-        px = np.round(cx + rx * np.cos(a) * 0.999 - 0.5 + dx).astype(int)
-        py = np.round(yb - ry * np.sin(a) + dy).astype(int)
+        sc = 1 - enc * t
+        dx = t * SW
+        ybt = H - 1 - (H - 1 - yb) * sc
+        px = np.round(cx + dx + rx * sc * np.cos(a) * 0.999 - 0.5).astype(int)
+        py = np.round(ybt - ry * sc * np.sin(a)).astype(int)
         ok = (px >= 0) & (px < W) & (py >= 0) & (py < H)
         ang[py[ok], px[ok]] = a[ok]
-        xl = int(round(FW - 1 + dx))
-        y0, y1 = int(round(yb + dy)), int(round(H - 1 + dy))
+        tt[py[ok], px[ok]] = t
+        xl = int(round(cx + dx + rx * sc - 1))
         if 0 <= xl < W:
-            lado[max(0, y0):y1 + 1, xl] = True
-            ang[max(0, y0):y1 + 1, xl] = np.nan
+            y0 = int(round(ybt))
+            lado[max(0, y0):H, xl] = True
+            ang[max(0, y0):H, xl] = np.nan
+            tt[max(0, y0):H, xl] = t
     teto = ~np.isnan(ang) & ~frente
     lado &= ~frente & ~teto
     # teto: chapa ondulada correndo para trás, luz pela inclinação do arco
     a_ = np.nan_to_num(ang)
     dot = -0.55 * np.cos(a_) + 0.8 * np.sin(a_)
     onda = np.sin(a_ * rx / 2.4)
-    lz = 0.30 + 0.45 * dot + 0.12 * (onda > 0.55) - 0.12 * (onda < -0.55)
+    lz = 0.30 + 0.45 * dot + 0.12 * (onda > 0.55) - 0.12 * (onda < -0.55) - 0.06 * tt
     lz = np.where(a_ > 2.7, lz + 0.12, lz)                       # quina do arco virada pro sol
     q.pinta(teto, "azul", np.clip(lz, 0.02, 0.999))
     ferr = teto & (ruido(H, W, (1.2, 4), sem + 3) > 1.3)
     q.pinta(ferr, "telha", np.clip(0.2 + 0.25 * dot, 0, 0.999))
-    # lado direito: chapa na sombra, ondas na horizontal, pé escurecendo
-    ylado = Y - (yb - (X - FW) * SH / SW)
-    lz = 0.30 + 0.08 * (np.sin(Y * np.pi / 2) > 0.5) - 0.06 * (ylado > (H - yb) - 10)
+    # lateral: chapa na sombra com as ondas na horizontal, janela, sapata e barro no pé
+    ylado = Y - (H - 1 - (H - 1 - yb) * (1 - enc * tt))
+    lz = 0.30 + 0.08 * (np.sin(Y * np.pi / 2) > 0.5) - 0.06 * tt - 0.08 * (Y > H - 12)
     q.pinta(lado, "azul", np.clip(lz, 0, 0.999))
-    janela = lado & (np.abs(X - (FW + SW * 0.5)) < SW * 0.22) & (ylado > 14) & (ylado < 30)
-    q.pinta(janela, "madeira", np.where(ylado < 17, 0.05, 0.15))
-    # chão de terra no pé do lado (o hangar avança para trás) com a sombra dele
-    cunha = (X >= FW) & (Y > H - 1 - (X - FW) * SH / SW) & ~lado & ~teto
-    q.pinta(cunha, "terra", np.where(Y > H - 3, 0.35, 0.25))
+    janela = lado & (np.abs(tt - 0.5) < 0.22) & (ylado > 12) & (ylado < 28)
+    q.pinta(janela, "madeira", np.where(ylado < 15, 0.05, 0.15))
+    q.pinta(lado & (Y >= H - 3), "cal", np.where(Y == H - 3, 0.32, 0.2))
+    cunha = np.zeros((H, W), bool)
     # --- frente: borda do arco (perfil da chapa ondulada visto de frente)
     yarc = arco_y(X)
     borda = frente & (Y < yarc + 4) & (Y < yb + 1)
@@ -177,7 +185,6 @@ def hangar(FW=150, H=124, SW=30, SH=12, sem=4, nome="AVIAÇÃO MILITAR", estrela
         lw = len(nome) * 6 - 1
         ly = yb - 14
         tab = (X >= cx - lw / 2 - 5) & (X < cx + lw / 2 + 5) & (Y >= ly - 2) & (Y < ly + 13)
-        tb = (X - int(cx - lw / 2 - 5)) % 7
         q.pinta(tab, "madeira", np.where(Y == ly - 2, 0.99, np.where(Y == ly + 12, 0.2, 0.8 - 0.1 * (Y % 4 == 0))))
         letreiro(q, nome, int(cx - lw / 2), ly, fundo="cal", tinta="telha", lz_fundo=0.86, lz_tinta=0.28, folga=2)
         # pregos e a sombra da tábua na chapa
@@ -185,7 +192,6 @@ def hangar(FW=150, H=124, SW=30, SH=12, sem=4, nome="AVIAÇÃO MILITAR", estrela
                 "madeira", np.full((H, W), 0.05))
         sb = (X >= cx - lw / 2 - 3) & (X < cx + lw / 2 + 7) & (Y == ly + 13) & emp
         q.pinta(sb, "azul", np.full((H, W), 0.15))
-        del tb
     # --- viga do portão (trilho) na nascença do arco
     vg = (X < FW) & (Y >= yb) & (Y < yb + 6)
     q.pinta(vg, "madeira", np.where(Y == yb, 0.99, np.where(Y >= yb + 4, 0.2, 0.62 - 0.12 * X / FW)))
@@ -276,63 +282,7 @@ def hangar(FW=150, H=124, SW=30, SH=12, sem=4, nome="AVIAÇÃO MILITAR", estrela
     return q
 
 
-# ---------------------------------------------------------------- tanque, baliza e miúdos
-def tanque(sem=2):
-    """Tanque de gasolina deitado em berços de tábua: chapa rebitada oliva com o brilho
-    comprido em cima e a luz de baixo refletida do chão, tampas nas pontas, boca de visita
-    em cima, escada, registro com a mangueira enrolada, placa GASOLINA, ferrugem."""
-    W, H = 90, 50
-    q = Quadro(W, H)
-    X, Y = q.xx, q.yy
-    cy, r = 21, 14
-    x0, x1 = 12, 74
-    n = (Y - cy) / r
-    corpo = (np.abs(n) <= 1) & (X >= x0) & (X < x1)
-    lz = 0.52 - 0.42 * n + 0.22 * ((n > -0.72) & (n < -0.45)) + 0.1 * (n > 0.8) - 0.08 * (X - x0) / (x1 - x0)
-    q.pinta(corpo, "verde", quantiza_limpo(np.clip(lz, 0.02, 0.999), 7))
-    tl = ((X + 0.5 - x0) / 5) ** 2 + n ** 2 < 1                     # tampa da esquerda (no sol)
-    q.pinta(tl & (X < x0), "verde", np.clip(0.75 - 0.3 * n, 0, 0.999))
-    tr = ((X + 0.5 - x1) / 5) ** 2 + n ** 2 < 1                     # tampa da direita (na sombra)
-    q.pinta(tr & (X >= x1), "verde", np.clip(0.3 - 0.2 * n, 0, 0.999))
-    tanq = corpo | (tl & (X < x0)) | (tr & (X >= x1))
-    for sx in (x0 + 15, x0 + 31, x0 + 47):                       # juntas de chapa com rebites
-        q.pinta(tanq & (X == sx), "verde", np.full((H, W), 0.12))
-        q.pinta(tanq & (X == sx + 1) & ((Y % 3) == 0), "verde", np.clip(0.9 - 0.4 * n, 0, 0.999))
-    for sx in (x0, x1 - 1):
-        q.pinta(tanq & (X == sx), "verde", np.full((H, W), 0.2 if sx > x0 else 0.85))
-    # ferrugem e escorrido
-    fer = tanq & (ruido(H, W, 1.4, sem) > 1.45)
-    q.pinta(fer, "telha", np.clip(0.38 - 0.2 * n, 0, 0.999))
-    for x in (x0 + 8, x0 + 40, x0 + 55):
-        q.pinta(tanq & (X == x) & (Y > cy + 4), "telha", np.full((H, W), 0.25))
-    # placa GASOLINA
-    lw = 8 * 6 - 1
-    letreiro(q, "GASOLINA", int((x0 + x1) / 2 - lw / 2), cy - 6, fundo="cal", tinta="telha", lz_fundo=0.85, lz_tinta=0.3)
-    # boca de visita em cima
-    q.pinta((X >= 38) & (X < 48) & (Y >= cy - r - 4) & (Y < cy - r + 1), "verde",
-            np.where(Y == cy - r - 4, 0.95, np.where(X > 45, 0.25, 0.6)))
-    q.pinta((X >= 36) & (X < 50) & (Y == cy - r - 5), "azul", np.full((H, W), 0.7))
-    # berços de tábua e toras no chão
-    for bx in (x0 + 10, x1 - 14):
-        be = (np.abs(X + 0.5 - bx) < 5 + (Y - (cy + 8)) * 0.25) & (Y >= cy + 8) & (Y < H - 5) & ~tanq
-        q.pinta(be, "madeira", np.where(X + 0.5 < bx, 0.72, 0.42) - 0.12 * ((Y % 4) == 0))
-    tora = (X >= x0 - 4) & (X < x1 + 4) & (Y >= H - 5) & (Y < H)
-    q.pinta(tora, "madeira", np.where(Y == H - 5, 0.8, np.where(Y == H - 1, 0.15, 0.48)) - 0.1 * ((X % 11) == 0))
-    q.pinta((np.hypot(X + 0.5 - (x1 + 4), (Y - (H - 2.5)) * 1.0) < 2.5), "madeira", np.where(X < x1 + 4, 0.85, 0.6))
-    # escada de ferro do lado direito
-    for ex in (x1 + 6, x1 + 12):
-        q.pinta((X == ex) & (Y >= cy - r - 2) & (Y < H - 5), "azul", np.full((H, W), 0.3 if ex > x1 + 8 else 0.55))
-    q.pinta((X > x1 + 6) & (X < x1 + 12) & (Y >= cy - r) & (Y < H - 6) & ((Y - cy) % 5 == 0), "azul", np.full((H, W), 0.5))
-    # registro, cano e a mangueira enrolada no chão
-    q.pinta((X >= x0 + 2) & (X < x0 + 5) & (Y >= cy + r - 2) & (Y < cy + r + 8), "azul", np.where(X == x0 + 2, 0.7, 0.35))
-    q.pinta(np.hypot(X + 0.5 - (x0 + 3.5), Y - (cy + r + 5)) < 2.6, "telha", np.where(X < x0 + 3, 0.62, 0.35))
-    for k in range(3):
-        an = (np.abs(np.hypot((X + 0.5 - (x0 - 2)) / 7, (Y - (H - 3)) / 2.2) - 1 + k * 0.18) < 0.12)
-        q.pinta(an & (Y > H - 6) & ~tora, "madeira", np.full((H, W), 0.1 + 0.08 * k))
-    q.a[:] = q.a
-    return q
-
-
+# ---------------------------------------------------------------- baliza e miúdos
 def baliza(sem=0):
     """Baliza da pista: tambor meio enterrado em listras de telha e cal desbotadas."""
     q = Quadro(12, 12)
@@ -473,6 +423,16 @@ def mastro_radio(alt=120):
     return q
 
 
+def longe(p, escala, k):
+    """Peça vista mais longe: reduzida (média dos pixels, sem serrilhar) e enevoada."""
+    im = Image.fromarray(p.rgba(), "RGBA")
+    im = im.resize((max(1, round(im.width * escala)), max(1, round(im.height * escala))), Image.BOX)
+    a = np.array(im)
+    q = Quadro(a.shape[1], a.shape[0])
+    q.img = cm.encaixar(a[..., :3]); q.a = a[..., 3] > 140
+    return nevoa(q, k)
+
+
 # ---------------------------------------------------------------- camadas
 def camada_paredao(h=130):
     return va.camada_paredao(h, ate=limite(0.2))
@@ -483,7 +443,7 @@ def camada_frente(h=44):
 
 
 def camada_meio(h=124):
-    """Os morros continuam por planos; árvores ralas, moitas, uma cerca e um sítio ao longe."""
+    """Os morros continuam por planos; árvores ralas e moitas (sem casa perto do campo)."""
     fator = 0.45
     lim = limite(fator)
     q = va.camada_meio(h, ate=lim)
@@ -503,18 +463,13 @@ def camada_meio(h=124):
         if py >= 0:
             q.colar(p, x - p.w / 2, py)
         x += rng.uniform(55, 115)
-    sx = int(x0 + (lim - x0) * 0.62)
-    c = nevoa(cm.casinha_longe(42, 18, sem=44), 0.36)
-    q.colar(c, sx, topo[sx + c.w // 2] + 6 - c.h)
-    cv = nevoa(cm.cerca_varas(70, 14, sem=45), 0.36)
-    cxv = int(x0 + (lim - x0) * 0.2)
-    q.colar(cv, cxv, topo[cxv + 35] + 8 - cv.h)
     return q
 
 
 def camada_perto(h=160):
-    """Plano de trás (0,75): atrás da pista, a caixa d'água de madeira, o galpão de zinco,
-    o mastro do rádio com a casinha do telegrafista, árvores e mandacarus, moitas no pé."""
+    """Plano de trás (0,75): atrás da pista, a caixa d'água de madeira (mais ao longe), o
+    galpão de zinco, o mastro do rádio, árvores e mandacarus, moitas no pé. Nada de árvore
+    nem casa no meio do campo."""
     fator = 0.75
     lim = limite(fator)
     q = va.camada_perto(h, ate=lim)
@@ -529,16 +484,13 @@ def camada_perto(h=160):
             p = cm.xiquexique(int(rng.integers(22, 32)), int(rng.integers(16, 22)), sem=int(x) + 6)
         q.colar(p, x, chao - p.h + 3)
         x += rng.integers(28, 66)
-    casa = lambda *a, **k: nevoa(cm.casa(*a, sombra_beiral=True, **k), 0.16)  # noqa: E731
     # (x na camada, peça): a caixa d'água fica à direita do hangar enquanto ele está na tela
     pecas = [
         (3700, cm.arvore(128, sem=160, folhas=False)),
         (3850, cm.mandacaru(86, sem=260)),
-        (3990, nevoa(caixa_dagua(132), 0.1)),
-        (4060, cm.arvore(140, sem=161, folhas=True)),
+        (4010, longe(caixa_dagua(132), 0.68, 0.3)),
         (4250, nevoa(hangar(118, 92, 22, 9, sem=11, nome=None, estrela=False, dentro=False), 0.16)),
         (4396, nevoa(mastro_radio(118), 0.12)),
-        (4446, casa(74, 46, 28, sem=64, alpendre=False, lado=12, porta=(10, 16, 30), janela=(46, 10, 14))),
         (4566, cm.mandacaru(70, sem=261, bracos=((15, 30, 56),))),
     ]
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
@@ -549,8 +501,7 @@ def camada_perto(h=160):
 
 def camada_jogo(fase, alt=176, topo_mundo=40):
     """Plano do jogo: o chão continua pela pista (marcas de pneu, pedras caiadas, balizas),
-    o hangar, pneus e hélice de reserva, o tanque de gasolina com a mancha de óleo, a
-    trincheira de sacos e a cerca de arame da guarda, na luz da cena."""
+    o hangar, pneus e hélice de reserva e manchas de óleo, na luz da cena."""
     import fase1 as f1
     CH = f1.CHAO
     q = va.camada_jogo(fase, alt, topo_mundo, ate=CAMPO_FIM + 40)
@@ -587,7 +538,7 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
     for x in range(int(f1.HANGAR_X + 190), int(CAMPO_FIM - 60), 26):
         q.colar(pedra_caiada(x), x + rng.uniform(-3, 3), yc - 2)
     # manchas de óleo na frente do hangar e embaixo do tanque
-    for mx, ml in ((f1.HANGAR_X + 70, 22), (f1.HANGAR_X + 120, 12), (5608, 14), (5180, 18)):
+    for mx, ml in ((f1.HANGAR_X + 70, 22), (f1.HANGAR_X + 120, 12), (5180, 18)):
         m = (((q.xx - mx) / ml) ** 2 + ((q.yy - (yc + 4)) / 2.5) ** 2 < 1) & q.a
         m &= ruido(alt, q.w, 1.2, mx) > -0.6
         q.img[m] = cm.escurecer(q.img[m], 2)
@@ -607,11 +558,6 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
     # balizas da pista
     for x in range(5110, 5560, 96):
         q.assentar(baliza(x), x, yc, afundar=3)
-    # tanque de gasolina, trincheira e cerca de arame
-    q.assentar(tanque(2), 5594, yc, afundar=1)
-    amb = lambda t: ambientar(t.imagem())  # noqa: E731
-    q.assentar(amb(f1.sacos_detalhados(4, 3, 4)), 5700 - 3, yc, afundar=3)
-    q.assentar(amb(f1.cerca_farpada(84, 6)), 5890, yc)
     for x in (5150, 5772, 5948):
         q.assentar(cm.xiquexique(int(rng.integers(22, 30)), int(rng.integers(16, 22)), sem=x), x, yc, afundar=2)
     q.assentar(cm.pedra(22, 12, sem=95), 5520, yc, afundar=2)
@@ -625,7 +571,7 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
 if __name__ == "__main__":
     import sys
     out = sys.argv[1]
-    pecas = [hangar(), tanque(), caixa_dagua(), mastro_radio(), baliza(), pneus(), helice(),
+    pecas = [hangar(), caixa_dagua(), mastro_radio(), baliza(), pneus(), helice(),
              hangar(118, 92, 22, 9, sem=11, nome=None, estrela=False, dentro=False)]
     W = sum(p.w + 6 for p in pecas)
     Hm = max(p.h for p in pecas)
