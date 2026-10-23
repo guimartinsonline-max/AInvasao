@@ -211,7 +211,27 @@ def pe_dos_morros(meio, base, chao, faixa=24, dy=92):
     al = a[y0:, :, 3] > 0
     alvo = tira[np.minimum(rr - y0, tira.shape[0] - 1)].astype(float)
     terra = ((t + 0.22 * n > 0.62) & al) | (rr >= r_hz - 4)[:, None]
-    mist = al & ~terra
+    # (23/10) nada pela metade: o que está em cima do morro (moita, pedra, árvore, cerca) fica
+    # inteiro; o que desceria para baixo do horizonte do chão sai inteiro
+    morro = np.concatenate([cm.RGB['meio'], cm.RGB['longe']]).astype(np.int32)
+    cod = lambda im: (im[..., 0].astype(np.int32) << 16) | (im[..., 1].astype(np.int32) << 8) | im[..., 2]  # noqa: E731
+    obj = (a[..., 3] > 0) & ~np.isin(cod(a[..., :3]), cod(morro[None]))
+    rot, nobj = ndimage.label(obj, np.ones((3, 3)))
+    fora = np.zeros_like(obj)
+    if nobj:
+        fundo_obj = ndimage.maximum(np.arange(h)[:, None] * np.ones((1, w)), rot, np.arange(1, nobj + 1))
+        tam = ndimage.sum(obj, rot, np.arange(1, nobj + 1))
+        peq = np.asarray(tam) < 2500                      # objeto, não morro pintado à moda antiga
+        ids = np.arange(1, nobj + 1)
+        fora = np.isin(rot, ids[peq & (np.asarray(fundo_obj) > r_hz - 3)])
+        grande = np.isin(rot, ids[~peq])
+        obj &= ~grande
+    inteiro = obj & ~fora
+    if fora.any():                    # o que sai some inteiro: o morro de baixo volta (cor vizinha)
+        _, (iy, ix) = ndimage.distance_transform_edt(fora | ~(a[..., 3] > 0) | obj, return_indices=True)
+        a[fora, :3] = a[iy[fora], ix[fora], :3]
+    terra = (terra | fora[y0:]) & ~inteiro[y0:]
+    mist = al & ~terra & ~inteiro[y0:]
     k = (0.45 * t)[..., None] * np.ones((1, w, 1))
     cor = a[y0:, :, :3].astype(float)
     cor = np.where(terra[..., None], alvo, cor * (1 - k) + alvo * k)

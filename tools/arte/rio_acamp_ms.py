@@ -241,6 +241,11 @@ def torre(alt=96, W=40, S=10, SH=7, sem=7):
         lb, rb = xl - 3 * f1, xr + 3 * f1
         P(q, linha(q.w, q.h, (la + 2, y0), (rb - 2, y0 + 20), 2), 'madeira', 0.38)
         P(q, linha(q.w, q.h, (ra - 2, y0), (lb + 2, y0 + 20), 2), 'madeira', 0.32)
+    # parapeito de trás (aparece por cima do piso, na sombra) e os postes de trás do telhado
+    tras = (X >= xl - 3 + S) & (X <= xr + 3 + S) & (Y >= pt - SH - 14) & (Y < pt - SH)
+    P(q, tras, 'madeira', np.where(((Y.astype(int) - (pt - SH - 14)) % 5) == 0, 0.32, 0.16)[tras])
+    for x in (xl - 1 + S, xr + 1 + S):
+        tora(q, x, pt - 30 - SH, x, pt - 14 - SH, 2, base=0.2)
     # plataforma: piso visto de cima e parapeito de tábuas
     piso = poly(q.w, q.h, [(xl - 3, pt), (xr + 3, pt), (xr + 3 + S, pt - SH), (xl - 3 + S, pt - SH)])
     P(q, piso, 'madeira', 0.7)
@@ -263,3 +268,45 @@ def torre(alt=96, W=40, S=10, SH=7, sem=7):
         f = (y - pt) / (yb - pt)
         P(q, linha(q.w, q.h, (xr - 5 + 4 * f, y), (xr + 1 + 4 * f, y), 1), 'madeira', 0.75)
     return q
+
+
+def leito(q, xt, yt, wt, xb, yb, wb, sem=8):
+    """O leito do rio seco vindo do fundo até a beira de baixo da tela: estreito e longe em
+    cima (sai de uma grota entre os morros), largo embaixo. Barro rachado no meio, areia
+    clara e seixos nas beiras, barranquinho de terra (a margem da esquerda acesa, a da
+    direita na sombra) e o chão normal entrando em manchas na beira (sem corte reto)."""
+    X, Y = q.xx.astype(float), q.yy.astype(float)
+    t = np.clip((Y - yt) / (yb - yt), 0, 1)
+    tp = t ** 1.6                                  # perspectiva: estreita rápido no longe
+    meio = xt + (xb - xt) * tp + 6 * np.sin(t * 5 + sem) * t
+    larg = (wt + (wb - wt) * tp) / 2
+    n = ruido(q.h, q.w, (6, 14), sem) * (2 + 6 * t)
+    d = np.abs(X - meio) - larg - n
+    dentro = (Y >= yt) & (d < 0)
+    beira = (Y >= yt) & (d >= 0) & (d < 2 + 3 * t)
+    areia = dentro & (d > -(3 + 7 * t))
+    antes = q.img.copy()
+    lama(q, -40, q.w + 40, int(yt), q.h, sem=sem)     # barro rachado no miolo
+    miolo = dentro & ~areia
+    q.img[~miolo] = antes[~miolo]
+    # areia clara e seixos na beira de dentro
+    lz = 0.62 + 0.08 * ruido(q.h, q.w, (1, 3), sem + 1) - 0.1 * (1 - t)
+    P(q, areia, 'cal', (lz - 0.12)[areia])
+    rng = np.random.default_rng(sem)
+    for _ in range(int(q.w * 0.35)):
+        y = rng.uniform(yt, q.h)
+        tt = (y - yt) / (yb - yt)
+        r = 0.8 + 2.2 * tt
+        lado = rng.choice((-1, 1))
+        mm = xt + (xb - xt) * tt ** 1.6
+        ll = (wt + (wb - wt) * tt ** 1.6) / 2
+        x = mm + lado * (ll + rng.uniform(-8 * tt - 2, 10 * tt + 3))
+        pm = ((X - x) / r) ** 2 + ((Y - y) / (r * 0.6)) ** 2 < 1
+        P(q, pm, 'cal', np.where(Y < y, 0.85, 0.42)[pm])
+    # barranquinho: a margem da esquerda (virada para a direita) na sombra, a da direita
+    # (virada para a luz que vem da esquerda) acesa
+    esq = beira & (X < meio)
+    P(q, esq, 'terra', 0.22)
+    dir_ = beira & (X >= meio)
+    P(q, dir_, 'terra', (0.8 - 0.1 * (d / (2 + 3 * t)))[dir_])
+    return dentro
