@@ -223,7 +223,10 @@ def pe_dos_morros(meio, base, chao, faixa=24, dy=92):
         tam = ndimage.sum(obj, rot, np.arange(1, nobj + 1))
         peq = np.asarray(tam) < 2500                      # objeto, não morro pintado à moda antiga
         ids = np.arange(1, nobj + 1)
-        fora = np.isin(rot, ids[peq & (np.asarray(fundo_obj) > r_hz - 3)])
+        topo_obj = ndimage.minimum(np.arange(h)[:, None] * np.ones((1, w)), rot, np.arange(1, nobj + 1))
+        # sai inteiro: o que desceria para baixo do horizonte e o que encosta no alto da camada
+        # (seria cortado pela beira de cima)
+        fora = np.isin(rot, ids[peq & ((np.asarray(fundo_obj) > r_hz - 3) | (np.asarray(topo_obj) <= 0))])
         grande = np.isin(rot, ids[~peq])
         obj &= ~grande
     inteiro = obj & ~fora

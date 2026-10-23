@@ -442,7 +442,7 @@ def camada_frente(h=44):
     return va.camada_frente(h, ate=limite(1.0))
 
 
-def camada_meio(h=124):
+def camada_meio(h=170):   # (23/10) folga em cima: copa de árvore nunca cortada pelo alto
     """Os morros continuam por planos; árvores ralas e moitas (sem casa perto do campo)."""
     fator = 1.0   # (23/10) fundo preso ao chão: nada desliza
     lim = limite(fator)
