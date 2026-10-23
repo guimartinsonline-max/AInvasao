@@ -6,9 +6,10 @@
 // o de baixo quebra. No campo de treino voltam depois de um tempo.
 
 const TIPOS = {
-  // Caixote 2.5D (22/10): mais alto, o tiro do Lampião em pé acerta; a tampa aparece por cima
+  // Caixote 2.5D (22/10); a tampa aparece por cima
   // (dy: quanto a imagem sobe acima do sólido, que fica no meio da tampa).
-  caixote: { textura: 'caixote', largura: 28, altura: 32, vida: 3, dy: 5 },
+  // (23/10: 30% menor; o tiro em pé ainda acerta pela faixa "mira" acima da tampa)
+  caixote: { textura: 'caixote', largura: 20, altura: 22, vida: 3, dy: 4, mira: 12 },
   barril: { textura: 'barril', largura: 18, altura: 24, vida: 2, explode: { raio: 44, dano: 6, tamanho: 1.3 } },
 };
 // Os dados guardam o canto de cima no tamanho antigo do caixote (18 de altura).

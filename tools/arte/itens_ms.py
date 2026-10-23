@@ -333,8 +333,8 @@ COMIDAS_MS = {
 def caixote():
     """Caixote de tábuas em 2.5D (22/10): frente de tábuas com veio e nó, travessa em X,
     tampa de tábuas vista de cima fugindo para trás, lateral na sombra, cantoneiras de ferro
-    com rebite e marca de estêncil. Frente 28x32 (o sólido), tampa de 5 px por cima."""
-    FW, FH, D, S = 28, 32, 5, 6
+    com rebite e marca de estêncil. Frente 20x22 (o sólido), tampa de 4 px por cima."""
+    FW, FH, D, S = 20, 22, 4, 5
     W, H = FW + S, FH + D
     t = Tela(W, H)
     rng = np.random.default_rng(8)
@@ -350,11 +350,11 @@ def caixote():
             if k in (1, 2, 3) and rng.random() < 0.16:
                 cor = FUBA[max(1, v - 1)]  # veio
             pinta(t, x, y, cor)
-    for (x, y) in ((7, y0 + 7), (19, y0 + 13), (12, y0 + 22)):
+    for (x, y) in ((5, y0 + 5), (13, y0 + 9), (9, y0 + 16)):
         pinta(t, x, y, "fuba_1"); pinta(t, x + 1, y, "fuba_2")
     # Travessa em X, com volume.
     for (a, b) in (((4, y0 + 4), (FW - 5, H - 5)), ((4, H - 5), (FW - 5, y0 + 4))):
-        m = t.capsula(a[0], a[1], b[0], b[1], 1.5)
+        m = t.capsula(a[0], a[1], b[0], b[1], 1.2)
         sombrear2d(t, m, FUBA[1:6], deslocar=0.2)
     # Tampa: tábuas fugindo para trás (paralelogramo), acesa de cima.
     for y in range(D):
@@ -386,9 +386,9 @@ def caixote():
     for x in range(FW - 1, W):                         # cantoneira da tampa
         pinta(t, x, D - 1 - int(round((x - FW + 1) * D / S)), ACO[4])
     # Estêncil apagado e ferrugem escorrendo.
-    for (x, y) in ((11, y0 + 9), (12, y0 + 9), (14, y0 + 9), (15, y0 + 9), (13, y0 + 10)):
+    for (x, y) in ((8, y0 + 7), (9, y0 + 7), (11, y0 + 7), (12, y0 + 7), (10, y0 + 8)):
         pinta(t, x, y, "fuba_2")
-    for (x, y) in ((2, y0 + 7), (2, y0 + 8), (FW - 2, y0 + 15), (FW - 2, y0 + 16)):
+    for (x, y) in ((2, y0 + 5), (2, y0 + 6), (FW - 2, y0 + 11), (FW - 2, y0 + 12)):
         pinta(t, x, y, "fuba_3")
     return contornar(t)
 

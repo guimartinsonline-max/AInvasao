@@ -1221,9 +1221,9 @@ def exportar(saida, raiz):
     novas["f1_meio"] = cl.tirar_sobrepostos(novas["f1_meio"], fm, novas["f1_meio"].height - 1, occ, morro=True)
     cl.textura_chao().save(saida / "f1_chao.png", optimize=True)
     pecas25 = []
-    for k, (q, px, py) in enumerate(cl.pecas_fase1(FASE)):
+    for k, (q, px, py, *prof) in enumerate(cl.pecas_fase1(FASE)):
         Image.fromarray(q.rgba(), "RGBA").save(saida / f"f1_p25_{k}.png", optimize=True)
-        pecas25.append([k, px, py])
+        pecas25.append([k, px, py] + prof)
     for nome, im in novas.items():
         n = (im.width + PEDACO - 1) // PEDACO
         for k in range(n):

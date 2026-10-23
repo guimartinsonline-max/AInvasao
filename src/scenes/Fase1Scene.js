@@ -94,8 +94,13 @@ export class Fase1Scene extends CenaJogo {
     }
     for (const [x, y, w, h, umLado] of d.solidos) this.solido(x, y, w, h, !!umLado);
     // Peças baixas em 2.5D: na frente de quem anda no chão, atrás de quem está em cima delas.
-    for (const [k, x, y] of d.pecas25 || []) this.add.image(x, y, `f1_p25_${k}`).setOrigin(0).setDepth(10.5);
     this.sombras = new Sombras(this, d.solidos.filter((s) => s[1] < 194 || s[2] < 8000));
+    // Peças 2.5D com a sombra de contato no chão embaixo delas (como no Metal Slug).
+    for (const [k, x, y, prof] of d.pecas25 || []) {
+      const img = this.add.image(x, y, `f1_p25_${k}`).setOrigin(0).setDepth(prof ?? 10.5);
+      this.add.image(x + img.width / 2, y + img.height - 1, 'sombra_chao').setOrigin(0.5)
+        .setScale(img.width * 1.05 / 32, 1.2).setDepth((prof ?? 10.5) - 0.05);
+    }
     this.caixotes = new Caixotes(this, d.caixotes);
     // Cenário vivo: casas da vila (perdem o telhado), varal, ponte que quebra.
     // Casas e capela recuadas (pé atrás da linha onde se anda, chão largo).

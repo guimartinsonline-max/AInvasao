@@ -535,8 +535,11 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
             mu = muro_beco(xb - (xa + wa) + 4, 46, sem=xa)
             q.colar(mu, xa + wa - 2, yc - mu.h + 1)
     # casario
+    # (23/10: com fundo, como no Metal Slug: parede do lado e tampo da platibanda indo para trás)
+    import predios25 as p25
     for k, (x, w_, h_, cor, sac) in enumerate(casas):
-        q.colar(sobrado(w_, h_, cor, sem=50 + k, sacada=sac, letreiro=NOMES[k]), x, y(CH) - h_)
+        sb = p25.extrudar(sobrado(w_, h_, cor, sem=50 + k, sacada=sac, letreiro=NOMES[k]), 12, 8)
+        q.colar(sb, x, y(CH) - h_ - 8)
         q.sombra(x + w_ / 2, yc + 1, w_ * 1.02, 3)
     # (a casinha baixa do fim saiu a pedido do Guilherme, 22/10)
     cx_, cw_, ch_ = f1.CASINHA_FIM

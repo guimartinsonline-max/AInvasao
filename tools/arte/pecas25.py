@@ -171,16 +171,31 @@ def carroca(W=78, D=14, sem=5):
     # tábua de trás (lado de dentro, sombra)
     P(q, poly(q.w, q.h, [(26, y0 - D - 5), (22 + W - 4, y0 - D - 5), (22 + W - 4, y0 - D), (26, y0 - D)]), 'madeira', 0.42)
     P(q, (q.yy == y0 - D - 5) & (q.xx >= 26) & (q.xx < 22 + W - 4), 'madeira', 0.75)
-    # carga de capim seco amontoada
+    # carga: fardos de feno amarrados (blocos com tampo, palha riscada e corda), bem
+    # diferentes do chão (23/10)
     rng = np.random.default_rng(sem)
-    for _ in range(26):
-        x = rng.uniform(30, 22 + W - 8); y = rng.uniform(y0 - D - 7, y0 - 3)
-        rx, ry = rng.uniform(4, 8), rng.uniform(2.5, 4)
-        mm = ((q.xx - x) / rx) ** 2 + ((q.yy - y) / ry) ** 2 < 1
-        P(q, mm, 'meio', np.clip(0.75 - (q.yy[mm] - y) / ry * 0.18 - (q.xx[mm] - x) / rx * 0.08 + rng.uniform(-0.08, 0.08), 0.05, 0.97))
-    for _ in range(30):
-        x = rng.uniform(28, 22 + W - 6); y = rng.uniform(y0 - D - 6, y0 - 4)
-        P(q, linha(q.w, q.h, (x, y), (x + rng.uniform(-3, 3), y - rng.uniform(2, 5))), 'meio', 0.95)
+    X, Y = q.xx, q.yy
+    fw, fh, fd = 22, 11, 5
+    palha = ruido(q.h, q.w, (0.4, 2.5), sem + 3)
+    for fila, (yb_, x_ini, n) in enumerate(((y0 + 2, 26, int((W - 8) / fw)), (y0 + 2 - fh, 26 + fw // 2, int((W - 8) / fw) - 1))):
+        for k in range(max(1, n)):
+            xa = x_ini + k * fw + rng.integers(-1, 2)
+            if xa + fw > 22 + W - 2:
+                continue
+            fr = (X >= xa) & (X < xa + fw - 1) & (Y >= yb_ - fh) & (Y < yb_)
+            tp = poly(q.w, q.h, [(xa, yb_ - fh), (xa + fw - 1, yb_ - fh), (xa + fw + 2, yb_ - fh - fd), (xa + 3, yb_ - fh - fd)])
+            ld = poly(q.w, q.h, [(xa + fw - 1, yb_ - fh), (xa + fw + 2, yb_ - fh - fd), (xa + fw + 2, yb_ - fd), (xa + fw - 1, yb_)])
+            P(q, ld, 'telha', 0.3)
+            P(q, fr, 'cal', np.clip(0.62 + 0.18 * palha - 0.1 * (Y - (yb_ - fh)) / fh, 0.2, 0.9))
+            P(q, fr & (palha > 0.9), 'telha', 0.75)                    # palha dourada
+            P(q, tp, 'cal', np.clip(0.86 + 0.08 * palha, 0.5, 0.97))
+            for cc in (xa + 6, xa + fw - 7):                            # cordas
+                P(q, fr & (np.abs(X - cc) < 0.6), 'madeira', 0.2)
+                P(q, tp & (np.abs(X - cc - (yb_ - fh - Y) * 3 / fd) < 0.7), 'madeira', 0.3)
+            # fiapos soltos saindo das beiradas
+            for _ in range(4):
+                x = rng.uniform(xa, xa + fw); y = yb_ - fh - rng.uniform(0, 2)
+                P(q, linha(q.w, q.h, (x, y), (x + rng.uniform(-2, 2), y - rng.uniform(2, 4))), 'cal', 0.95)
     # tábuas da frente da caixa
     for i in range(3):
         m = (q.xx >= 22) & (q.xx < 22 + W) & (q.yy >= y0 + i * 6) & (q.yy < y0 + i * 6 + 6)
@@ -370,6 +385,58 @@ def sacos2(W=56, ALT=26, D=19, sem=7):
     return q, dict(D=D, chao=h - 1)
 
 
+def sacos3(W=56, ALT=36, sem=7):
+    """Barricada de sacos no jeito do Metal Slug (23/10): pilha em pirâmide, cada fileira um
+    pouco mais estreita e por cima da de baixo como telha (a de cima tapa a beirada da de
+    baixo), sacos estufados de estopa clara com luz de cima e da esquerda, vinco escuro entre
+    eles, orelhas amarradas; duas estacas de madeira escorando, cruzadas em cima. Sem tampo:
+    é um objeto de frente, apoiado no chão com sombra."""
+    rng = np.random.default_rng(sem)
+    h = ALT + 8
+    q = Quadro(W + 10, h)
+    X, Y = q.xx.astype(float), q.yy.astype(float)
+    cx0 = (W + 10) / 2
+    # estacas (atrás das fileiras de cima): saem do chão dos lados e cruzam acima do topo
+    topo = h - ALT
+    tora(q, cx0 + W * 0.34, h - 2, cx0 - 5, topo - 6, 3, base=0.45)
+    linhas = max(3, int(round(ALT / 8)))
+    for r in range(linhas):
+        cy = h - 6 - r * (ALT - 6) / (linhas - 0.4)
+        larg = W * (1 - 0.6 * r / linhas)
+        n = max(1, int(round(larg / 15)))
+        passo = larg / n
+        for k in range(n):
+            cx = cx0 - larg / 2 + passo * (k + 0.5) + rng.uniform(-1, 1)
+            rx, ry = passo / 2 + 2.5, 5.6
+            inc = rng.uniform(-0.12, 0.12)
+            nx = (X - cx) / rx
+            ny = (Y - cy - inc * (X - cx)) / ry
+            d = np.abs(nx) ** 2.4 + np.abs(ny) ** 2
+            m = d < 1
+            anel = (d < 1.25) & ~m
+            P(q, anel, 'cal', 0.12)
+            luz = 0.78 - 0.32 * ny - 0.14 * nx - 0.28 * d ** 2
+            luz = np.where(((X + Y) % 3 == 0) & m, luz - 0.06, luz)       # trama da estopa
+            luz = np.where(m & (ny > 0.55), luz - 0.18, luz)               # barriga apoiada
+            P(q, m, 'cal', np.clip(luz, 0.04, 0.97))
+            # vinco no meio e costura em cima
+            P(q, m & (np.abs(X - cx - 0.3 * rx) < 0.6) & (ny > -0.2) & (ny < 0.6), 'cal', 0.22)
+            P(q, m & (np.abs(ny + 0.55) < 0.12) & (np.abs(nx) < 0.7) & ((X.astype(int) % 2) == 0), 'cal', 0.4)
+            # orelha amarrada numa ponta
+            s_ = 1 if (k + r) % 2 else -1
+            o = (np.abs(X - (cx + s_ * (rx + 0.3))) <= 1.2) & (np.abs(Y - cy) <= 1.4)
+            P(q, o, 'cal', 0.55)
+            P(q, o & (Y > cy), 'cal', 0.25)
+    # a outra estaca na frente, cruzando a de trás em cima, com a corda amarrando
+    tora(q, cx0 - W * 0.3, h - 1, cx0 + 6, topo - 6, 3, base=0.8)
+    P(q, (np.abs(X - cx0) < 2.5) & (np.abs(Y - (topo - 1)) < 1.2), 'cal', 0.35)
+    # areia escorrendo de um saco furado
+    fx = int(cx0 + W * 0.18)
+    P(q, (np.abs(X - fx) <= 1) & (Y > h - 7), 'terra', 0.8)
+    P(q, (np.abs(X - fx) <= 3) & (Y >= h - 2), 'terra', 0.7)
+    return q, dict(chao=h - 1)
+
+
 def rochedo2(W=110, D=19, BAIXO=60, sem=3, rampa='cal'):
     """Rochedo de arenito com volume de verdade: dois ou três blocos arredondados colados,
     fenda entre eles, tampo largo e mais claro onde se pisa, lados estufados e o pé abrindo
@@ -404,9 +471,10 @@ def rochedo2(W=110, D=19, BAIXO=60, sem=3, rampa='cal'):
     esq = np.where(m.any(1), m.argmax(1), 0)[:, None]
     dir_ = np.where(m.any(1), q.w - 1 - m[:, ::-1].argmax(1), q.w)[:, None]
     lat = np.clip((X - esq) / np.maximum(1, dir_ - esq), 0, 1)
-    luz = 0.5 + 0.18 * (1 - lat) ** 2 - 0.2 * lat ** 3 + 0.05 * (-gx) * 3 + 0.05 * (-gy) * 2 \
-        - 0.2 * np.clip((Y - D) / BAIXO, 0, 1)
-    luz = np.where(tampo, 0.74 + 0.06 * ruido(h, q.w, (1, 3), sem + 9) - 0.12 * (1 - Y / D) - 0.08 * lat, luz)
+    # frente bem mais escura que o tampo (como a barreira do Metal Slug: o tampo é a faixa acesa)
+    luz = 0.46 + 0.16 * (1 - lat) ** 2 - 0.2 * lat ** 3 + 0.05 * (-gx) * 3 + 0.05 * (-gy) * 2 \
+        - 0.22 * np.clip((Y - D) / max(1, BAIXO), 0, 1)
+    luz = np.where(tampo, 0.8 + 0.05 * ruido(h, q.w, (1, 3), sem + 9) - 0.1 * (1 - Y / D) - 0.08 * lat, luz)
     # camadas do arenito: bandas tortas seguindo o tampo, juntas escuras
     camada = (Y - D + 2.2 * ruido(h, q.w, (2, 12), sem + 4)) / 6.5
     fr = camada - np.floor(camada)

@@ -30,6 +30,7 @@ TEX_W = 1024
 # Construções altas (casas, capela, cruzeiro) ficam recuadas: a frente delas apoia RECUO px
 # atrás da linha onde se anda (nunca em cima dela), para não parecer que o Lampião anda colado.
 RECUO = 22
+FUNDO_MUNDO = CHAO_MUNDO - (PE - FUNDO)   # beira de trás do chão, no mundo (146)
 
 
 def textura_chao(sem=12):
@@ -41,7 +42,7 @@ def textura_chao(sem=12):
     yb = h + 26
     d = np.clip(Y / yb, 0, 1)
     n = ruido(h, TEX_W, (0.6, 7), sem) * d + ruido(h, TEX_W, (0.4, 3), sem + 1) * (1 - d)
-    lz = 0.60 + 0.08 * n - 0.10 * d + 0.10 * (1 - d)
+    lz = 0.58 + 0.08 * n - 0.06 * d + 0.03 * (1 - d)
     q.pinta(np.ones((h, TEX_W), bool), 'terra', np.clip(lz, 0, 0.999))
     rng = np.random.default_rng(sem)
     for _ in range(260):
@@ -54,8 +55,9 @@ def textura_chao(sem=12):
             if pe.any():
                 q.pinta(pe, 'terra', np.where(Y < y, 0.85, 0.4))
     # névoa: o longe clareia e perde contraste; perto do horizonte some no pé dos morros
-    lon = d < 0.55
-    k = (0.55 - d[lon]) / 0.55 * 0.45
+    # (23/10: o fundo do chão na mesma cor da frente, só um pouco mais claro no horizonte)
+    lon = d < 0.3
+    k = (0.3 - d[lon]) / 0.3 * 0.12
     alvo = cm.RGB['longe'][-2].astype(float)
     q.img[lon] = cm.encaixar((q.img[lon] * (1 - k[:, None]) + alvo * k[:, None]).reshape(-1, 1, 3).astype(np.uint8)).reshape(-1, 3)
     for k_ in (14, 5):
@@ -165,17 +167,21 @@ def pecas_fase1(F):
     def poe(q, x):
         out.append((q, int(x), fg - (q.h - 1)))
 
-    # rochedos de arenito saindo do chão da frente até a borda de baixo da tela (do mais baixo
-    # para o mais alto: o alto fica na frente da emenda); o meio do tampo na altura do sólido
+    # rochedos de arenito (do mais baixo para o mais alto: o alto fica na frente da emenda);
+    # o meio do tampo na altura do sólido
+    # (23/10, como a barreira do Metal Slug: tampo fino aceso e a frente descendo só até o
+    # chão, apoiada nele com sombra; nada de laje gigante até a borda da tela)
     lajes = [(sol[k], 40 + k, 'cal') for k in (1, 3, 4, 5, 6, 10)] + [(sol[8], 48, 'terra')]
+    DL = 12
     for (sx, sy, sw, *_), sem, rampa in sorted(lajes, key=lambda e: -e[0][1]):
-        topo = int(round(sy - D / 2))
-        q, _ = p5.rochedo2(W=sw, D=D, BAIXO=250 - topo - D, sem=sem, rampa=rampa)
+        topo = int(round(sy - DL / 2))
+        q, _ = p5.rochedo2(W=sw, D=DL, BAIXO=fg - topo - DL, sem=sem, rampa=rampa)
         out.append((q, int(sx - q.ox), topo))
     # trincheiras de sacos
     for sx, sy, sw, *_ in [s for s in sol if s[:2] in ([884, 176], [4290, 176])]:
-        q, _ = p5.sacos2(W=sw + 6, ALT=int(fg - D / 2 - sy - 1), D=D, sem=sx)
-        poe(q, sx - 3)
+        # pilha de frente no jeito do Metal Slug, um pouco à frente da linha onde se anda
+        q, _ = p5.sacos3(W=sw + 8, ALT=36, sem=sx)
+        out.append((q, int(sx - 9), CHAO_MUNDO + 8 - (q.h - 1)))
     # giraus (plataforma de um lado só: o meio do tampo na altura dela)
     for k in (7, 9, 11):
         gx, gy, gw = sol[k][:3]
@@ -183,7 +189,8 @@ def pecas_fase1(F):
         q, _ = p5.girau(W=gw + 8, PERNA=perna, D=D, sem=gx, carga=k != 11)
         poe(q, gx - 4)
     # carros de boi largados (não são sólidos)
+    # (23/10: foram para a beira de trás do chão, menores pela distância, atrás de todo mundo)
     for x in (1470, 2500):
-        q, _ = p5.carroca(W=96, D=17, sem=x)
-        poe(q, x - 20)
+        q, _ = p5.carroca(W=78, D=13, sem=x)
+        out.append((q, int(x - 20), FUNDO_MUNDO + 14 - (q.h - 1), 4.6))
     return out

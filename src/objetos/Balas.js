@@ -8,6 +8,7 @@ export class Balas {
   constructor(cena, solidos, alvos, aoAcertar, aoAcertarCaixote) {
     this.cena = cena;
     this.alvos = alvos;
+    this.aoAcertarCaixote = aoAcertarCaixote;
     this.grupo = cena.physics.add.group({ defaultKey: 'tracer', maxSize: 64, allowGravity: false });
 
     // Plataforma de um lado só (telhado, girau, toldo): o tiro passa, a não ser descendo.
@@ -112,9 +113,25 @@ export class Balas {
     const v = this.cena.cameras.main.worldView;
     const agora = this.cena.time.now;
     const ef = this.cena.efeitos;
+    const caixotes = this.cena.caixotes ? this.cena.caixotes.vivos() : [];
     for (const bala of this.grupo.getChildren()) {
       if (!bala.active) continue;
       const cfg = bala.tipo;
+      // Caixote baixo: o tiro reto do Lampião em pé passa um pouco acima da tampa e ainda
+      // acerta (faixa "mira" acima do sólido, sem virar chão).
+      if (!cfg.porCima && caixotes.length) {
+        const c = caixotes.find((o) => o.cfg.mira && bala.x > o.zona.x - 2 && bala.x < o.zona.x + o.cfg.largura + 2
+          && bala.y >= o.zona.y - o.cfg.mira && bala.y < o.zona.y + 2);
+        if (c) {
+          if (cfg.explode) this.explodir(bala);
+          else {
+            this.aoAcertarCaixote(c, bala);
+            this.cena.efeitos.impacto(bala.x, bala.y, cfg.impacto);
+          }
+          this.recolher(bala);
+          continue;
+        }
+      }
       const idade = agora - bala.nasceu;
       const quadros = EFEITOS[cfg.textura].quadros;
       if (cfg.porIdade) {
