@@ -768,7 +768,7 @@ FASE = {
         [1622, 158, 66, 36],          # girau de madeira do curral (sólido: ninguém passa por baixo nem tiro atravessa)
         [2120, 170, 90, 24],          # barranco
         [2300, 150, 72, 44],          # girau (sólido)
-        [2780, 172, 30, 22],          # pedra grande
+        [2774, 172, 42, 22],          # pedra grande (23/10: 40% mais larga)
         # --- vila de taipa
         [3290, 160, 64, 34],          # girau da vila (sólido)
         # --- leito de rio seco: barrancos em degrau e a ponte por cima
