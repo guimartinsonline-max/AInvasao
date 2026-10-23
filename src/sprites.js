@@ -19,7 +19,7 @@ export function carregarSprites(cena) {
   for (const [nome, q] of Object.entries(EFEITOS)) {
     cena.load.spritesheet(nome, s(nome), { frameWidth: q.largura, frameHeight: q.altura });
   }
-  cena.load.spritesheet('barril', s('barril'), { frameWidth: 18, frameHeight: 24 });
+  cena.load.spritesheet('barril', s('barril'), { frameWidth: 22, frameHeight: 30 });
   cena.load.spritesheet('escudo', s('escudo'), { frameWidth: 16, frameHeight: 30 });
   // Lampião com cada arma pesada nas mãos.
   for (const arma of Object.keys(BOCAS).filter((a) => a !== 'pistola')) {

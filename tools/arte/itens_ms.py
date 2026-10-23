@@ -449,3 +449,71 @@ def barril(quadro=0):
         pinta(t, 12, 11, "amarelo_claro")
         pinta(t, 13, 10, "latao_6")
     return t
+
+
+def barril3d(quadro=0):
+    """Tambor de querosene em 3D (23/10, 20% maior): visto um pouco de cima, a tampa é uma
+    elipse com aro aceso, bujão e respiro; o corpo é um cilindro com luz da esquerda, os aros
+    de rolagem acompanham a curva, o losango de perigo dobra com ela, ferrugem escorre e a
+    base assenta numa elipse escura. Quadro 1: amassado e furado, esguichando querosene."""
+    W, H = 22, 30
+    t = Tela(W, H)
+    VERM = ["rubro_1", "rubro_2", "rubro_3", "rubro_4", "rubro_5", "rubro_6"]
+    cx, rx = 10.5, 10.0
+    yt, yb, ry = 5.0, 25.5, 4.0                  # centro da tampa, centro da base, meia-altura da elipse
+    nx = np.clip((t.xx - cx) / rx, -1, 1)
+    curva = np.sqrt(np.clip(1 - nx * nx, 0, 1))  # quanto a frente desce no meio (elipse)
+    dentro = np.abs(t.xx - cx) <= rx
+    corpo = dentro & (t.yy >= yt) & (t.yy <= yb + ry * curva)
+    luz = np.clip(-nx * 0.5 + curva * 0.62, 0, 1)
+    nivel = np.clip((luz ** 1.15 * 5.2).astype(int), 0, 5)
+    cores = np.array([IDX[c] for c in VERM])[nivel]
+    t.px[corpo] = cores[corpo]
+    t.px[corpo & (np.abs(t.xx - 6) < 0.6)] = IDX["rubro_6"]         # brilho da tinta
+    t.px[corpo & (np.abs(t.xx - 18.5) < 0.6)] = IDX["rubro_3"]      # luz refletida
+    # aros de rolagem seguindo a curva do tambor (claro em cima, escuro embaixo)
+    for y0 in (11.5, 19.5):
+        aro = corpo & (np.abs(t.yy - (y0 + ry * curva)) < 0.6)
+        t.px[aro & (t.xx < 14)] = IDX["rubro_6"]
+        t.px[aro & (t.xx >= 14)] = IDX["rubro_4"]
+        sob = corpo & (np.abs(t.yy - (y0 + 1 + ry * curva)) < 0.6)
+        t.px[sob] = IDX["rubro_1"]
+    # tampa: elipse com aro aceso, miolo mais escuro, bujão e respiro
+    sob_tampa = corpo & (np.abs(t.yy - (yt + ry * curva + 1)) < 0.6)
+    t.px[sob_tampa] = IDX["rubro_2"]                                  # sombra embaixo da borda da tampa
+    tampa = t.elipse(cx, yt, rx, ry)
+    t.px[tampa] = IDX["rubro_6"]                                       # aro aceso
+    miolo = t.elipse(cx + 0.2, yt + 0.2, rx - 1.5, ry - 1.0)
+    t.px[miolo] = IDX["rubro_3"]
+    t.px[miolo & (t.yy < yt - 0.8)] = IDX["rubro_1"]
+    t.px[miolo & (t.yy >= yt - 0.8) & (t.yy < yt + 0.3)] = IDX["rubro_2"]                   # beirada de trás faz sombra dentro
+    t.px[tampa & ~miolo & (t.xx > 15)] = IDX["rubro_4"]
+    for (x, y, c) in ((6, 4, "aco_5"), (7, 4, "aco_4"), (6, 5, "aco_3"), (7, 5, "aco_2"),
+                      (14, 3, "negro_2"), (15, 3, "aco_3")):
+        pinta(t, x, y, c)
+    # losango de perigo dobrando com o cilindro
+    lx, ly = 8.5, 15.5
+    for dy in range(-4, 5):
+        for dx in range(-(4 - abs(dy)), 5 - abs(dy)):
+            x = int(lx + dx)
+            y = int(ly + dy + ry * curva[0, min(W - 1, max(0, x))] * 0.35)
+            pinta(t, x, y, "latao_5" if dx + dy < 1 else "latao_4")
+    for (x, y) in ((8, 15), (8, 16), (7, 16), (9, 17), (8, 17), (8, 14)):
+        pinta(t, x, y + 1, "rubro_3")
+    # tinta descascada, ferrugem escorrendo de baixo dos aros e barro na base
+    for (x, y, c) in ((15, 8, "aco_4"), (16, 8, "aco_3"), (16, 9, "aco_3"), (4, 23, "aco_4"), (17, 14, "fuba_3"),
+                      (17, 15, "fuba_3"), (17, 16, "fuba_2"), (12, 23, "fuba_3"), (12, 24, "fuba_2"), (5, 14, "fuba_3")):
+        pinta(t, x, y, c)
+    base = corpo & (t.yy >= yb - 1 + ry * curva * 0.9)
+    t.px[base & (t.xx % 3 > 0)] = IDX["fuba_2"]
+    t.px[base & (t.xx % 3 == 0)] = IDX["fuba_3"]
+    if quadro == 1:
+        for (x, y) in ((13, 15), (14, 15), (13, 16), (14, 14)):
+            pinta(t, x, y, "rubro_1")
+        pinta(t, 14, 16, "negro_1")
+    t = contornar(t)
+    if quadro == 1:
+        for k, (x, y) in enumerate(((15, 15), (16, 14), (17, 14), (18, 15), (19, 16), (20, 17))):
+            pinta(t, x, y, "pelo_6" if k % 2 else "latao_6")
+        pinta(t, 14, 13, "amarelo_claro")
+    return t

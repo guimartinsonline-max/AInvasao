@@ -435,7 +435,7 @@ def longe(p, escala, k):
 
 # ---------------------------------------------------------------- camadas
 def camada_paredao(h=130):
-    return va.camada_paredao(h, ate=limite(0.45))
+    return va.camada_paredao(h, ate=limite(1.0))
 
 
 def camada_frente(h=44):
@@ -444,7 +444,7 @@ def camada_frente(h=44):
 
 def camada_meio(h=124):
     """Os morros continuam por planos; árvores ralas e moitas (sem casa perto do campo)."""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão: nada desliza
     lim = limite(fator)
     q = va.camada_meio(h, ate=lim)
     rng = np.random.default_rng(51)

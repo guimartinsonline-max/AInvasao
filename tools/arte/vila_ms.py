@@ -219,12 +219,12 @@ def cruzeiro(sem=5):
 # `ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura); as peças da vila
 # continuam sorteadas só até o limite dela, para não mudar quando a camada cresce.
 def camada_paredao(h=130, ate=None):
-    return cm.camada_paredao(h, ate=ate or limite(0.45))
+    return cm.camada_paredao(h, ate=ate or limite(1.0))
 
 
 def camada_meio(h=90, ate=None, planos_extra=()):
     """Os morros da caatinga continuam; no fim, num patamar, a vila alta vista de longe."""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão: nada desliza
     lim = limite(fator)
     v0, v1 = 1780, 2010                       # patamar da vila alta ao longe
     q = cm.camada_meio(h, ate=ate or lim, planos_extra=[(v0, v1, 30)] + list(planos_extra))

@@ -10,7 +10,8 @@ const TIPOS = {
   // (dy: quanto a imagem sobe acima do sólido, que fica no meio da tampa).
   // (23/10: 30% menor; o tiro em pé ainda acerta pela faixa "mira" acima da tampa)
   caixote: { textura: 'caixote', largura: 20, altura: 22, vida: 3, dy: 4, mira: 12 },
-  barril: { textura: 'barril', largura: 18, altura: 24, vida: 2, explode: { raio: 44, dano: 6, tamanho: 1.3 } },
+  // Barril 3D (23/10, 20% maior): a tampa em elipse aparece por cima do sólido.
+  barril: { textura: 'barril', largura: 22, altura: 25, vida: 2, dy: 5, explode: { raio: 48, dano: 6, tamanho: 1.4 } },
 };
 // Os dados guardam o canto de cima no tamanho antigo do caixote (18 de altura).
 const ALTURA_DADOS = { caixote: 18, barril: 24 };
@@ -65,7 +66,7 @@ class Caixote {
     if (this.cfg.explode && this.vida > 0) {
       // Barril furado: amassa e solta faísca.
       this.img.setFrame(1);
-      cena.efeitos.faisca(this.x + 3, this.img.y + 11, 4);
+      cena.efeitos.faisca(this.x + 3, this.img.y + 16, 4);
     }
     if (this.vida <= 0) this.quebrar();
   }
@@ -128,14 +129,23 @@ export class Caixotes {
     // topo novo do de baixo (os de baixo primeiro).
     const pe = ([, y, tipo = 'caixote']) => y + ALTURA_DADOS[tipo];
     const postos = [];
-    this.lista = [...posicoes].sort((a, b) => pe(b) - pe(a)).map(([x, y, tipo = 'caixote']) => {
-      let p = pe([x, y, tipo]);
-      const baixo = postos.find((o) => Math.abs(o.x - x) < 20 && Math.abs(o.topoVelho - p) <= 1);
+    // Barris (23/10): nunca empilhados e um só em cada lugar (os vizinhos e os de cima saem).
+    this.lista = [];
+    for (const [x0, y, tipo = 'caixote'] of [...posicoes].sort((a, b) => pe(b) - pe(a))) {
+      let p = pe([x0, y, tipo]);
+      const baixo = postos.find((o) => Math.abs(o.x - x0) < 20 && Math.abs(o.topoVelho - p) <= 1);
+      const barril = tipo === 'barril';
+      const vizinho = barril && postos.some((o) => o.barril && Math.abs(o.x - x0) < 40 && Math.abs(o.pe - p) <= 30);
+      if ((baixo && (barril || baixo.fora)) || vizinho) {
+        postos.push({ x: x0, topoVelho: y, fora: true, barril, pe: p });
+        continue;
+      }
       if (baixo) p = baixo.topoNovo;
+      const x = barril ? x0 - 2 : x0;
       const topo = p - TIPOS[tipo].altura;
-      postos.push({ x, topoVelho: y, topoNovo: topo });
-      return new Caixote(cena, x, topo, tipo);
-    });
+      postos.push({ x: x0, topoVelho: y, topoNovo: topo, barril, pe: p });
+      this.lista.push(new Caixote(cena, x, topo, tipo));
+    }
   }
 
   // Caixotes apoiados em cima de um que quebrou caem até o próximo apoio.

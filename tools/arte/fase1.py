@@ -792,16 +792,16 @@ FASE = {
     ],
     "caixotes": [
         [250, CHAO - 18], [740, CHAO - 18], [764, CHAO - 18], [752, CHAO - 36],
-        [820, CHAO - 24, "barril"], [838, CHAO - 24, "barril"],
-        [1230, 152 - 18], [1760, CHAO - 24, "barril"], [1778, CHAO - 24, "barril"], [1769, CHAO - 48, "barril"],
+        [828, CHAO - 24, "barril"],
+        [1230, 152 - 18], [1769, CHAO - 24, "barril"],
         [1800, CHAO - 18], [1824, CHAO - 18], [2150, 170 - 18], [2560, CHAO - 18], [2584, CHAO - 18],
         [2700, CHAO - 24, "barril"],
-        [3200, CHAO - 18], [3224, CHAO - 18], [3212, CHAO - 36], [3800, CHAO - 24, "barril"],
-        [3818, CHAO - 24, "barril"], [6550, CHAO - 18], [7080, CHAO - 24, "barril"], [7098, CHAO - 24, "barril"],
-        [7089, CHAO - 48, "barril"], [7400, CHAO - 18], [7660, CHAO - 18], [7684, CHAO - 18],
+        [3200, CHAO - 18], [3224, CHAO - 18], [3212, CHAO - 36], [3808, CHAO - 24, "barril"],
+        [6550, CHAO - 18], [7089, CHAO - 24, "barril"],
+        [7400, CHAO - 18], [7660, CHAO - 18], [7684, CHAO - 18],
         # vila alta e campo de pouso: caixotes na rua, tambores de gasolina na pista (o biplano esmaga)
         [3990, CHAO - 18], [4400, CHAO - 18], [4424, CHAO - 18], [4412, CHAO - 36],
-        [5330, CHAO - 24, "barril"], [5348, CHAO - 24, "barril"], [5339, CHAO - 48, "barril"],
+        [5339, CHAO - 24, "barril"],
         [5640, CHAO - 18], [5664, CHAO - 18], [5810, CHAO - 24, "barril"],
     ],
     "refens": [[330, CHAO], [1300, 138], [1700, CHAO], [2330, 150], [2640, CHAO],
@@ -1092,7 +1092,7 @@ def textura_morro(t, morro, alto, rng):
 def camada_meio():
     """Longe (anda a 0,45 da câmera): morros baixos com caatinga miúda e uma casinha.
     (O disco que cai no fim passa atrás dela, animado no jogo.)"""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão
     W = int(LARGURA_FASE * fator + 548)
     alt = 90
     t = Tela(W, alt)
@@ -1197,14 +1197,14 @@ def exportar(saida, raiz):
     # Céu, nuvens e serra são da fase toda: já no jeito novo (céu e serra quietos e enevoados).
     cm.ceu().save(saida / "f1_ceu.png", optimize=True)
     cm.nuvens().save(saida / "f1_nuvens.png", optimize=True)
-    paredao = ca.paredao(int(LARGURA_FASE * 0.45 + 548))
+    paredao = ca.paredao(int(LARGURA_FASE + 548))
     # Trechos da caatinga, da vila, da vila alta e do campo de pouso no jeito novo, emendados no resto da fase sem corte reto.
     novas = {
         "f1_jogo": cm.sobrepor(jogo.imagem(), vm.camada_jogo(sys.modules[__name__])),
         "f1_perto": cm.sobrepor(perto.imagem(), vm.camada_perto()),
         "f1_meio": cm.emendar(meio.imagem(), vm.camada_meio(), sem=3),
         "f1_frente": cm.sobrepor(frente.imagem(), vm.camada_frente()),
-        "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE * 0.45 + 548)).rgba(), "RGBA"),
+        "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE + 548)).rgba(), "RGBA"),
         "f1_paredao": cm.emendar(paredao.imagem(), vm.camada_paredao(), largura=200, sem=4),
     }
     # Chão largo (22/10): o chão pintado sai do plano do jogo (vira faixas com parallax próprio),
@@ -1251,7 +1251,7 @@ def exportar(saida, raiz):
         "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194 - 70, "fator": fp},  # perto: 160 de altura
         "meio": {"base": 192 - 76, "fator": fm}, "frente": {"base": 216, "fator": ff},
         # (23/10) serras, paredão e morros andam juntos (um bloco só de fundo, sem deslizar entre si)
-        "serras": {"base": 168, "fator": 0.45}, "paredao": {"base": 176 - 38, "fator": 0.45},
+        "serras": {"base": 168, "fator": 1.0}, "paredao": {"base": 176 - 38, "fator": 1.0},
     }
     dados["chao"] = {"hz": cl.HZ, "faixas": cl.faixas(), "descer": cl.DESCE}
     dados["pecas25"] = pecas25

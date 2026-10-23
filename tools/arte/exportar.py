@@ -290,7 +290,7 @@ fase2.exportar(SAIDA, RAIZ)
 import fase2b  # noqa: E402
 fase2b.exportar(SAIDA, RAIZ)
 import objetos as obj  # noqa: E402
-folha([itm.barril(0), itm.barril(1)], SAIDA / "barril.png")
+folha([itm.barril3d(0), itm.barril3d(1)], SAIDA / "barril.png")  # (23/10) 3D, 20% maior
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")
 import veiculos as vc  # noqa: E402
 folha([bl.danificar(bl.blindar(q, semente=3), e, 3) for e in range(4)

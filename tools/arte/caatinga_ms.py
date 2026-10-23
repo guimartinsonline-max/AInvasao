@@ -817,7 +817,7 @@ def _xs(fator, margem=40):
 
 def camada_paredao(h=130, ate=None):
     """`ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura)."""
-    return chapada((ate or limite(0.45)) + 200, h)
+    return chapada((ate or limite(1.0)) + 200, h)
 
 
 def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
@@ -869,7 +869,7 @@ def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
 def camada_meio(h=90, ate=None, planos_extra=()):
     """Morros baixos ao longe em duas fileiras de formas próprias (por planos, sem ondas),
     caatinga rala, pedras, a vila no alto de um morro e uma casinha sozinha, tudo enevoado."""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão: nada desliza
     w = limite(fator) + 120          # as contas do sorteio seguem a largura da caatinga
     q = Quadro((ate or limite(fator)) + 120, h)
     oy = h - 90                      # folga em cima (camada mais alta): tudo desce junto, a base não muda

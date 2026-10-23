@@ -1,4 +1,4 @@
 // Gerado por tools/arte/fase1.py: quantos pedaços (de 2048 px) tem cada camada da fase 1.
 export const PEDACO = 2048;
-export const PEDACOS = {"f1_jogo": 5, "f1_perto": 5, "f1_meio": 3, "f1_frente": 5, "f1_serras": 3, "f1_paredao": 3};
+export const PEDACOS = {"f1_jogo": 5, "f1_perto": 5, "f1_meio": 5, "f1_frente": 5, "f1_serras": 5, "f1_paredao": 5};
 export const PECAS25 = 14;
