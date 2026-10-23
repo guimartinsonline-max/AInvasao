@@ -661,3 +661,85 @@ def curral(W=170, H=40, D=26, sem=9):
     _cerca_linha(q, (W - ins, yt), (W, yf), H * 0.78, H, 8, sem + 2, esc=0.08)
     _cerca_linha(q, (2, yf), (W, yf), H, H, 13, sem + 3)
     return q
+
+
+# ---------------------------------------------------------------- varal (23/10)
+VARAL_W, VARAL_H = 64, 48
+
+
+def _forquilha(q, x, sem):
+    """Vara de pau roliço fincada no chão com a forquilha em cima (a corda passa nela)."""
+    tora(q, x, VARAL_H - 1, x + 1, 9, 4, base=0.5)
+    tora(q, x + 1, 11, x - 3, 3, 2, base=0.55)
+    tora(q, x + 1, 11, x + 5, 4, 2, base=0.5)
+    # terra amontoada no pé
+    m = (np.hypot((q.xx - x - 0.5) / 4.5, (q.yy - (VARAL_H - 1)) / 2.2) < 1)
+    P(q, m, 'terra', np.clip(0.55 - 0.08 * (q.xx - x), 0.2, 0.8)[m])
+
+
+def _peca(q, m, rampa, sem, base=0.62):
+    """Pano pendurado: dobras verticais (luz e sombra alternando), barra mais escura."""
+    X, Y = q.xx, q.yy
+    d = 0.1 * np.sin(X / 1.7 + sem) + 0.05 * ruido(q.h, q.w, (2, 0.8), sem)
+    y0 = Y[m].min() if m.any() else 0
+    luz = base + d - 0.012 * (Y - y0) - 0.006 * (X - X[m].min() if m.any() else 0)
+    P(q, m, rampa, luz[m])
+    borda = m & ~np.roll(m, -1, axis=0)
+    P(q, borda, rampa, (luz - 0.22)[borda])
+
+
+def varal(quadro=0, sem=8):
+    """Varal entre duas forquilhas, no jeito do cenário (sem contorno, luz da esquerda):
+    camisa azul, calça de brim e pano de chita presos com pregador. Quadro 1: a corda
+    arrebentou e a roupa voou (sobram as pontas penduradas)."""
+    q = Quadro(VARAL_W, VARAL_H)
+    X, Y = q.xx, q.yy
+    xa, xb = 4, VARAL_W - 6
+    ya = 6
+    corda = lambda x: ya + 6 * np.sin(np.clip((x - xa) / (xb - xa), 0, 1) * np.pi)  # noqa: E731
+    if quadro == 0:
+        # camisa (ombros, mangas abertas, botões), calça (duas pernas) e pano de chita
+        x0 = 9; y0 = int(corda(x0 + 8)) + 1
+        cam = poly(q.w, q.h, [(x0, y0), (x0 + 16, y0), (x0 + 19, y0 + 6), (x0 + 15, y0 + 7), (x0 + 15, y0 + 18),
+                              (x0 + 1, y0 + 18), (x0 + 1, y0 + 7), (x0 - 3, y0 + 6)])
+        _peca(q, cam, 'azul', sem, 0.6)
+        P(q, (X == x0 + 8) & (Y > y0 + 2) & (Y < y0 + 17) & ((Y - y0) % 4 == 1), 'cal', 0.95)
+        P(q, (X >= x0 + 6) & (X <= x0 + 10) & (Y == y0), 'azul', 0.3)       # gola
+        x1 = 31; y1 = int(corda(x1 + 7)) + 1
+        cal = poly(q.w, q.h, [(x1, y1), (x1 + 14, y1), (x1 + 15, y1 + 22), (x1 + 9, y1 + 22), (x1 + 7, y1 + 8),
+                              (x1 + 5, y1 + 22), (x1 - 1, y1 + 22)])
+        _peca(q, cal, 'cal', sem + 1, 0.5)
+        P(q, cal & (Y < y1 + 3), 'cal', 0.32)                            # cós
+        x2 = 49; y2 = int(corda(x2 + 4)) + 1
+        pano = poly(q.w, q.h, [(x2, y2), (x2 + 8, y2), (x2 + 9, y2 + 13), (x2 + 4, y2 + 11), (x2 - 1, y2 + 14)])
+        _peca(q, pano, 'telha', sem + 2, 0.66)
+        P(q, pano & ((X + Y) % 4 == 0) & ((X - Y) % 4 == 0), 'cal', 0.9)    # florzinha da chita
+        xs = np.arange(xa, xb + 1)
+        for x in xs:
+            q.pinta((X == x) & (Y == int(round(corda(x)))), 'cal', np.full(q.xx.shape, 0.55))
+        for px in (x0 + 2, x0 + 14, x1 + 1, x1 + 12, x2 + 1, x2 + 7):        # pregadores
+            py = int(round(corda(px)))
+            P(q, (X == px) & (Y >= py - 1) & (Y <= py + 2), 'madeira', np.where(Y == py - 1, 0.85, 0.55))
+    else:
+        for x in range(xa, xa + 18):
+            P(q, (X == x) & (Y == ya + (x - xa) // 2 + (x - xa) // 6), 'cal', 0.55)
+        for x in range(xb - 12, xb + 1):
+            P(q, (X == x) & (Y == ya + (xb - x) * 2 // 3), 'cal', 0.55)
+    _forquilha(q, xa, sem)
+    _forquilha(q, xb, sem + 1)
+    return q
+
+
+def roupa(quadro=0, sem=8):
+    """Peça voando do varal arrebentado (12x12): camisa, calça e pano."""
+    q = Quadro(12, 12)
+    if quadro == 0:
+        m = poly(12, 12, [(2, 1), (9, 1), (11, 4), (9, 5), (9, 11), (2, 11), (2, 5), (0, 4)])
+        _peca(q, m, 'azul', sem, 0.6)
+    elif quadro == 1:
+        m = poly(12, 12, [(2, 0), (9, 0), (10, 11), (7, 11), (6, 4), (5, 11), (1, 11)])
+        _peca(q, m, 'cal', sem, 0.5)
+    else:
+        m = poly(12, 12, [(1, 1), (11, 1), (10, 10), (5, 8), (1, 11)])
+        _peca(q, m, 'telha', sem, 0.66)
+    return q

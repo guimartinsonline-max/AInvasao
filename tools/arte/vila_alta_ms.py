@@ -464,10 +464,9 @@ def camada_meio(h=124, ate=None):
             q.colar(p, x - p.w / 2, py)
         x += rng.uniform(60, 120)
     sx = int((x0 + lim) / 2)
-    c = nevoa(cm.casinha_longe(46, 20, sem=33), 0.36)
-    q.colar(c, sx, topo[sx + c.w // 2] + 6 - c.h)
+    # (23/10) o sítio com a casinha saiu: aparecia por cima dos sobrados
     cv = nevoa(cm.cerca_varas(60, 14, sem=34), 0.36)
-    q.colar(cv, sx + c.w + 4, topo[min(q.w - 1, sx + c.w + 30)] + 8 - cv.h)
+    q.colar(cv, sx + 50, topo[min(q.w - 1, sx + 80)] + 8 - cv.h)
     return q
 
 
@@ -489,11 +488,8 @@ def camada_perto(h=160, ate=None):
     casa = lambda *a, **k: nevoa(cm.casa(*a, sombra_beiral=True, **k), 0.2)  # noqa: E731
     pecas = [
         (lx(3900), cm.arvore(150, sem=150, folhas=True)),
-        (lx(3990), casa(110, 84, 40, sem=61, alpendre=False, lado=18, porta=(20, 20, 36), janela=(70, 14, 18))),
         (lx(4250), nevoa(matriz(), 0.12)),
         (lx(4150), cm.arvore(136, sem=151, folhas=False)),
-        (lx(4500), casa(120, 88, 42, sem=62, alpendre=False, lado=20, porta=(80, 20, 36), janela=(20, 14, 18),
-                        parede="terra")),
         (lx(4690), cm.arvore(146, sem=152, folhas=True)),
     ]
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
@@ -530,7 +526,8 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
         q.img[j0:j1, i0:i1] = sub.img
     casas = f1.VILA_ALTA
     # muros fechando os becos entre os sobrados (recuados, atrás)
-    for (xa, wa, *_), (xb, *_r) in zip(casas, casas[1:]):
+    # (23/10) saíram: com os sobrados em 2.5D os muros ficavam presos no meio do beco
+    for (xa, wa, *_), (xb, *_r) in []:
         if xb - (xa + wa) > 8:
             mu = muro_beco(xb - (xa + wa) + 4, 46, sem=xa)
             q.colar(mu, xa + wa - 2, yc - mu.h + 1)

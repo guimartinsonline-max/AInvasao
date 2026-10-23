@@ -446,3 +446,82 @@ if __name__ == '__main__':
     out = Image.new('RGBA', (im.width + 8, im.height + 8), (196, 160, 120, 255))
     out.alpha_composite(im, (4, 4))
     out.resize((out.width * 3, out.height * 3), Image.NEAREST).save(sys.argv[1])
+
+
+# ---------------------------------------------------------------- cruzeiro 2.5D (23/10)
+def _caixa(q, x0, y0, z0, w, h, d, H0, kx, ky, rampa, sem, luzes=(0.62, 0.34, 0.86), veio=None):
+    """Caixa em 3D (x para a direita, y para cima, z para trás), vista como no Metal Slug:
+    frente reta, lado direito fugindo para cima e o tampo visto de cima."""
+    def pr(x, y, z):
+        return (x + z * kx, H0 - y - z * ky)
+    f = poly(q.w, q.h, [pr(x0, y0, z0), pr(x0 + w, y0, z0), pr(x0 + w, y0 + h, z0), pr(x0, y0 + h, z0)])
+    lado = poly(q.w, q.h, [pr(x0 + w, y0, z0), pr(x0 + w, y0, z0 + d), pr(x0 + w, y0 + h, z0 + d),
+                           pr(x0 + w, y0 + h, z0)]) & ~f
+    topo = poly(q.w, q.h, [pr(x0, y0 + h, z0), pr(x0 + w, y0 + h, z0), pr(x0 + w, y0 + h, z0 + d),
+                           pr(x0, y0 + h, z0 + d)]) & ~f & ~lado
+    X, Y = q.xx, q.yy
+    n = ruido(q.h, q.w, (3, 1.2) if veio == 'v' else (1.2, 3) if veio == 'h' else (2, 2), sem)
+    lf, ll, lt = luzes
+    sx0, sy1 = pr(x0, y0 + h, z0)
+    luz_f = lf - 0.08 * (X - sx0) / max(1, w) + 0.05 * n
+    if veio:                                   # veio da madeira lavrada e rachas
+        rach = ruido(q.h, q.w, (6, 0.5) if veio == 'v' else (0.5, 6), sem + 1) > 1.8
+        luz_f = np.where(rach, luz_f - 0.2, luz_f)
+    P(q, f, rampa, luz_f[f])
+    P(q, lado, rampa, (ll + 0.04 * n)[lado])
+    P(q, topo, rampa, (lt + 0.03 * n)[topo])
+    # quina acesa entre a frente e o tampo, quina escura entre a frente e o lado
+    qa = f & ~np.roll(f, 1, axis=0)
+    P(q, qa, rampa, min(0.99, lt + 0.08))
+    qe = lado & ~np.roll(lado, 1, axis=1)
+    P(q, qe, rampa, max(0.0, ll - 0.12))
+    return f, lado, topo
+
+
+def cruzeiro25(sem=5):
+    """Cruzeiro de madeira lavrada (viga quadrada com frente, lado e topo) em pé no meio de
+    uma base caiada de três degraus em 3D, plaquinha, fitas de promessa caindo do braço na
+    frente da viga e tocos de vela nos degraus. Devolve (Quadro, x da frente da haste)."""
+    kx, ky = 0.55, 0.42
+    D = 18
+    W = 46 + int(D * kx) + 2
+    H = 104
+    H0 = H - 1
+    q = Quadro(W, H)
+    # degraus caiados (o de baixo largo; cada um recuado e menor)
+    for k, (x0, z0, w, d) in enumerate(((2, 0, 42, D), (6.5, 2.5, 33, D - 5), (11, 5, 24, D - 10))):
+        f, l_, t_ = _caixa(q, x0, 7 * k, z0, w, 7, d, H0, kx, ky, 'cal', sem + k, luzes=(0.72, 0.42, 0.93))
+        X, Y = q.xx, q.yy
+        tri = f & (ruido(H, W, (1, 4), sem + 10 + k) > 1.7)                # reboco lascado mostrando o barro
+        P(q, tri, 'terra', 0.55)
+        suj = f & (Y > H0 - 7 * k - 3)                                      # barro na base de cada degrau
+        P(q, suj, 'cal', 0.5)
+    # haste e braço (viga de 8x8, centrada no degrau de cima)
+    hx, hz, s = 19, 9, 8
+    top_deg = 21
+    _caixa(q, hx, top_deg, hz, s, 78, s, H0, kx, ky, 'madeira', sem + 20, veio='v')
+    bra_y = top_deg + 52
+    _caixa(q, hx - 16, bra_y, hz, 16 * 2 + s, 7, s, H0, kx, ky, 'madeira', sem + 21, veio='h')
+    # a haste continua por cima do braço (mesma viga)
+    _caixa(q, hx, bra_y + 7, hz, s, 78 - 52 - 7, s, H0, kx, ky, 'madeira', sem + 20, veio='v')
+    X, Y = q.xx, q.yy
+    pr = lambda x, y, z: (x + z * kx, H0 - y - z * ky)  # noqa: E731
+    fx0, fy0 = pr(hx, 0, hz)
+    # plaquinha INRI pregada na frente da haste
+    pl = (X >= fx0 + 1) & (X < fx0 + 7) & (Y >= H0 - (bra_y + 21) - hz * ky) & (Y < H0 - (bra_y + 15) - hz * ky)
+    P(q, pl, 'cal', np.where(Y == Y[pl].min(), 0.95, 0.75)[pl])
+    # fitas de promessa amarradas no braço, caindo na frente (não fazem parte da viga)
+    by = H0 - bra_y - hz * ky
+    for k, (bx, rampa, comp) in enumerate(((fx0 - 13, 'telha', 15), (fx0 - 9, 'cal', 11), (fx0 + 13, 'verde', 13),
+                                           (fx0 + 18, 'telha', 9))):
+        for yy in range(int(by), int(by + comp)):
+            xx = bx + 1.3 * np.sin((yy - by) / 3.0 + k)
+            m = (np.abs(X - xx) < 1.0) & (Y == yy)
+            P(q, m, rampa, (0.8 if rampa != 'cal' else 0.92) - 0.25 * (yy > by + comp * 0.6) - 0.15 * (X > xx))
+        P(q, (np.abs(X - bx) < 1.5) & (Y == int(by)), rampa, 0.5)                         # nó
+    # tocos de vela e cera escorrida nos degraus
+    for vx, k in ((8, 0), (13, 1), (36, 1), (40, 0)):
+        yb = H0 - 7 * (k + 1) - (2.5 if k == 0 else 5) * ky - 1
+        P(q, (X >= vx) & (X < vx + 2) & (Y > yb - 4) & (Y <= yb), 'cal', np.where(X == vx, 0.99, 0.75))
+        P(q, (X == vx) & (Y == yb - 4), 'telha', 0.95)
+    return q, int(fx0)

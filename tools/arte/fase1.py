@@ -885,7 +885,7 @@ FASE = {
     "fim": 8540,
     # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
     "casas": [[3040, 168, 130, 21, False], [3684, 150, 122, 22, True]],  # x, largura, altura, semente, rombo (vila_ms.CASAS)
-    "varais": [3795],
+    "varais": [3214],   # (23/10) no vão entre a casa da rua e o girau (em 3795 ficava dentro da casa)
     "jumentos": [2680],  # jumento blindado esperando (o Lampião monta e atravessa a vila nele)
     "ponte": [6124, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
     "urubus": [[1010, 106], [2410, 106], [700, CHAO], [1880, CHAO], [2540, CHAO], [6490, CHAO], [7220, CHAO]],
@@ -1223,8 +1223,11 @@ def exportar(saida, raiz):
         [(px, q.w, q.h) for q, px, py, *_ in pecas_lista]
     occ = cl.ocupacao(novas["f1_jogo"], topo, ocupantes, LARGURA_FASE)
     novas["f1_perto"] = cl.tirar_sobrepostos(novas["f1_perto"], fp, novas["f1_perto"].height - 1, occ)
-    novas["f1_meio"] = cl.tirar_sobrepostos(novas["f1_meio"], fm, novas["f1_meio"].height - 1, occ, morro=True)
-    cl.textura_chao().save(saida / "f1_chao.png", optimize=True)
+    # (23/10) os morros não perdem pedaços (os buracos mostravam o paredão por baixo) e o pé
+    # deles vira a terra do chão, sem linha entre o chão e o fundo
+    chao_tex = cl.textura_chao()
+    chao_tex.save(saida / "f1_chao.png", optimize=True)
+    novas["f1_meio"] = cl.pe_dos_morros(novas["f1_meio"], 192 - 76, chao_tex)
     pecas25 = []
     for k, (q, px, py, *prof) in enumerate(pecas_lista):
         Image.fromarray(q.rgba(), "RGBA").save(saida / f"f1_p25_{k}.png", optimize=True)

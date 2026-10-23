@@ -904,9 +904,13 @@ def camada_meio(h=90, ate=None, planos_extra=()):
     cx = int(900 * fator)
     c = nevoa(casinha_longe(46, 22, sem=12), 0.36)
     q.colar(c, cx, 42 + oy - c.h + 1)
+    # (23/10) a vila ao longe saiu (ficava atrás das casas da vila); no patamar, árvores
+    for k, x in enumerate(range(vila[0] + 20, min(vila[1], lim - 60), 60)):
+        p = nevoa(arvore(int(rng.uniform(36, 48)), sem=410 + k, folhas=True), 0.42)
+        q.colar(p, x - p.w / 2, 32 + oy + 3 - p.h)
     x = vila[0] + 4
     k = 0
-    while x < min(vila[1], lim - 60):
+    while False:
         c = nevoa(casinha_longe(int(rng.integers(40, 56)), int(rng.integers(18, 28)), sem=70 + k), 0.36)
         q.colar(c, x, 32 + oy - c.h + 1)
         x += c.w + int(rng.integers(4, 16))

@@ -193,3 +193,28 @@ def pecas_fase1(F):
         q, _ = p5.carroca(W=78, D=13, sem=x)
         out.append((q, int(x - 20), FUNDO_MUNDO + 14 - (q.h - 1), 4.6))
     return out
+
+
+def pe_dos_morros(meio, base, chao, faixa=24, dy=92):
+    """(23/10) Os morros não terminam numa linha: o pé deles vira a mesma terra do chão
+    (a textura do longe do chão), com a beira em manchas, e o chão continua sem emenda."""
+    a = np.array(meio.convert('RGBA'))
+    h, w = a.shape[:2]
+    r_hz = HZ - (base - h + dy)                     # linha da camada no horizonte do chão
+    c = np.array(chao.convert('RGB'))[4:4 + 6]     # o longe do chão, já enevoado
+    tira = np.tile(c, (1, w // c.shape[1] + 1, 1))[:, :w]
+    y0 = max(0, r_hz - faixa)
+    rr = np.arange(y0, h)
+    t = np.clip((rr - y0) / faixa, 0, 1)[:, None]
+    n = ruido(len(rr), w, (5, 18), 77)
+    al = a[y0:, :, 3] > 0
+    alvo = tira[(rr - y0) % tira.shape[0]].astype(float)
+    terra = ((t + 0.22 * n > 0.62) & al) | (rr >= r_hz - 4)[:, None]
+    mist = al & ~terra
+    k = (0.45 * t)[..., None] * np.ones((1, w, 1))
+    cor = a[y0:, :, :3].astype(float)
+    cor = np.where(terra[..., None], alvo, cor * (1 - k) + alvo * k)
+    cor = cm.encaixar(cor.astype(np.uint8))
+    a[y0:, :, :3] = np.where((terra | mist)[..., None], cor, a[y0:, :, :3])
+    a[y0:, :, 3] = np.where(terra, 255, a[y0:, :, 3])
+    return Image.fromarray(a, 'RGBA')

@@ -246,10 +246,14 @@ def camada_meio(h=90, ate=None, planos_extra=()):
             p = nevoa(cm.arvore(int(rng.uniform(34, 50)), sem=int(x), folhas=rng.random() > 0.25), 0.42)
             q.colar(p, x - p.w / 2, topo[int(min(x, q.w - 1))] + rng.uniform(2, 8) - p.h)
         x += rng.uniform(50, 110)
-    # casario da vila alta: casinhas lado a lado e a torre da igreja matriz
+    # (23/10) a vila alta ao longe saiu: aparecia atrás das casas da própria vila (casas atrás
+    # das casas). No patamar ficam só árvores.
+    for k, x in enumerate(range(v0 + 20, v1 - 20, 70)):
+        p = nevoa(cm.arvore(int(rng.uniform(36, 48)), sem=400 + k, folhas=True), 0.42)
+        q.colar(p, x - p.w / 2, 30 + oy + 3 - p.h)
     x = v0 + 6
     k = 0
-    while x < v1 - 40:
+    while False:
         c = nevoa(cm.casinha_longe(int(rng.integers(38, 54)), int(rng.integers(18, 26)), sem=90 + k), 0.36)
         q.colar(c, x, 30 + oy - c.h + 1)
         x += c.w + int(rng.integers(2, 10))
@@ -343,9 +347,10 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
     # recuado como as casas (chao_largo.RECUO): nada alto na linha onde se anda.
     import chao_largo as cl
     # (fora da capela, que agora vai até x 3611: nada encostado)
-    q.sombra(3647, yc - cl.RECUO + 1, 22, 2.5)
     import predios25 as p25
-    q.assentar(p25.extrudar(cruzeiro(), 6, 5), 3620, yc - cl.RECUO, sombra=False)   # com espessura (2.5D)
+    cz, _ = p25.cruzeiro25()          # (23/10) modelo 3D: viga com frente, lado e topo, degraus em caixa
+    q.sombra(3618 + 24, yc - cl.RECUO + 1, 50, 3)
+    q.assentar(cz, 3618, yc - cl.RECUO, sombra=False)
     # pedras e xique-xiques soltos
     for k, x in enumerate((3000, 3640)):
         q.assentar(cm.pedra(int(rng.integers(18, 28)), int(rng.integers(10, 14)), sem=k + 80), x, yc, afundar=2)
