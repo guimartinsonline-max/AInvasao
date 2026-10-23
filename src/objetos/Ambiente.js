@@ -9,7 +9,7 @@ export const AMBIENTE = {
   urubu: { largura: 28, altura: 20 },
   galinha: { largura: 18, altura: 17 },
   roupa: { largura: 12, altura: 12 },
-  varal: { largura: 70, altura: 40 },
+  varal: { largura: 64, altura: 48 },
   ponte_seg: { largura: 139, altura: 60 },
 };
 

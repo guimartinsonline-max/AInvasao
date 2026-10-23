@@ -194,8 +194,20 @@ import fase1  # noqa: E402
 import fase1_extra as fx  # noqa: E402
 folha([npcs.urubu(q) for q in range(3)], SAIDA / "urubu.png")
 folha([npcs.galinha(q) for q in range(6)], SAIDA / "galinha.png")
-folha([fx.roupa(q) for q in range(3)], SAIDA / "roupa.png")
-folha([fx.varal(q) for q in range(2)], SAIDA / "varal.png")
+# (23/10) varal e roupa no jeito do cenário (pecas25: sem contorno, luz da cena)
+import pecas25 as _p25  # noqa: E402
+from PIL import Image as _Im  # noqa: E402
+
+
+def _tira(qs, caminho):
+    im = _Im.new("RGBA", (sum(q.w for q in qs), qs[0].h))
+    for k, q in enumerate(qs):
+        im.paste(_Im.fromarray(q.rgba(), "RGBA"), (k * qs[0].w, 0))
+    im.save(caminho, optimize=True)
+
+
+_tira([_p25.roupa(q) for q in range(3)], SAIDA / "roupa.png")
+_tira([_p25.varal(q) for q in range(2)], SAIDA / "varal.png")
 import vila_ms  # noqa: E402  (casas da rua da vila no jeito do Metal Slug; a porta da 1ª é a porta:3098)
 assert fase1.FASE["casas"] == vila_ms.CASAS
 for k in range(len(vila_ms.CASAS)):
@@ -278,7 +290,7 @@ fase2.exportar(SAIDA, RAIZ)
 import fase2b  # noqa: E402
 fase2b.exportar(SAIDA, RAIZ)
 import objetos as obj  # noqa: E402
-folha([itm.barril(0), itm.barril(1)], SAIDA / "barril.png")
+folha([itm.barril3d(0), itm.barril3d(1)], SAIDA / "barril.png")  # (23/10) 3D, 20% maior
 folha([obj.escudo(0), obj.escudo(1)], SAIDA / "escudo.png")
 import veiculos as vc  # noqa: E402
 folha([bl.danificar(bl.blindar(q, semente=3), e, 3) for e in range(4)

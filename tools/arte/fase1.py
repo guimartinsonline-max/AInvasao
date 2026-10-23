@@ -765,12 +765,12 @@ FASE = {
         [1170, 152, 110, 42],
         [1280, 138, 60, 56],
         [1340, 160, 50, 34],
-        [1622, 158, 66, 6, True],     # girau de madeira do curral
+        [1622, 158, 66, 36],          # girau de madeira do curral (sólido: ninguém passa por baixo nem tiro atravessa)
         [2120, 170, 90, 24],          # barranco
-        [2300, 150, 72, 6, True],     # girau
-        [2780, 172, 30, 22],          # pedra grande
+        [2300, 150, 72, 44],          # girau (sólido)
+        [2774, 172, 42, 22],          # pedra grande (23/10: 40% mais larga)
         # --- vila de taipa
-        [3290, 160, 64, 6, True],     # girau da vila
+        [3290, 160, 64, 34],          # girau da vila (sólido)
         # --- leito de rio seco: barrancos em degrau e a ponte por cima
         [6040, 176, 40, 18],
         [6072, 146, 52, 48],
@@ -786,25 +786,22 @@ FASE = {
         [4252, CHAO - 112 + 38, 84, 4, True],  # sacada do sobrado caiado
         # Degrau entre telhados colados de alturas diferentes (só lá em cima: a rua passa por baixo).
         [4004, CHAO - 100, 4, 16], [4246, CHAO - 112, 4, 20],
-        [CASINHA_FIM[0], CHAO - CASINHA_FIM[2], CASINHA_FIM[1], 6, True],
         [4290, 176, 48, 18],          # sacos de areia na rua da vila alta
-        # --- campo de pouso: trincheira depois da pista
-        [5700, 176, 56, 18],
         # --- arena do trem: giraus da estação
         *[[x, topo, w, 6, True] for x, w, topo in GIRAUS_ARENA],
     ],
     "caixotes": [
         [250, CHAO - 18], [740, CHAO - 18], [764, CHAO - 18], [752, CHAO - 36],
-        [820, CHAO - 24, "barril"], [838, CHAO - 24, "barril"],
-        [1230, 152 - 18], [1760, CHAO - 24, "barril"], [1778, CHAO - 24, "barril"], [1769, CHAO - 48, "barril"],
+        [828, CHAO - 24, "barril"],
+        [1230, 152 - 18], [1769, CHAO - 24, "barril"],
         [1800, CHAO - 18], [1824, CHAO - 18], [2150, 170 - 18], [2560, CHAO - 18], [2584, CHAO - 18],
         [2700, CHAO - 24, "barril"],
-        [3200, CHAO - 18], [3224, CHAO - 18], [3212, CHAO - 36], [3800, CHAO - 24, "barril"],
-        [3818, CHAO - 24, "barril"], [6550, CHAO - 18], [7080, CHAO - 24, "barril"], [7098, CHAO - 24, "barril"],
-        [7089, CHAO - 48, "barril"], [7400, CHAO - 18], [7660, CHAO - 18], [7684, CHAO - 18],
+        [3200, CHAO - 18], [3224, CHAO - 18], [3212, CHAO - 36], [3808, CHAO - 24, "barril"],
+        [6550, CHAO - 18], [7089, CHAO - 24, "barril"],
+        [7400, CHAO - 18], [7660, CHAO - 18], [7684, CHAO - 18],
         # vila alta e campo de pouso: caixotes na rua, tambores de gasolina na pista (o biplano esmaga)
         [3990, CHAO - 18], [4400, CHAO - 18], [4424, CHAO - 18], [4412, CHAO - 36],
-        [5330, CHAO - 24, "barril"], [5348, CHAO - 24, "barril"], [5339, CHAO - 48, "barril"],
+        [5339, CHAO - 24, "barril"],
         [5640, CHAO - 18], [5664, CHAO - 18], [5810, CHAO - 24, "barril"],
     ],
     "refens": [[330, CHAO], [1300, 138], [1700, CHAO], [2330, 150], [2640, CHAO],
@@ -887,8 +884,8 @@ FASE = {
     "buracos": [1862, 2382],
     "fim": 8540,
     # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
-    "casas": [[3040, 170, 124, 21, False], [3664, 150, 112, 22, True]],  # x, largura, altura, semente, rombo (vila_ms.CASAS)
-    "varais": [3795],
+    "casas": [[3040, 168, 130, 21, False], [3684, 150, 122, 22, True]],  # x, largura, altura, semente, rombo (vila_ms.CASAS)
+    "varais": [3214],   # (23/10) no vão entre a casa da rua e o girau (em 3795 ficava dentro da casa)
     "jumentos": [2680],  # jumento blindado esperando (o Lampião monta e atravessa a vila nele)
     "ponte": [6124, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
     "urubus": [[1010, 106], [2410, 106], [700, CHAO], [1880, CHAO], [2540, CHAO], [6490, CHAO], [7220, CHAO]],
@@ -910,9 +907,10 @@ def camada_jogo():
     rng = np.random.default_rng(1)
     y = lambda wy: wy - topo  # noqa: E731
     import caatinga_detalhe as ca
-    # Os trechos da caatinga, da vila e da vila alta (x < FIM) vêm pintados no jeito novo (caatinga_ms, vila_ms):
-    # aqui as peças deles continuam sorteadas (a sequência aleatória do resto não muda), mas não são coladas.
-    from vila_alta_ms import ALTA_FIM as FIM
+    # Os trechos da caatinga, da vila, da vila alta e do campo de pouso (x < FIM) vêm pintados no jeito novo
+    # (caatinga_ms, vila_ms, vila_alta_ms, campo_ms): aqui as peças deles continuam sorteadas (a sequência
+    # aleatória do resto não muda), mas não são coladas.
+    from campo_ms import CAMPO_FIM as FIM
     # Enfeites atrás das plataformas: capim, xique-xique, pedras, caveira.
     for x in range(0, LARGURA_FASE, 9):
         if rng.random() < 0.55:
@@ -962,17 +960,7 @@ def camada_jogo():
         colar(t, cb, x0 - dx, y(CHAO) - (cb.h - 1))
     # (Giraus, capela, cruzeiro e objetos da vila de taipa: vila_ms.camada_jogo.)
     # (Casario de platibanda, toldos, casinha do fim e objetos da vila alta: vila_alta_ms.camada_jogo.)
-    import vila_campo as vca
-    # ---- Campo de pouso: hangar, marcas de pneu, balizas, tanque de gasolina, cerca e trincheira.
-    assentar(t, ca.hangar(150, 96, semente=4), HANGAR_X, yc + 1)
-    vca.marcas_pneu(t, HANGAR_X + 60, 5960, yc - 6, semente=3)
-    for x in range(5110, 5600, 96):
-        assentar(t, ca.baliza(x), x, yc + 1)
-    assentar(t, ca.tanque_gasolina(2), 5600, yc)
-    assentar(t, sacos_detalhados(4, 3, 4), 5700 - 3, yc, afundar=3)
-    assentar(t, cerca_farpada(90, 6), 5890, yc)
-    for x in (4870, 5080, 5620, 5940):
-        assentar(t, xiquexique(semente=x), x, yc)
+    # (Hangar, pista, balizas, tanque de gasolina, trincheira e cerca do campo de pouso: campo_ms.camada_jogo.)
     # ---- Leito de rio seco: canoa velha encalhada, ossada, ponte com corrimão.
     # (A canoa virou segredo: é sprite à parte, que o tiro arrebenta.)
     assentar(t, cranio_boi(), 6490, yc)
@@ -1003,7 +991,7 @@ def camada_jogo():
 def camada_perto():
     """Atrás do plano do jogo (anda a 0,75 da câmera): casa de taipa, árvores
     grandes, mandacarus, cerca do curral, cata-vento e pedras grandes."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     W = int(LARGURA_FASE * fator + 548)
     alt = 160
     base = alt - 2
@@ -1018,7 +1006,7 @@ def camada_perto():
         pecas.append((lx(wx), ca.arvore(int(rng.integers(96, 138)), semente=k + 100, seca=float(rng.uniform(0.15, 0.6)),
                                         folhas=rng.random() > 0.2)))
     for k, wx in enumerate((150, 460, 880, 1240, 1880, 2250, 2600, 2950, 3820, 6820, 7600)):
-        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(60, 92)), semente=k + 200, bracos=int(rng.integers(1, 4)))))
+        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(60, 92) * 0.62), semente=k + 200, bracos=int(rng.integers(1, 4)))))
     for k, wx in enumerate((270, 1120, 2150, 640, 1700)):
         pecas.append((lx(wx), ca.pedra(int(rng.integers(44, 70)), int(rng.integers(26, 40)), semente=k + 300,
                                        rampa=ca.PEDRA if k % 2 else ca.PEDRA_Q)))
@@ -1046,7 +1034,7 @@ def camada_perto():
     import vila_campo as vca
     pecas.append((lx(5500), ca.tanque_gasolina(5)))
     for k, wx in enumerate((4950, 5380, 5700, 5900)):
-        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(56, 84)), semente=k + 220, bracos=2)))
+        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(56, 84) * 0.62), semente=k + 220, bracos=2)))
     # Rio seco: carnaúbas na beira.
     for k, wx in enumerate((6080, 6180, 6330, 6480, 6620, 6740)):
         pecas.append((lx(wx), ca.carnauba(int(rng.integers(84, 120)), semente=k + 60)))
@@ -1055,7 +1043,7 @@ def camada_perto():
     for k, wx in enumerate((6900, 7060, 7360, 7550)):
         pecas.append((lx(wx), ca.para_dia(bd_.barraca_pequena(60, 34, k + 10, bd_.OLIVA, k % 2 == 0))))
     pecas.append((lx(7220), vc.caminhao(0)))
-    import vila_alta_ms as cm
+    import campo_ms as cm
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
         if cm.antigo(x, fator):  # o trecho da caatinga vem pintado no jeito novo
             colar(t, p, x, base - p.h + 2)
@@ -1104,7 +1092,7 @@ def textura_morro(t, morro, alto, rng):
 def camada_meio():
     """Longe (anda a 0,45 da câmera): morros baixos com caatinga miúda e uma casinha.
     (O disco que cai no fim passa atrás dela, animado no jogo.)"""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão
     W = int(LARGURA_FASE * fator + 548)
     alt = 90
     t = Tela(W, alt)
@@ -1119,7 +1107,7 @@ def camada_meio():
     # Caatinga miúda e espalhada: arbustos em tufos, algumas árvores secas sem folha.
     x = 0
     import caatinga_detalhe as ca
-    import vila_alta_ms as cm  # caatinga e vila vêm pintadas no jeito novo: não cola as peças delas
+    import campo_ms as cm  # caatinga e vila vêm pintadas no jeito novo: não cola as peças delas
     while x < W:
         h = int(rng.integers(20, 40))
         seca = rng.random() < 0.3
@@ -1164,13 +1152,13 @@ def camada_meio():
 def camada_frente():
     """Na frente do Lampião (anda a 1,1 da câmera): tufos e pedras escuras,
     poucos e espalhados, para dar profundidade sem atrapalhar."""
-    fator = 1.1
+    fator = 1.0   # (23/10) preso ao chão
     W = int(LARGURA_FASE * fator + 548)
     alt = 22
     t = Tela(W, alt)
     rng = np.random.default_rng(4)
     escuro = ["preto", "sombra", "sombra_media", "caatinga_esc", "terra_escura"]
-    import vila_alta_ms as cm
+    import campo_ms as cm
     x = 200
     while x < W - 40:
         novo = not cm.antigo(x, fator)  # o trecho da caatinga vem pintado no jeito novo
@@ -1205,20 +1193,47 @@ def exportar(saida, raiz):
     import rocha as rc
     from PIL import Image
     import caatinga_ms as cm
-    import vila_alta_ms as vm
+    import campo_ms as vm
     # Céu, nuvens e serra são da fase toda: já no jeito novo (céu e serra quietos e enevoados).
     cm.ceu().save(saida / "f1_ceu.png", optimize=True)
     cm.nuvens().save(saida / "f1_nuvens.png", optimize=True)
-    paredao = ca.paredao(int(LARGURA_FASE * 0.2 + 548))
-    # Trechos da caatinga, da vila e da vila alta no jeito novo, emendados no resto da fase sem corte reto.
+    paredao = ca.paredao(int(LARGURA_FASE + 548))
+    # Trechos da caatinga, da vila, da vila alta e do campo de pouso no jeito novo, emendados no resto da fase sem corte reto.
     novas = {
         "f1_jogo": cm.sobrepor(jogo.imagem(), vm.camada_jogo(sys.modules[__name__])),
         "f1_perto": cm.sobrepor(perto.imagem(), vm.camada_perto()),
         "f1_meio": cm.emendar(meio.imagem(), vm.camada_meio(), sem=3),
         "f1_frente": cm.sobrepor(frente.imagem(), vm.camada_frente()),
-        "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE * 0.08 + 548)).rgba(), "RGBA"),
+        "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE + 548)).rgba(), "RGBA"),
         "f1_paredao": cm.emendar(paredao.imagem(), vm.camada_paredao(), largura=200, sem=4),
     }
+    # Chão largo (22/10): o chão pintado sai do plano do jogo (vira faixas com parallax próprio),
+    # o fundo perde o que ficaria atrás das construções da rua e as peças baixas viram 2.5D.
+    import chao_largo as cl
+    novas["f1_jogo"] = cl.limpar_chao_jogo(novas["f1_jogo"], topo, vm.CAMPO_FIM)
+    # capela da vila em 2.5D (sprite à parte, recuada como as casas; a porta fica em x 3468)
+    import predios25 as p25
+    cp, cpx = p25.capela25()
+    Image.fromarray(cp.rgba(), "RGBA").save(saida / "f1_capela.png", optimize=True)
+    capela = [3468 - cpx, CHAO_MUNDO_RECUO := 194 - cl.RECUO, cp.w, cp.h]
+    # Regra (23/10): nenhum objeto dentro do outro. Árvore, cacto ou casa do fundo que ficaria
+    # atrás de construção, pedra, girau, sacos ou carroça sai (com folga de ~15 px).
+    pecas_lista = cl.pecas_fase1(FASE)
+    ocupantes = [c[:3] for c in FASE["casas"]] + [(capela[0], cp.w, cp.h)] + \
+        [(px, q.w, q.h) for q, px, py, *_ in pecas_lista]
+    occ = cl.ocupacao(novas["f1_jogo"], topo, ocupantes, LARGURA_FASE)
+    novas["f1_perto"] = cl.tirar_sobrepostos(novas["f1_perto"], fp, novas["f1_perto"].height - 1, occ)
+    for px, pq in cm.pedras_fundo():
+        novas["f1_perto"].alpha_composite(Image.fromarray(pq.rgba(), "RGBA"), (px - 8, novas["f1_perto"].height - pq.h + 2))
+    # (23/10) os morros não perdem pedaços (os buracos mostravam o paredão por baixo) e o pé
+    # deles vira a terra do chão, sem linha entre o chão e o fundo
+    chao_tex = cl.textura_chao()
+    chao_tex.save(saida / "f1_chao.png", optimize=True)
+    novas["f1_meio"] = cl.pe_dos_morros(novas["f1_meio"], 192 - 76, chao_tex)
+    pecas25 = []
+    for k, (q, px, py, *prof) in enumerate(pecas_lista):
+        Image.fromarray(q.rgba(), "RGBA").save(saida / f"f1_p25_{k}.png", optimize=True)
+        pecas25.append([k, px, py] + prof)
     for nome, im in novas.items():
         n = (im.width + PEDACO - 1) // PEDACO
         for k in range(n):
@@ -1229,13 +1244,22 @@ def exportar(saida, raiz):
         pedacos[nome] = n
     (raiz / "src/fase1_pedacos.js").write_text(
         "// Gerado por tools/arte/fase1.py: quantos pedaços (de " + str(PEDACO) + " px) tem cada camada da fase 1.\n"
-        "export const PEDACO = " + str(PEDACO) + ";\nexport const PEDACOS = " + json.dumps(pedacos) + ";\n")
+        "export const PEDACO = " + str(PEDACO) + ";\nexport const PEDACOS = " + json.dumps(pedacos) + ";\n"
+        "export const PECAS25 = " + str(len(pecas25)) + ";\n")
     dados = dict(FASE)
+    # As bases das camadas de fundo subiram com o chão largo: o pé do plano de trás fica na
+    # beira de trás do chão (y 216 na tela), os morros e o paredão subiram junto.
     dados["camadas"] = {
-        "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194, "fator": fp},  # perto: 160 de altura
-        "meio": {"base": 192, "fator": fm}, "frente": {"base": 216, "fator": ff},
-        "serras": {"base": 168, "fator": 0.08}, "paredao": {"base": 176, "fator": 0.2},
+        "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194 - 70, "fator": fp},  # perto: 160 de altura
+        "meio": {"base": 192 - 76, "fator": fm}, "frente": {"base": 216, "fator": ff},
+        # (23/10) serras, paredão e morros andam juntos (um bloco só de fundo, sem deslizar entre si)
+        "serras": {"base": 168, "fator": 1.0}, "paredao": {"base": 176 - 38, "fator": 1.0},
     }
+    dados["chao"] = {"hz": cl.HZ, "faixas": cl.faixas(), "descer": cl.DESCE}
+    dados["pecas25"] = pecas25
+    dados["capela"] = capela
+    dados["recuo"] = CHAO_MUNDO_RECUO       # pé das casas e da capela (atrás da linha onde se anda)
+    dados["portasFundo"] = [3098, 3468]      # portas recuadas: quem sai delas desce o degrau
     pasta = raiz / "assets/fases"
     pasta.mkdir(parents=True, exist_ok=True)
     (pasta / "fase1.json").write_text(json.dumps(dados, ensure_ascii=False, separators=(",", ":")))

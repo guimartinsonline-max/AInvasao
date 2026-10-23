@@ -431,21 +431,22 @@ def matriz(sem=9):
 
 
 # ---------------------------------------------------------------- camadas
-def camada_paredao(h=130):
-    return vm.camada_paredao(h, ate=limite(0.2))
+def camada_paredao(h=130, ate=None):
+    """`ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura)."""
+    return vm.camada_paredao(h, ate=ate or limite(1.0))
 
 
-def camada_frente(h=44):
-    return vm.camada_frente(h, ate=limite(1.1))
+def camada_frente(h=44, ate=None):
+    return vm.camada_frente(h, ate=ate or limite(1.0))
 
 
-def camada_meio(h=124):
+def camada_meio(h=124, ate=None):
     # 124 de altura (era 90): folga em cima para as casinhas e a torre da vila alta ao longe
     # não ficarem com o telhado cortado; a base continua no mesmo lugar.
     """Os morros continuam por planos; árvores ralas, um sítio com a casinha e a cerca."""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão: nada desliza
     lim = limite(fator)
-    q = vm.camada_meio(h, ate=lim)
+    q = vm.camada_meio(h, ate=ate or lim)
     rng = np.random.default_rng(41)
     x0 = vm.limite(fator) - 10
     topo = np.argmax(q.a, axis=0)
@@ -463,19 +464,18 @@ def camada_meio(h=124):
             q.colar(p, x - p.w / 2, py)
         x += rng.uniform(60, 120)
     sx = int((x0 + lim) / 2)
-    c = nevoa(cm.casinha_longe(46, 20, sem=33), 0.36)
-    q.colar(c, sx, topo[sx + c.w // 2] + 6 - c.h)
+    # (23/10) o sítio com a casinha saiu: aparecia por cima dos sobrados
     cv = nevoa(cm.cerca_varas(60, 14, sem=34), 0.36)
-    q.colar(cv, sx + c.w + 4, topo[min(q.w - 1, sx + c.w + 30)] + 8 - cv.h)
+    q.colar(cv, sx + 50, topo[min(q.w - 1, sx + 80)] + 8 - cv.h)
     return q
 
 
-def camada_perto(h=160):
+def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): atrás do casario, a igreja matriz com as duas torres, os
     telhados das casas de trás (só aparecem por cima da platibanda e nos becos) e árvores."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     lim = limite(fator)
-    q = vm.camada_perto(h, ate=lim)
+    q = vm.camada_perto(h, ate=ate or lim)
     chao = h - 1
     rng = np.random.default_rng(52)
     x0 = vm.limite(fator)
@@ -488,13 +488,9 @@ def camada_perto(h=160):
     casa = lambda *a, **k: nevoa(cm.casa(*a, sombra_beiral=True, **k), 0.2)  # noqa: E731
     pecas = [
         (lx(3900), cm.arvore(150, sem=150, folhas=True)),
-        (lx(3990), casa(110, 84, 40, sem=61, alpendre=False, lado=18, porta=(20, 20, 36), janela=(70, 14, 18))),
         (lx(4250), nevoa(matriz(), 0.12)),
         (lx(4150), cm.arvore(136, sem=151, folhas=False)),
-        (lx(4500), casa(120, 88, 42, sem=62, alpendre=False, lado=20, porta=(80, 20, 36), janela=(20, 14, 18),
-                        parede="terra")),
         (lx(4690), cm.arvore(146, sem=152, folhas=True)),
-        (lx(4760), casa(100, 80, 38, sem=63, alpendre=False, lado=16, porta=(24, 20, 36), janela=(66, 14, 18))),
     ]
     for x, p in sorted(pecas, key=lambda e: -e[1].h):
         if x + p.w <= lim + 40:
@@ -502,12 +498,12 @@ def camada_perto(h=160):
     return q
 
 
-def camada_jogo(fase, alt=176, topo_mundo=40):
+def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
     """Plano do jogo: a rua continua, o casario de platibanda (sólidos), muros nos becos,
     os toldos da bodega, a casinha baixa do fim e os objetos de rua na luz da cena."""
     import fase1 as f1
     CH = f1.CHAO
-    q = vm.camada_jogo(fase, alt, topo_mundo, ate=ALTA_FIM + 40)
+    q = vm.camada_jogo(fase, alt, topo_mundo, ate=ate or ALTA_FIM + 40)
     y = lambda wy: wy - topo_mundo  # noqa: E731
     yc = y(CH) - 1
     rng = np.random.default_rng(83)
@@ -530,19 +526,20 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
         q.img[j0:j1, i0:i1] = sub.img
     casas = f1.VILA_ALTA
     # muros fechando os becos entre os sobrados (recuados, atrás)
-    for (xa, wa, *_), (xb, *_r) in zip(casas, casas[1:]):
+    # (23/10) saíram: com os sobrados em 2.5D os muros ficavam presos no meio do beco
+    for (xa, wa, *_), (xb, *_r) in []:
         if xb - (xa + wa) > 8:
             mu = muro_beco(xb - (xa + wa) + 4, 46, sem=xa)
             q.colar(mu, xa + wa - 2, yc - mu.h + 1)
     # casario
+    # (23/10: com fundo, como no Metal Slug: parede do lado e tampo da platibanda indo para trás)
+    import predios25 as p25
     for k, (x, w_, h_, cor, sac) in enumerate(casas):
-        q.colar(sobrado(w_, h_, cor, sem=50 + k, sacada=sac, letreiro=NOMES[k]), x, y(CH) - h_)
+        sb = p25.extrudar(sobrado(w_, h_, cor, sem=50 + k, sacada=sac, letreiro=NOMES[k]), 12, 8)
+        q.colar(sb, x, y(CH) - h_ - 8)
         q.sombra(x + w_ / 2, yc + 1, w_ * 1.02, 3)
-    # casinha baixa no fim (o topo do telhado é o degrau para descer)
+    # (a casinha baixa do fim saiu a pedido do Guilherme, 22/10)
     cx_, cw_, ch_ = f1.CASINHA_FIM
-    cs = cm.casa(40, 30, 22, sem=88, alpendre=False, lado=10, porta=(12, 14, 24), janela=False, sombra_beiral=True)
-    q.sombra(cx_ + cw_ / 2, yc + 1, cw_, 3)
-    q.colar(cs, cx_, y(CH) - ch_)
     # capim no pé das paredes
     x = ALTA_INI - 20.0
     while x < ALTA_FIM:
@@ -555,7 +552,7 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
         q.colar(td, x, y(152))
     # objetos de rua na luz da cena
     amb = lambda t: ambientar(t.imagem())  # noqa: E731
-    q.assentar(amb(f1.sacos_detalhados(4, 3, 3)), 4290 - 3, yc, afundar=3)
+    # (os sacos agora são peça 2.5D à parte: chao_largo.pecas_fase1)
     for x, peca in ((3884, f1.pote_barro(9)), (4110, f1.cabacas()), (4360, f1.pilao()), (4600, f1.pote_barro(10, 12)),
                     (4588, f1.roda_carroca(8)), (4470, f1.pote_barro(11)), (4482, f1.pote_barro(12, 10))):
         q.assentar(amb(peca), x, yc)
@@ -580,6 +577,8 @@ def camada_jogo(fase, alt=176, topo_mundo=40):
                         yyy, xxx = int(yy) + dy, int(xx) + dx
                         q.img[yyy, xxx] = cm.RGB[rampa][int(np.clip((lz - 0.25 * (dx > 0)) * len(cm.RGB[rampa]), 0, len(cm.RGB[rampa]) - 1))]
                         q.a[yyy, xxx] = True
+    if ate:                          # o trecho seguinte continua daqui e faz a passagem
+        return q
     # a passagem para o campo de pouso: o chão novo some em manchas sobre o antigo
     # (só depois da casinha do fim: nenhuma peça da vila alta fica furada)
     ini = cx_ + cw_ + 4

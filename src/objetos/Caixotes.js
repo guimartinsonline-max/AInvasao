@@ -6,9 +6,15 @@
 // o de baixo quebra. No campo de treino voltam depois de um tempo.
 
 const TIPOS = {
-  caixote: { textura: 'caixote', largura: 24, altura: 18, vida: 3 },
-  barril: { textura: 'barril', largura: 18, altura: 24, vida: 2, explode: { raio: 44, dano: 6, tamanho: 1.3 } },
+  // Caixote 2.5D (22/10); a tampa aparece por cima
+  // (dy: quanto a imagem sobe acima do sólido, que fica no meio da tampa).
+  // (23/10: 30% menor; o tiro em pé ainda acerta pela faixa "mira" acima da tampa)
+  caixote: { textura: 'caixote', largura: 20, altura: 22, vida: 3, dy: 4, mira: 12 },
+  // Barril 3D (23/10, 20% maior): a tampa em elipse aparece por cima do sólido.
+  barril: { textura: 'barril', largura: 22, altura: 25, vida: 2, dy: 5, explode: { raio: 48, dano: 6, tamanho: 1.4 } },
 };
+// Os dados guardam o canto de cima no tamanho antigo do caixote (18 de altura).
+const ALTURA_DADOS = { caixote: 18, barril: 24 };
 const VOLTA = 10000; // ms para reaparecer (campo de treino)
 
 // O que sai de um caixote quebrado: item, refém amarrado, bode Fubá ou nada.
@@ -27,7 +33,8 @@ class Caixote {
     this.tipo = tipo;
     this.cfg = TIPOS[tipo];
     this.inicio = { x, y };
-    this.img = cena.add.image(x, y, this.cfg.textura, 0).setOrigin(0).setDepth(6);
+    this.dy = this.cfg.dy || 0;
+    this.img = cena.add.image(x, y - this.dy, this.cfg.textura, 0).setOrigin(0).setDepth(6);
     this.zona = cena.add.zone(x, y, this.cfg.largura, this.cfg.altura).setOrigin(0);
     cena.solidos.add(this.zona);
     this.zona.caixote = this;
@@ -36,11 +43,11 @@ class Caixote {
   }
 
   // Posição do "pé" (base, centro), no mesmo padrão dos inimigos.
-  get x() { return this.img.x + this.cfg.largura / 2; }
-  get y() { return this.img.y + this.cfg.altura; }
+  get x() { return this.zona.x + this.cfg.largura / 2; }
+  get y() { return this.zona.y + this.cfg.altura; }
 
   mover(x, y) {
-    this.img.setPosition(x, y);
+    this.img.setPosition(x, y - this.dy);
     this.zona.setPosition(x, y);
     this.zona.body.updateFromGameObject();
   }
@@ -59,7 +66,7 @@ class Caixote {
     if (this.cfg.explode && this.vida > 0) {
       // Barril furado: amassa e solta faísca.
       this.img.setFrame(1);
-      cena.efeitos.faisca(this.x + 3, this.img.y + 11, 4);
+      cena.efeitos.faisca(this.x + 3, this.img.y + 16, 4);
     }
     if (this.vida <= 0) this.quebrar();
   }
@@ -69,7 +76,7 @@ class Caixote {
     const ef = cena.efeitos;
     const cx = this.x;
     const cy = this.y - this.cfg.altura / 2;
-    const topo = this.img.y;
+    const topo = this.zona.y;
     this.vivo = false;
     cena.pontuar(this.cfg.explode ? 50 : 10, cx, cy - 10);
     // Se estava caindo de uma pilha, para a queda antes de sair do mapa.
@@ -101,7 +108,7 @@ class Caixote {
     const A = this.cfg.altura;
     const ocupado = j.x > x - 8 && j.x < x + L + 8 && j.pe > y - 4 && j.pe - 36 < y + A;
     // Lugar ocupado (pelo Lampião ou por outro objeto que caiu ali): tenta de novo depois.
-    const outro = this.cena.caixotes.lista.some((c) => c !== this && c.vivo && Math.abs(c.img.x - x) < L && Math.abs(c.img.y - y) < A);
+    const outro = this.cena.caixotes.lista.some((c) => c !== this && c.vivo && Math.abs(c.zona.x - x) < L && Math.abs(c.zona.y - y) < A);
     if (ocupado || outro) {
       this.cena.time.delayedCall(1000, () => this.voltar());
       return;
@@ -118,7 +125,27 @@ export class Caixotes {
   // posicoes: [x, y, tipo?] com x, y do canto de cima à esquerda.
   constructor(cena, posicoes) {
     this.cena = cena;
-    this.lista = posicoes.map(([x, y, tipo]) => new Caixote(cena, x, y, tipo));
+    // Converte do tamanho antigo: cada um apoia o pé onde apoiava; o empilhado apoia no
+    // topo novo do de baixo (os de baixo primeiro).
+    const pe = ([, y, tipo = 'caixote']) => y + ALTURA_DADOS[tipo];
+    const postos = [];
+    // Barris (23/10): nunca empilhados e um só em cada lugar (os vizinhos e os de cima saem).
+    this.lista = [];
+    for (const [x0, y, tipo = 'caixote'] of [...posicoes].sort((a, b) => pe(b) - pe(a))) {
+      let p = pe([x0, y, tipo]);
+      const baixo = postos.find((o) => Math.abs(o.x - x0) < 20 && Math.abs(o.topoVelho - p) <= 1);
+      const barril = tipo === 'barril';
+      const vizinho = barril && postos.some((o) => o.barril && Math.abs(o.x - x0) < 40 && Math.abs(o.pe - p) <= 30);
+      if ((baixo && (barril || baixo.fora)) || vizinho) {
+        postos.push({ x: x0, topoVelho: y, fora: true, barril, pe: p });
+        continue;
+      }
+      if (baixo) p = baixo.topoNovo;
+      const x = barril ? x0 - 2 : x0;
+      const topo = p - TIPOS[tipo].altura;
+      postos.push({ x: x0, topoVelho: y, topoNovo: topo, barril, pe: p });
+      this.lista.push(new Caixote(cena, x, topo, tipo));
+    }
   }
 
   // Caixotes apoiados em cima de um que quebrou caem até o próximo apoio.
@@ -127,10 +154,10 @@ export class Caixotes {
     for (const c of this.lista) {
       if (!c.vivo || c.queda || Math.abs(c.x - cx) >= c.cfg.largura || Math.abs(c.y - topo) > 1) continue;
       const destino = cena.chaoAbaixo(c.x, c.y + 1) - c.cfg.altura;
-      const alvo = { y: c.img.y };
+      const alvo = { y: c.zona.y };
       c.queda = cena.tweens.add({
         targets: alvo, y: destino, duration: Math.max(80, (destino - alvo.y) * 5), ease: 'Quad.easeIn',
-        onUpdate: () => c.vivo && c.mover(c.img.x, Math.round(alvo.y)),
+        onUpdate: () => c.vivo && c.mover(c.zona.x, Math.round(alvo.y)),
         onComplete: () => {
           c.queda = null;
           cena.efeitos.poeira(c.x, c.y, 6);

@@ -240,12 +240,15 @@ export class Inimigo extends Phaser.Physics.Arcade.Sprite {
         this.prop.setFrame(1);
         ef.poeira(this.prop.x, this.prop.y, 6);
       }
+      // As cartas caem no chão em volta dele, na altura do pé (guardada agora: morto, ele é
+      // arremessado e o objeto pode ser reaproveitado em outro lugar).
+      const pe = this.y;
       for (let k = 0; k < 7; k++) {
-        const c = cena.add.sprite(this.x + this.direcao * 12, this.y - 26, 'carta_voa', k % 2).setDepth(21);
-        const vx = Phaser.Math.Between(-70, 70);
+        const c = cena.add.sprite(this.x + this.direcao * 12, pe - 26, 'carta_voa', k % 2).setDepth(21);
+        const vx = Phaser.Math.Between(-40, 40);
         cena.tweens.add({ targets: c, x: c.x + vx, duration: 900, ease: 'Linear' });
         cena.tweens.add({ targets: c, y: c.y - Phaser.Math.Between(20, 44), duration: 300, ease: 'Quad.easeOut', yoyo: false,
-          onComplete: () => cena.tweens.add({ targets: c, y: this.y - 2, duration: 600, ease: 'Quad.easeIn' }) });
+          onComplete: () => cena.tweens.add({ targets: c, y: pe - 2 + Phaser.Math.Between(0, 4), duration: 600, ease: 'Quad.easeIn' }) });
         cena.tweens.add({ targets: c, angle: Phaser.Math.Between(-540, 540), duration: 900 });
         cena.time.addEvent({ delay: 90, repeat: 9, callback: () => c.setFrame((c.frame.name + 1) % 2) });
         cena.time.delayedCall(2600, () => cena.tweens.add({ targets: c, alpha: 0, duration: 400, onComplete: () => c.destroy() }));

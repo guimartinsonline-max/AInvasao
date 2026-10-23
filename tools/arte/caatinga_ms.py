@@ -28,7 +28,7 @@ TODAS = np.concatenate([RGB[r] for r in AMB]).astype(int)
 # Câmera mais à direita ainda dentro da caatinga: a borda direita da tela chega no começo da vila.
 CAMERA_FIM = CAATINGA_FIM - TELA_W
 # Perto: para logo antes da 1ª casa antiga da vila (a borda dela só aparece no último pixel da tela).
-_LIMITE_FIXO = {0.75: 2360}
+_LIMITE_FIXO = {0.75: 2360, 1.0: 3146}
 
 
 def limite(fator):
@@ -269,28 +269,64 @@ def arvore(alt=145, sem=0, folhas=True):
     return q
 
 
+ESCALA_CACTO = 0.62
+
+
+def pedras_fundo():
+    """Pedras grandes na beira de trás do chão no jeito novo (blocos, como a barreira da
+    frente): [(x do mundo, Quadro)]. Vão inteiras, mesmo atrás de outra peça."""
+    import pecas25 as p5
+    return [(100, p5.rochedo3(W=64, D=8, BAIXO=22, sem=300)[0]),
+            (1150, p5.rochedo3(W=80, D=9, BAIXO=26, sem=301)[0]),
+            (2170, p5.rochedo3(W=56, D=8, BAIXO=18, sem=302)[0])]
+
+
 def mandacaru(alt=78, sem=0, bracos=((-15, 34, 64), (15, 44, 70))):
-    """Mandacaru de gomos verticais, luz da esquerda, espinhos claros nas arestas."""
-    s = alt / 78.0
-    q = Quadro(int(54 * s) + 10, alt + 2)
-    x, chao = q.w // 2, q.h
+    """Mandacaru roliço (23/10): cada coluna é um cilindro de gomos (aresta acesa, vale
+    escuro, luz da esquerda), topo redondo, cotovelo do braço como um tubo deitado que vira
+    para cima, espinhos claros nas arestas; o pé finca num montinho de terra com sombra."""
+    alt = int(round(alt * ESCALA_CACTO))   # (23/10) na escala do Lampião (~45 px de altura)
+    s_ = alt / 78.0
+    q = Quadro(int(58 * s_) + 12, alt + 4)
+    x, chao = q.w // 2, q.h - 2
+    X, Y = q.xx.astype(float), q.yy.astype(float)
 
-    def braco(x0, y0, y1, r):
-        m = (np.abs(q.xx - x0) <= r) & (q.yy >= y0) & (q.yy < y1)
-        m |= (np.hypot(q.xx - x0, q.yy - y0) <= r) & (q.yy < y0 + r)
-        u = (q.xx - x0) / r
-        gomo = np.cos(u * np.pi * 2.0)
-        luz = 0.48 - 0.38 * u + 0.16 * gomo
-        luz = np.where(np.abs(np.sin(u * np.pi * 2.0)) < 0.25, luz - 0.2, luz)
-        luz = np.where(((q.yy + q.xx * 3 + sem) % 6 == 0) & (np.abs(gomo) > 0.9), 0.95, luz)
-        q.pinta(m, "verde", np.clip(luz, 0, 0.999))
+    def coluna(x0, y0, y1, r):
+        u = (X - x0) / r
+        topo = y0 + r * 0.9
+        m = (np.abs(u) <= 1) & (Y >= topo) & (Y < y1)
+        m |= (((X - x0) / r) ** 2 + ((Y - topo) / (r * 0.9)) ** 2 <= 1) & (Y < topo)
+        cil = np.sqrt(np.clip(1 - u ** 2, 0, 1))
+        gomo = np.cos(u * np.pi * 2.6)
+        luz = 0.25 + 0.38 * cil - 0.3 * u + 0.14 * gomo
+        luz = np.where(Y < topo, luz + 0.12 * (topo - Y) / r, luz)            # topo redondo aceso
+        luz = np.where(gomo < -0.75, luz - 0.16, luz)                          # vale entre gomos
+        espinho = (gomo > 0.9) & (((Y + X * 3 + sem) % 5) == 0)
+        luz = np.where(espinho, 0.97, luz)
+        q.pinta(m, "verde", np.clip(luz, 0.02, 0.97))
+        return m
 
-    braco(x, chao - alt + 1, chao, 7 * max(s, 0.75))
-    for dx, yb, yt in bracos:
-        dx, yb, yt = dx * s, chao - yb * s, chao - yt * s
-        cot = (q.yy >= yb - 5) & (q.yy < yb + 4) & (q.xx >= min(x, x + dx)) & (q.xx < max(x, x + dx))
-        q.pinta(cot, "verde", np.clip(0.45 + 0.25 * ((yb - q.yy) / 5) - 0.2 * (dx > 0), 0, 0.999))
-        braco(x + dx, yt, yb + 4, 5 * max(s, 0.75))
+    def cotovelo(x0, x1, yb, r):
+        a, b = min(x0, x1), max(x0, x1)
+        v = (Y - yb) / r
+        m = (X >= a) & (X <= b) & (np.abs(v) <= 1)
+        luz = 0.3 + 0.35 * np.sqrt(np.clip(1 - v ** 2, 0, 1)) - 0.25 * v + 0.1 * np.cos(v * np.pi * 2.6)
+        q.pinta(m, "verde", np.clip(luz, 0.02, 0.97))
+
+    r0 = 7.5 * max(s_, 0.75)
+    for dx, yb, yt in bracos:                                                  # braços atrás do tronco
+        dx, yb, yt = dx * s_, chao - yb * s_, chao - yt * s_
+        ra = 5.2 * max(s_, 0.75)
+        cotovelo(x, x + dx, yb, ra)
+        coluna(x + dx, yt, yb + ra * 0.3, ra)
+    coluna(x, chao - alt + 2, chao + 1, r0)
+    # montinho de terra no pé, com pedrinhas e a sombra de contato
+    d = ((X - x) / (r0 * 1.9)) ** 2 + ((Y - chao) / 3.2) ** 2
+    mont = (d < 1) & (Y >= chao - 2)
+    q.pinta(mont, "terra", np.clip(0.62 - 0.25 * (Y - chao + 2) / 4 - 0.12 * (X - x) / (r0 * 2), 0.05, 0.95))
+    for k in (-1, 1):
+        pm = np.hypot(X - (x + k * r0 * 1.3), (Y - chao) * 1.4) < 1.6
+        q.pinta(pm, "cal", np.where(Y < chao, 0.75, 0.35))
     return q
 
 
@@ -794,7 +830,7 @@ def _xs(fator, margem=40):
 
 def camada_paredao(h=130, ate=None):
     """`ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura)."""
-    return chapada((ate or limite(0.2)) + 200, h)
+    return chapada((ate or limite(1.0)) + 200, h)
 
 
 def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
@@ -846,7 +882,7 @@ def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
 def camada_meio(h=90, ate=None, planos_extra=()):
     """Morros baixos ao longe em duas fileiras de formas próprias (por planos, sem ondas),
     caatinga rala, pedras, a vila no alto de um morro e uma casinha sozinha, tudo enevoado."""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão: nada desliza
     w = limite(fator) + 120          # as contas do sorteio seguem a largura da caatinga
     q = Quadro((ate or limite(fator)) + 120, h)
     oy = h - 90                      # folga em cima (camada mais alta): tudo desce junto, a base não muda
@@ -881,9 +917,13 @@ def camada_meio(h=90, ate=None, planos_extra=()):
     cx = int(900 * fator)
     c = nevoa(casinha_longe(46, 22, sem=12), 0.36)
     q.colar(c, cx, 42 + oy - c.h + 1)
+    # (23/10) a vila ao longe saiu (ficava atrás das casas da vila); no patamar, árvores
+    for k, x in enumerate(range(vila[0] + 20, min(vila[1], lim - 60), 60)):
+        p = nevoa(arvore(int(rng.uniform(36, 48)), sem=410 + k, folhas=True), 0.42)
+        q.colar(p, x - p.w / 2, 32 + oy + 3 - p.h)
     x = vila[0] + 4
     k = 0
-    while x < min(vila[1], lim - 60):
+    while False:
         c = nevoa(casinha_longe(int(rng.integers(40, 56)), int(rng.integers(18, 28)), sem=70 + k), 0.36)
         q.colar(c, x, 32 + oy - c.h + 1)
         x += c.w + int(rng.integers(4, 16))
@@ -894,7 +934,7 @@ def camada_meio(h=90, ate=None, planos_extra=()):
 def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): as duas casas de taipa grandes, o curral com o cata-vento,
     árvores e mandacarus grandes, pedras e moitas no pé."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     lim = limite(fator)
     q = Quadro((ate or lim) + 40, h)
     chao = h - 1
@@ -902,15 +942,15 @@ def camada_perto(h=160, ate=None):
     lx = lambda wx: int(wx * fator)  # noqa: E731
     pecas = []
     # (posição no mundo, peça): poucas e grandes
-    pecas.append((lx(100), pedra(64, 36, 300, topo=0.8)))
-    pecas.append((lx(1150), pedra(80, 42, 301, topo=0.8)))
-    pecas.append((lx(2180), pedra(56, 30, 302, topo=0.8)))
-    for k, (wx, alt) in enumerate(((20, 150), (560, 128), (1000, 156), (1700, 138), (2050, 150), (2700, 140))):
+    # (23/10) as pedras grandes do fundo agora são de blocos (pedras_fundo), coladas por cima
+    # depois da limpeza de sobrepostos, inteiras
+    for k, (wx, alt) in enumerate(((20, 150), (400, 128), (1000, 156), (1700, 138), (2050, 150), (2700, 140))):
         pecas.append((lx(wx), arvore(alt, sem=100 + k, folhas=k != 3)))
-    for k, (wx, alt, br) in enumerate(((330, 84, 2), (880, 96, 2), (1290, 70, 1), (1880, 92, 2), (2560, 80, 2))):
+    for k, (wx, alt, br) in enumerate(((250, 84, 2), (880, 96, 2), (1290, 70, 1), (1880, 92, 2), (2560, 80, 2))):
         b = ((-15, 34, 64), (15, 44, 70)) if br == 2 else ((15, 30, 56),)
         pecas.append((lx(wx), mandacaru(alt, sem=200 + k, bracos=b)))
-    pecas.append((lx(1460), cerca_varas(150, 40, 9)))
+    import pecas25 as p5
+    pecas.append((lx(1440), p5.curral(170, 40, 26, sem=9)))   # curral em 2.5D (cerca fugindo para trás)
     pecas.append((lx(1640), cata_vento(100)))
     pecas.append((lx(640), casa(196, 98, 54, sem=5)))
     pecas.append((lx(2380), casa(150, 84, 46, sem=8, alpendre=False, lado=24)))
@@ -931,7 +971,7 @@ def camada_perto(h=160, ate=None):
 
 def camada_frente(h=44, ate=None):
     """Na frente do Lampião (1,1): touceiras escuras de xique-xique e capim nos cantos."""
-    fator = 1.1
+    fator = 1.0   # (23/10) preso ao chão
     lim = ate or limite(fator)
     q = Quadro(lim + 40, h)
     rng = np.random.default_rng(4)
@@ -995,7 +1035,7 @@ def camada_jogo(fase, alt=140, topo_mundo=76, ate=None):
     # pedras e xique-xiques soltos
     for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850)):
         q.assentar(pedra(int(rng.integers(18, 30)), int(rng.integers(10, 15)), sem=k + 20), x, yc, afundar=2)
-    for x in (70, 205, 640, 1470, 1930, 2420, 2700, 2900):
+    for x in (70, 205, 640, 1590, 1930, 2420, 2700, 2900):   # longe das pedras, giraus e carroças
         q.assentar(xiquexique(int(rng.integers(24, 34)), int(rng.integers(18, 26)), sem=x), x, yc, afundar=2)
     # objetos antigos ambientados (sem contorno, na luz da cena)
     amb = lambda t: ambientar(t.imagem())  # noqa: E731
@@ -1009,31 +1049,12 @@ def camada_jogo(fase, alt=140, topo_mundo=76, ate=None):
             fg = amb(f1.fogueira())
             q.assentar(fg, gx - fg.w / 2, yc)
     for x, peca in ((300, f1.pote_barro(1)), (318, f1.pote_barro(2, 11)), (820, f1.pilao()),
-                    (1545, f1.carroca_quebrada()), (1720, f1.pote_barro(3)), (1910, f1.roda_carroca(8)),
-                    (2080, f1.pote_barro(4, 12)), (2450, f1.pilao()), (2500, f1.carroca_quebrada()),
-                    (180, f1.cerca_farpada(70, 1)), (1950, f1.cerca_farpada(100, 2)), (2860, f1.cerca_farpada(90, 3)),
+                    (1720, f1.pote_barro(3)), (1910, f1.roda_carroca(8)),
+                    (2080, f1.pote_barro(4, 12)), (2450, f1.pilao()),
                     (1880, f1.cranio_boi()), (2540, f1.cranio_boi())):
         q.assentar(amb(peca), x, yc)
-    # sólidos: lajedos, barranco e a pedra grande
-    sol = F["solidos"]
-    for k in (1, 3, 4, 5, 6):
-        sx, sy, sw = sol[k][:3]
-        q.sombra(sx + sw / 2, yc + 1, sw * 1.15, 3.5)
-        q.colar(lajedo(sw + 4, CH - sy + 6, sem=40 + k), sx - 2, y(sy) - 2)
-    sx, sy, sw = sol[8][:3]
-    br = barranco(sw + 4, CH - sy + 2, sem=48)
-    q.colar(br, sx - 2 - 22, y(CH) - br.h + 2)
-    sx, sy, sw = sol[10][:3]
-    pg = pedra(sw + 10, CH - sy + 6, sem=410, topo=0.88)
-    q.sombra(sx + sw / 2, yc + 1, sw * 1.2, 3)
-    q.colar(pg, sx - 5, y(sy) - 2)
-    # trincheira de sacos e giraus
-    sx = sol[2][0]
-    q.assentar(amb(f1.sacos_detalhados(4, 3, 1)), sx - 3, yc, afundar=3)
-    for k in (7, 9):
-        gx, gy, gw = sol[k][:3]
-        q.sombra(gx + gw / 2, yc + 1, gw * 1.1, 3)
-        q.colar(amb(f1.girau(gw, y(CH) - y(gy), semente=gx)), gx - 4, y(gy))
+    # Lajedos, barranco, pedra grande, trincheira de sacos, giraus e carros de boi agora são
+    # peças 2.5D à parte (chao_largo.pecas_fase1), na frente da linha onde se anda.
     if ate:                          # o trecho seguinte continua daqui e faz a passagem
         return q
     # a passagem para a vila: o chão novo some em manchas sobre o antigo

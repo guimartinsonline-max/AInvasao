@@ -19,7 +19,7 @@ const VEL = 88;
 const PULO = -290;
 const CADENCIA = 75; // ms entre balas da metralhadora
 const GIRO = Math.PI * 1.8; // rad/s da metralhadora girando
-const CORPO = { l: 40, a: 46 };
+const CORPO = { l: 50, a: 46 }; // largo como o desenho: a cabeça não entra nas coisas
 const KAMI_VEL = 230; // px/s do jumento kamikaze
 const KAMI_TEMPO = 1700; // ms até explodir sozinho
 
@@ -354,6 +354,11 @@ export class Jumento {
     } else {
       this.vyFuga = 0;
       s.y += Phaser.Math.Clamp(chao - s.y, -3, 6);
+      // Obstáculo na frente (sacos, lajedo, caixote): pula por cima em vez de atravessar.
+      const frente = s.x + this.direcao * 30;
+      const bate = this.cena.physics.overlapRect(frente - 1, s.y - 22, 2, 12, false, true).length > 0
+        || this.cena.caixotes.vivos().some((c) => Math.abs(c.x - frente) < 16 && c.y > s.y - 4 && c.y - c.cfg.altura < s.y - 8);
+      if (bate) this.vyFuga = -380;
     }
     // No ar, patas encolhidas (quadro de pulo); no chão, galope desesperado.
     s.setFlipX(this.direcao < 0).setFrame(noAr ? 5 : 6 + (Math.floor(this.passo / 90) % 2));

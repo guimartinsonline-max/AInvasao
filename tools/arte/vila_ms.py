@@ -33,25 +33,23 @@ def antigo(x, fator):
 
 # ---------------------------------------------------------------- casas da rua (sprites)
 # x, largura, altura, semente, rombo. A porta da 1ª casa fica em x 3098 (os soldados saem por ela).
-CASAS = [[3040, 170, 124, 21, False], [3664, 150, 112, 22, True]]
+CASAS = [[3040, 168, 130, 21, False], [3684, 150, 122, 22, True]]
 PORTA_CASA0 = 3098
 
 
 def casa_rua(k, destelhada=False):
-    """Casa de taipa da rua, no porte do Lampião (porta mais alta que ele), pintada como a
-    casa grande da caatinga. A 2ª é de barro sem reboco e tem um rombo de canhão."""
+    """Casa de taipa da rua em 2.5D (predios25.casa25, 22/10): a fachada de frente, a parede
+    do lado fugindo para trás e o telhado em perspectiva; porta mais alta que o Lampião.
+    A 2ª é de barro sem reboco e tem um rombo de canhão."""
+    import predios25 as p25
     x, W, H, sem, rombo = CASAS[k]
     if k == 0:
-        w, lado, tel = 124, 24, 42
-        hp = H - tel - 4
-        pdx = PORTA_CASA0 - x - 16 - 13          # centro da porta (26 de largura) em x 3098
-        q = cm.casa(w, hp, tel, sem=sem, alpendre=False, lado=lado, porta=(pdx, 26, 50),
-                    janela=(84, 18, 22), destelhada=destelhada, sombra_beiral=True)
+        pdx = PORTA_CASA0 - x - 6 - 14            # centro da porta (28 de largura) em x 3098
+        q = p25.casa25(W=124, HP=80, G=28, sem=sem, porta=(pdx, 28, 56), janela=(84, 22, 20, 22),
+                       destelhada=destelhada)
     else:
-        w, lado, tel = 106, 22, 38
-        hp = H - tel - 4
-        q = cm.casa(w, hp, tel, sem=sem, alpendre=False, lado=lado, porta=(18, 24, 48),
-                    janela=False, parede="terra", rombo=rombo, destelhada=destelhada, sombra_beiral=True)
+        q = p25.casa25(W=106, HP=74, G=26, sem=sem, parede="terra", porta=(18, 26, 54), janela=None,
+                       rombo=rombo, destelhada=destelhada)
     assert (q.w, q.h) == (W, H), (q.w, q.h, W, H)
     return q
 
@@ -221,12 +219,12 @@ def cruzeiro(sem=5):
 # `ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura); as peças da vila
 # continuam sorteadas só até o limite dela, para não mudar quando a camada cresce.
 def camada_paredao(h=130, ate=None):
-    return cm.camada_paredao(h, ate=ate or limite(0.2))
+    return cm.camada_paredao(h, ate=ate or limite(1.0))
 
 
 def camada_meio(h=90, ate=None, planos_extra=()):
     """Os morros da caatinga continuam; no fim, num patamar, a vila alta vista de longe."""
-    fator = 0.45
+    fator = 1.0   # (23/10) fundo preso ao chão: nada desliza
     lim = limite(fator)
     v0, v1 = 1780, 2010                       # patamar da vila alta ao longe
     q = cm.camada_meio(h, ate=ate or lim, planos_extra=[(v0, v1, 30)] + list(planos_extra))
@@ -248,10 +246,14 @@ def camada_meio(h=90, ate=None, planos_extra=()):
             p = nevoa(cm.arvore(int(rng.uniform(34, 50)), sem=int(x), folhas=rng.random() > 0.25), 0.42)
             q.colar(p, x - p.w / 2, topo[int(min(x, q.w - 1))] + rng.uniform(2, 8) - p.h)
         x += rng.uniform(50, 110)
-    # casario da vila alta: casinhas lado a lado e a torre da igreja matriz
+    # (23/10) a vila alta ao longe saiu: aparecia atrás das casas da própria vila (casas atrás
+    # das casas). No patamar ficam só árvores.
+    for k, x in enumerate(range(v0 + 20, v1 - 20, 70)):
+        p = nevoa(cm.arvore(int(rng.uniform(36, 48)), sem=400 + k, folhas=True), 0.42)
+        q.colar(p, x - p.w / 2, 30 + oy + 3 - p.h)
     x = v0 + 6
     k = 0
-    while x < v1 - 40:
+    while False:
         c = nevoa(cm.casinha_longe(int(rng.integers(38, 54)), int(rng.integers(18, 26)), sem=90 + k), 0.36)
         q.colar(c, x, 30 + oy - c.h + 1)
         x += c.w + int(rng.integers(2, 10))
@@ -271,7 +273,7 @@ def camada_meio(h=90, ate=None, planos_extra=()):
 def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): as casas da vila atrás da rua, uma de barro sem reboco,
     uma arrombada, árvores e mandacarus entre elas, moitas no pé."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     lim = limite(fator)
     q = cm.camada_perto(h, ate=ate or lim)
     chao = h - 1
@@ -304,7 +306,7 @@ def camada_perto(h=160, ate=None):
 
 
 def camada_frente(h=44, ate=None):
-    return cm.camada_frente(h, ate=ate or limite(1.1))
+    return cm.camada_frente(h, ate=ate or limite(1.0))
 
 
 def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
@@ -341,11 +343,14 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
         c = cm.capim(rng.uniform(5, 9), int(x), folhas=int(rng.integers(3, 6)))
         q.colar(c, x, yc - c.h + 2)
         x += rng.uniform(20, 56)
-    # capela (porta em x 3468, por onde a Volante sai) e cruzeiro
-    cp = capela()
-    q.sombra(3468, yc + 1, cp.w * 0.95, 3.5)
-    q.colar(cp, 3468 - 61, yc - cp.h + 2)
-    q.assentar(cruzeiro(), 3585, yc)
+    # capela: sprite à parte em 2.5D (predios25.capela25, porta em x 3468). O cruzeiro fica
+    # recuado como as casas (chao_largo.RECUO): nada alto na linha onde se anda.
+    import chao_largo as cl
+    # (fora da capela, que agora vai até x 3611: nada encostado)
+    import predios25 as p25
+    cz, _ = p25.cruzeiro25()          # (23/10) modelo 3D: viga com frente, lado e topo, degraus em caixa
+    q.sombra(3618 + 24, yc - cl.RECUO + 1, 50, 3)
+    q.assentar(cz, 3618, yc - cl.RECUO, sombra=False)
     # pedras e xique-xiques soltos
     for k, x in enumerate((3000, 3640)):
         q.assentar(cm.pedra(int(rng.integers(18, 28)), int(rng.integers(10, 14)), sem=k + 80), x, yc, afundar=2)
@@ -353,12 +358,9 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
         q.assentar(cm.xiquexique(int(rng.integers(24, 32)), int(rng.integers(18, 24)), sem=x), x, yc, afundar=2)
     # girau da vila e os objetos miúdos, na luz da cena
     amb = lambda t: ambientar(t.imagem())  # noqa: E731
-    gx, gy, gw = F["solidos"][11][:3]
-    q.sombra(gx + gw / 2, yc + 1, gw * 1.1, 3)
-    q.colar(amb(f1.girau(gw, y(CH) - y(gy), semente=gx)), gx - 4, y(gy))
+    # (o girau agora é peça 2.5D à parte: chao_largo.pecas_fase1)
     for x, peca in ((3170, f1.pote_barro(7)), (3400, f1.cabacas()), (3840, f1.pilao()), (3560, f1.pote_barro(8, 12))):
         q.assentar(amb(peca), x, yc)
-    q.assentar(cm.cerca_varas(70, 26, sem=37), 3730, yc)
     if ate:                          # o trecho seguinte continua daqui e faz a passagem
         return q
     # a passagem para a vila alta: o chão novo some em manchas sobre o antigo
