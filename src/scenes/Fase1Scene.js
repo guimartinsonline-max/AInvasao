@@ -107,7 +107,7 @@ export class Fase1Scene extends CenaJogo {
     const recuo = d.recuo ?? 195;
     d.casas.forEach(([x, w, h], k) => new CasaVila(this, `casa_vila_${k}`, x, recuo, w, h));
     if (d.capela) this.add.image(d.capela[0], d.capela[1], 'f1_capela').setOrigin(0, 1).setDepth(5);
-    for (const x of d.varais) new Varal(this, x, 195);
+    for (const x of d.varais) new Varal(this, x, recuo); // recuado: nada encostado nos barris da rua
     this.ponte = new Ponte(this, d.ponte);
   }
 

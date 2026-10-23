@@ -437,6 +437,112 @@ def sacos3(W=56, ALT=36, sem=7):
     return q, dict(chao=h - 1)
 
 
+import caatinga_ms as _cm
+# arenito: sombra funda de madeira/terra, corpo ocre (meio) e luz creme (cal)
+_cm.RGB['rocha'] = np.array([_cm.RGB['madeira'][0], _cm.RGB['madeira'][1], _cm.RGB['terra'][2], _cm.RGB['meio'][0],
+                             _cm.RGB['meio'][1], _cm.RGB['meio'][2], _cm.RGB['meio'][3], _cm.RGB['meio'][4],
+                             _cm.RGB['meio'][5], _cm.RGB['cal'][4], _cm.RGB['cal'][5]], np.uint8)
+
+
+def rochedo3(W=110, D=12, BAIXO=40, sem=3):
+    """Rochedo elevado no jeito do Metal Slug (23/10): a pedra é feita de BLOCOS, cada um
+    com a sua face plana virada para um lado (luz de cima e da esquerda), fenda escura
+    entre eles e beirada acesa em cima; o tampo onde se pisa é o topo dos blocos, mais
+    claro e achatado pela perspectiva; a frente desce até o chão com o pé escurecendo,
+    e pedras soltas encostadas no pé assentam a pedra no chão."""
+    from scipy import ndimage as nd
+    rng = np.random.default_rng(sem)
+    pad = 8
+    h = D + BAIXO + 3
+    q = Quadro(W + 2 * pad, h)
+    X, Y = q.xx.astype(float), q.yy.astype(float)
+    x0, x1 = pad, pad + W
+    # silhueta: tampo com a beira de trás ondulada, cantos arredondados, frente estufada
+    tras = 1.5 + 1.5 * ruido(1, q.w, 6, sem)[0][None, :]
+    frente = D + 1.2 * ruido(1, q.w, 4, sem + 1)[0][None, :]
+    k = np.clip((Y - frente) / max(1, BAIXO), 0, 1)
+    esq = x0 + 3 - 3 * np.sqrt(k) + 1.5 * ruido(h, 1, 3, sem + 2)[:, 0][:, None]
+    dir_ = x1 - 3 + 3 * np.sqrt(k) + 1.5 * ruido(h, 1, 3, sem + 3)[:, 0][:, None]
+    canto = np.minimum(X - esq, dir_ - X)
+    m = (Y >= tras) & (X >= esq) & (X <= dir_) & (Y < h - 3 + 1.2 * ruido(1, q.w, 3, sem + 4)[0][None, :])
+    m &= ~((Y < tras + 4) & (canto < 4 - (Y - tras)))                     # cantos de cima redondos
+    tampo = m & (Y < frente)
+    # blocos: Voronoi com as sementes mais achatadas no tampo (perspectiva)
+    sem_t = [(rng.uniform(x0, x1), rng.uniform(2, D - 2)) for _ in range(max(2, int(W / 20)))]
+    sem_f = [(rng.uniform(x0 - 2, x1 + 2), rng.uniform(D + 2, h - 2)) for _ in range(max(3, int(W * BAIXO / 260)))]
+    jit = 1.6 * ruido(h, q.w, (1.5, 1.5), sem + 5)
+    lab = np.zeros((h, q.w), int)
+    best = np.full((h, q.w), 1e9)
+    for i_, (sx, sy) in enumerate(sem_t + sem_f):
+        no_t = i_ < len(sem_t)
+        d = ((X - sx) / (1.0 if no_t else 1.0)) ** 2 + ((Y - sy) / (0.45 if no_t else 0.85)) ** 2 + jit * 9
+        if no_t:
+            d = np.where(tampo, d, 1e9)
+        else:
+            d = np.where(tampo, 1e9, d)
+        mel = d < best
+        lab = np.where(mel, i_, lab)
+        best = np.where(mel, d, best)
+    lab = np.where(m, lab, -1)
+    # cada bloco tem uma face plana: normal sorteada (tampo virado para cima, frente para nós)
+    L = np.array([-0.55, -0.75, 0.45]); L /= np.linalg.norm(L)
+    luz = np.zeros((h, q.w))
+    for i_ in range(len(sem_t) + len(sem_f)):
+        cel = lab == i_
+        if not cel.any():
+            continue
+        if i_ < len(sem_t):
+            n = np.array([rng.uniform(-0.35, 0.35), -1.0, rng.uniform(0.1, 0.5)])
+        else:
+            n = np.array([rng.uniform(-0.7, 0.7), rng.uniform(-0.55, 0.25), 1.0])
+        n /= np.linalg.norm(n)
+        base = 0.3 + 0.6 * max(0, float(n @ L))
+        ys, xs = np.where(cel)
+        cy, cx = ys.mean(), xs.mean()
+        # bisel: um pouco mais claro em cima/esquerda do bloco, mais escuro embaixo/direita
+        luz[cel] = base + 0.06 * (cy - ys) / 6 + 0.04 * (cx - xs) / 8
+    # cada bloco é roliço: o miolo cheio e as beiradas caindo para a fenda
+    borda_ = (lab != np.roll(lab, -1, 0)) | (lab != np.roll(lab, -1, 1)) | (lab != np.roll(lab, 1, 0)) | (lab != np.roll(lab, 1, 1))
+    dist = nd.distance_transform_edt(~borda_ & m)
+    luz += 0.16 * np.minimum(dist, 4) / 4 - 0.08
+    # o pé escurece (oclusão) e a frente toda é mais escura que o tampo
+    luz = np.where(tampo, luz + 0.12, luz - 0.18 * np.clip((Y - D) / max(1, BAIXO), 0, 1))
+    luz += 0.035 * ruido(h, q.w, (0.7, 0.7), sem + 6)                      # grão da pedra
+    # fendas entre blocos (escuro embaixo/direita) e beirada acesa (em cima/esquerda)
+    dif_b = (lab != np.roll(lab, -1, 0)) | (lab != np.roll(lab, -1, 1))
+    dif_c = (lab != np.roll(lab, 1, 0)) | (lab != np.roll(lab, 1, 1))
+    luz = np.where((dif_b | np.roll(dif_b, 1, 1)) & m & ~tampo, 0.03, luz)
+    luz = np.where(dif_b & m, 0.04, luz)
+    luz = np.where(dif_c & ~dif_b & m, luz + 0.16, luz)
+    # beira do tampo: quina acesa e a sombra logo abaixo dela na frente
+    quina = m & ~tampo & (Y < frente + 1)
+    luz = np.where(quina, 0.9, luz)
+    luz = np.where(m & ~tampo & (Y >= frente + 1) & (Y < frente + 3), luz - 0.12, luz)
+    P(q, m, 'rocha', np.clip(luz, 0.02, 0.98))
+    # rachas finas descendo em alguns blocos
+    for _ in range(int(W / 35) + 1):
+        x = rng.uniform(x0 + 6, x1 - 6); y = float(D + rng.uniform(2, 6))
+        for _ in range(int(rng.uniform(5, max(6, BAIXO * 0.5)))):
+            xi, yi = int(round(x)), int(round(y))
+            if 0 <= yi < h and 0 <= xi < q.w and m[yi, xi]:
+                q.img[yi, xi] = _cm.RGB['rocha'][1]
+            x += rng.choice([-0.6, 0, 0.6]); y += 1
+    # líquen só no tampo e nas beiradas de cima
+    lq = m & (ruido(h, q.w, (1.2, 1.6), sem + 7) > 2.0) & (Y < D + 6)
+    P(q, lq, 'verde', 0.55)
+    # pedras soltas no pé (assentam a pedra no chão)
+    for _ in range(int(W / 28) + 2):
+        bx = rng.choice([rng.uniform(x0 - 6, x0 + 10), rng.uniform(x1 - 10, x1 + 6), rng.uniform(x0, x1)])
+        r = rng.uniform(2.5, 5)
+        by = h - 1 - r * 0.7
+        d = np.hypot((X - bx) / r, (Y - by) / (r * 0.75))
+        pm = d < 1
+        nx, ny = (X - bx) / r, (Y - by) / (r * 0.75)
+        P(q, pm, 'rocha', np.clip(0.62 - 0.3 * nx - 0.35 * ny - 0.2 * d, 0.05, 0.95))
+    q.ox = pad
+    return q, dict(D=D, chao=h - 1)
+
+
 def rochedo2(W=110, D=19, BAIXO=60, sem=3, rampa='cal'):
     """Rochedo de arenito com volume de verdade: dois ou três blocos arredondados colados,
     fenda entre eles, tampo largo e mais claro onde se pisa, lados estufados e o pé abrindo

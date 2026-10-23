@@ -80,11 +80,10 @@ def faixas():
         alt = 3 if ys < 214 else 4 if ys < PE else 6
         alt = min(alt, h - y)
         meio = ys + alt / 2
-        if meio <= PE:
-            f = 0.62 + 0.38 * (meio - HZ) / (PE - HZ)
-        else:
-            f = 1 + 0.14 * (meio - PE) / (TELA_H - PE)
-        out.append((y, alt, round(f, 3)))
+        # (23/10) o chão anda junto com as coisas em cima dele: com velocidades diferentes por
+        # faixa os pixels deslizavam e parecia que tudo flutuava
+        f = 1.0
+        out.append((y, alt, f))
         y += alt
     return out
 
@@ -151,7 +150,7 @@ def ocupacao(jogo, topo_mundo, casas, largura):
     occ[:a.shape[1]] = a[:lim].sum(0) > 6
     for x, w, h in casas:
         occ[x:x + w] = True
-    return ndimage.binary_dilation(occ, np.ones(13))
+    return ndimage.binary_dilation(occ, np.ones(31))   # folga mínima de ~15 px entre objetos
 
 
 # ---------------------------------------------------------------- peças 2.5D da fase 1
@@ -175,7 +174,7 @@ def pecas_fase1(F):
     DL = 12
     for (sx, sy, sw, *_), sem, rampa in sorted(lajes, key=lambda e: -e[0][1]):
         topo = int(round(sy - DL / 2))
-        q, _ = p5.rochedo2(W=sw, D=DL, BAIXO=fg - topo - DL, sem=sem, rampa=rampa)
+        q, _ = p5.rochedo3(W=sw, D=DL, BAIXO=fg - topo - DL, sem=sem)
         out.append((q, int(sx - q.ox), topo))
     # trincheiras de sacos
     for sx, sy, sw, *_ in [s for s in sol if s[:2] in ([884, 176], [4290, 176])]:

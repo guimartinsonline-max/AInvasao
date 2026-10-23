@@ -33,7 +33,7 @@ def antigo(x, fator):
 
 # ---------------------------------------------------------------- casas da rua (sprites)
 # x, largura, altura, semente, rombo. A porta da 1ª casa fica em x 3098 (os soldados saem por ela).
-CASAS = [[3040, 168, 130, 21, False], [3664, 150, 122, 22, True]]
+CASAS = [[3040, 168, 130, 21, False], [3684, 150, 122, 22, True]]
 PORTA_CASA0 = 3098
 
 
@@ -342,8 +342,9 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
     # capela: sprite à parte em 2.5D (predios25.capela25, porta em x 3468). O cruzeiro fica
     # recuado como as casas (chao_largo.RECUO): nada alto na linha onde se anda.
     import chao_largo as cl
-    q.sombra(3592, yc - cl.RECUO + 1, 22, 2.5)
-    q.assentar(cruzeiro(), 3585, yc - cl.RECUO)
+    # (fora da capela, que agora vai até x 3611: nada encostado)
+    q.sombra(3647, yc - cl.RECUO + 1, 22, 2.5)
+    q.assentar(cruzeiro(), 3622, yc - cl.RECUO, sombra=False)
     # pedras e xique-xiques soltos
     for k, x in enumerate((3000, 3640)):
         q.assentar(cm.pedra(int(rng.integers(18, 28)), int(rng.integers(10, 14)), sem=k + 80), x, yc, afundar=2)

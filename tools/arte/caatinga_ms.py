@@ -270,27 +270,50 @@ def arvore(alt=145, sem=0, folhas=True):
 
 
 def mandacaru(alt=78, sem=0, bracos=((-15, 34, 64), (15, 44, 70))):
-    """Mandacaru de gomos verticais, luz da esquerda, espinhos claros nas arestas."""
-    s = alt / 78.0
-    q = Quadro(int(54 * s) + 10, alt + 2)
-    x, chao = q.w // 2, q.h
+    """Mandacaru roliço (23/10): cada coluna é um cilindro de gomos (aresta acesa, vale
+    escuro, luz da esquerda), topo redondo, cotovelo do braço como um tubo deitado que vira
+    para cima, espinhos claros nas arestas; o pé finca num montinho de terra com sombra."""
+    s_ = alt / 78.0
+    q = Quadro(int(58 * s_) + 12, alt + 4)
+    x, chao = q.w // 2, q.h - 2
+    X, Y = q.xx.astype(float), q.yy.astype(float)
 
-    def braco(x0, y0, y1, r):
-        m = (np.abs(q.xx - x0) <= r) & (q.yy >= y0) & (q.yy < y1)
-        m |= (np.hypot(q.xx - x0, q.yy - y0) <= r) & (q.yy < y0 + r)
-        u = (q.xx - x0) / r
-        gomo = np.cos(u * np.pi * 2.0)
-        luz = 0.48 - 0.38 * u + 0.16 * gomo
-        luz = np.where(np.abs(np.sin(u * np.pi * 2.0)) < 0.25, luz - 0.2, luz)
-        luz = np.where(((q.yy + q.xx * 3 + sem) % 6 == 0) & (np.abs(gomo) > 0.9), 0.95, luz)
-        q.pinta(m, "verde", np.clip(luz, 0, 0.999))
+    def coluna(x0, y0, y1, r):
+        u = (X - x0) / r
+        topo = y0 + r * 0.9
+        m = (np.abs(u) <= 1) & (Y >= topo) & (Y < y1)
+        m |= (((X - x0) / r) ** 2 + ((Y - topo) / (r * 0.9)) ** 2 <= 1) & (Y < topo)
+        cil = np.sqrt(np.clip(1 - u ** 2, 0, 1))
+        gomo = np.cos(u * np.pi * 2.6)
+        luz = 0.25 + 0.38 * cil - 0.3 * u + 0.14 * gomo
+        luz = np.where(Y < topo, luz + 0.12 * (topo - Y) / r, luz)            # topo redondo aceso
+        luz = np.where(gomo < -0.75, luz - 0.16, luz)                          # vale entre gomos
+        espinho = (gomo > 0.9) & (((Y + X * 3 + sem) % 5) == 0)
+        luz = np.where(espinho, 0.97, luz)
+        q.pinta(m, "verde", np.clip(luz, 0.02, 0.97))
+        return m
 
-    braco(x, chao - alt + 1, chao, 7 * max(s, 0.75))
-    for dx, yb, yt in bracos:
-        dx, yb, yt = dx * s, chao - yb * s, chao - yt * s
-        cot = (q.yy >= yb - 5) & (q.yy < yb + 4) & (q.xx >= min(x, x + dx)) & (q.xx < max(x, x + dx))
-        q.pinta(cot, "verde", np.clip(0.45 + 0.25 * ((yb - q.yy) / 5) - 0.2 * (dx > 0), 0, 0.999))
-        braco(x + dx, yt, yb + 4, 5 * max(s, 0.75))
+    def cotovelo(x0, x1, yb, r):
+        a, b = min(x0, x1), max(x0, x1)
+        v = (Y - yb) / r
+        m = (X >= a) & (X <= b) & (np.abs(v) <= 1)
+        luz = 0.3 + 0.35 * np.sqrt(np.clip(1 - v ** 2, 0, 1)) - 0.25 * v + 0.1 * np.cos(v * np.pi * 2.6)
+        q.pinta(m, "verde", np.clip(luz, 0.02, 0.97))
+
+    r0 = 7.5 * max(s_, 0.75)
+    for dx, yb, yt in bracos:                                                  # braços atrás do tronco
+        dx, yb, yt = dx * s_, chao - yb * s_, chao - yt * s_
+        ra = 5.2 * max(s_, 0.75)
+        cotovelo(x, x + dx, yb, ra)
+        coluna(x + dx, yt, yb + ra * 0.3, ra)
+    coluna(x, chao - alt + 2, chao + 1, r0)
+    # montinho de terra no pé, com pedrinhas e a sombra de contato
+    d = ((X - x) / (r0 * 1.9)) ** 2 + ((Y - chao) / 3.2) ** 2
+    mont = (d < 1) & (Y >= chao - 2)
+    q.pinta(mont, "terra", np.clip(0.62 - 0.25 * (Y - chao + 2) / 4 - 0.12 * (X - x) / (r0 * 2), 0.05, 0.95))
+    for k in (-1, 1):
+        pm = np.hypot(X - (x + k * r0 * 1.3), (Y - chao) * 1.4) < 1.6
+        q.pinta(pm, "cal", np.where(Y < chao, 0.75, 0.35))
     return q
 
 
@@ -996,7 +1019,7 @@ def camada_jogo(fase, alt=140, topo_mundo=76, ate=None):
     # pedras e xique-xiques soltos
     for k, x in enumerate((120, 380, 690, 1050, 1520, 1990, 2470, 2610, 2850)):
         q.assentar(pedra(int(rng.integers(18, 30)), int(rng.integers(10, 15)), sem=k + 20), x, yc, afundar=2)
-    for x in (70, 205, 640, 1470, 1930, 2420, 2700, 2900):
+    for x in (70, 205, 640, 1590, 1930, 2420, 2700, 2900):   # longe das pedras, giraus e carroças
         q.assentar(xiquexique(int(rng.integers(24, 34)), int(rng.integers(18, 26)), sem=x), x, yc, afundar=2)
     # objetos antigos ambientados (sem contorno, na luz da cena)
     amb = lambda t: ambientar(t.imagem())  # noqa: E731

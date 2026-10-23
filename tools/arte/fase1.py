@@ -884,7 +884,7 @@ FASE = {
     "buracos": [1862, 2382],
     "fim": 8540,
     # Cenário vivo (sprites à parte, ver tools/arte/fase1_extra.py).
-    "casas": [[3040, 168, 130, 21, False], [3664, 150, 122, 22, True]],  # x, largura, altura, semente, rombo (vila_ms.CASAS)
+    "casas": [[3040, 168, 130, 21, False], [3684, 150, 122, 22, True]],  # x, largura, altura, semente, rombo (vila_ms.CASAS)
     "varais": [3795],
     "jumentos": [2680],  # jumento blindado esperando (o Lampião monta e atravessa a vila nele)
     "ponte": [6124, 146, 4, 139],  # x, y do tabuleiro, pedaços, largura do pedaço
@@ -1216,12 +1216,17 @@ def exportar(saida, raiz):
     cp, cpx = p25.capela25()
     Image.fromarray(cp.rgba(), "RGBA").save(saida / "f1_capela.png", optimize=True)
     capela = [3468 - cpx, CHAO_MUNDO_RECUO := 194 - cl.RECUO, cp.w, cp.h]
-    occ = cl.ocupacao(novas["f1_jogo"], topo, [c[:3] for c in FASE["casas"]] + [(capela[0], cp.w, cp.h)], LARGURA_FASE)
+    # Regra (23/10): nenhum objeto dentro do outro. Árvore, cacto ou casa do fundo que ficaria
+    # atrás de construção, pedra, girau, sacos ou carroça sai (com folga de ~15 px).
+    pecas_lista = cl.pecas_fase1(FASE)
+    ocupantes = [c[:3] for c in FASE["casas"]] + [(capela[0], cp.w, cp.h)] + \
+        [(px, q.w, q.h) for q, px, py, *_ in pecas_lista]
+    occ = cl.ocupacao(novas["f1_jogo"], topo, ocupantes, LARGURA_FASE)
     novas["f1_perto"] = cl.tirar_sobrepostos(novas["f1_perto"], fp, novas["f1_perto"].height - 1, occ)
     novas["f1_meio"] = cl.tirar_sobrepostos(novas["f1_meio"], fm, novas["f1_meio"].height - 1, occ, morro=True)
     cl.textura_chao().save(saida / "f1_chao.png", optimize=True)
     pecas25 = []
-    for k, (q, px, py, *prof) in enumerate(cl.pecas_fase1(FASE)):
+    for k, (q, px, py, *prof) in enumerate(pecas_lista):
         Image.fromarray(q.rgba(), "RGBA").save(saida / f"f1_p25_{k}.png", optimize=True)
         pecas25.append([k, px, py] + prof)
     for nome, im in novas.items():
