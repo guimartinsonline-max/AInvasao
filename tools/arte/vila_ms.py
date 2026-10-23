@@ -219,7 +219,7 @@ def cruzeiro(sem=5):
 # `ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura); as peças da vila
 # continuam sorteadas só até o limite dela, para não mudar quando a camada cresce.
 def camada_paredao(h=130, ate=None):
-    return cm.camada_paredao(h, ate=ate or limite(0.2))
+    return cm.camada_paredao(h, ate=ate or limite(0.45))
 
 
 def camada_meio(h=90, ate=None, planos_extra=()):
@@ -269,7 +269,7 @@ def camada_meio(h=90, ate=None, planos_extra=()):
 def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): as casas da vila atrás da rua, uma de barro sem reboco,
     uma arrombada, árvores e mandacarus entre elas, moitas no pé."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     lim = limite(fator)
     q = cm.camada_perto(h, ate=ate or lim)
     chao = h - 1
@@ -302,7 +302,7 @@ def camada_perto(h=160, ate=None):
 
 
 def camada_frente(h=44, ate=None):
-    return cm.camada_frente(h, ate=ate or limite(1.1))
+    return cm.camada_frente(h, ate=ate or limite(1.0))
 
 
 def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
@@ -344,7 +344,8 @@ def camada_jogo(fase, alt=176, topo_mundo=40, ate=None):
     import chao_largo as cl
     # (fora da capela, que agora vai até x 3611: nada encostado)
     q.sombra(3647, yc - cl.RECUO + 1, 22, 2.5)
-    q.assentar(cruzeiro(), 3622, yc - cl.RECUO, sombra=False)
+    import predios25 as p25
+    q.assentar(p25.extrudar(cruzeiro(), 6, 5), 3620, yc - cl.RECUO, sombra=False)   # com espessura (2.5D)
     # pedras e xique-xiques soltos
     for k, x in enumerate((3000, 3640)):
         q.assentar(cm.pedra(int(rng.integers(18, 28)), int(rng.integers(10, 14)), sem=k + 80), x, yc, afundar=2)

@@ -433,11 +433,11 @@ def matriz(sem=9):
 # ---------------------------------------------------------------- camadas
 def camada_paredao(h=130, ate=None):
     """`ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura)."""
-    return vm.camada_paredao(h, ate=ate or limite(0.2))
+    return vm.camada_paredao(h, ate=ate or limite(0.45))
 
 
 def camada_frente(h=44, ate=None):
-    return vm.camada_frente(h, ate=ate or limite(1.1))
+    return vm.camada_frente(h, ate=ate or limite(1.0))
 
 
 def camada_meio(h=124, ate=None):
@@ -474,7 +474,7 @@ def camada_meio(h=124, ate=None):
 def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): atrás do casario, a igreja matriz com as duas torres, os
     telhados das casas de trás (só aparecem por cima da platibanda e nos becos) e árvores."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     lim = limite(fator)
     q = vm.camada_perto(h, ate=ate or lim)
     chao = h - 1

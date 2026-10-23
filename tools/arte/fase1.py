@@ -991,7 +991,7 @@ def camada_jogo():
 def camada_perto():
     """Atrás do plano do jogo (anda a 0,75 da câmera): casa de taipa, árvores
     grandes, mandacarus, cerca do curral, cata-vento e pedras grandes."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     W = int(LARGURA_FASE * fator + 548)
     alt = 160
     base = alt - 2
@@ -1152,7 +1152,7 @@ def camada_meio():
 def camada_frente():
     """Na frente do Lampião (anda a 1,1 da câmera): tufos e pedras escuras,
     poucos e espalhados, para dar profundidade sem atrapalhar."""
-    fator = 1.1
+    fator = 1.0   # (23/10) preso ao chão
     W = int(LARGURA_FASE * fator + 548)
     alt = 22
     t = Tela(W, alt)
@@ -1197,14 +1197,14 @@ def exportar(saida, raiz):
     # Céu, nuvens e serra são da fase toda: já no jeito novo (céu e serra quietos e enevoados).
     cm.ceu().save(saida / "f1_ceu.png", optimize=True)
     cm.nuvens().save(saida / "f1_nuvens.png", optimize=True)
-    paredao = ca.paredao(int(LARGURA_FASE * 0.2 + 548))
+    paredao = ca.paredao(int(LARGURA_FASE * 0.45 + 548))
     # Trechos da caatinga, da vila, da vila alta e do campo de pouso no jeito novo, emendados no resto da fase sem corte reto.
     novas = {
         "f1_jogo": cm.sobrepor(jogo.imagem(), vm.camada_jogo(sys.modules[__name__])),
         "f1_perto": cm.sobrepor(perto.imagem(), vm.camada_perto()),
         "f1_meio": cm.emendar(meio.imagem(), vm.camada_meio(), sem=3),
         "f1_frente": cm.sobrepor(frente.imagem(), vm.camada_frente()),
-        "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE * 0.08 + 548)).rgba(), "RGBA"),
+        "f1_serras": Image.fromarray(cm.serra(int(LARGURA_FASE * 0.45 + 548)).rgba(), "RGBA"),
         "f1_paredao": cm.emendar(paredao.imagem(), vm.camada_paredao(), largura=200, sem=4),
     }
     # Chão largo (22/10): o chão pintado sai do plano do jogo (vira faixas com parallax próprio),
@@ -1247,7 +1247,8 @@ def exportar(saida, raiz):
     dados["camadas"] = {
         "jogo": {"y": topo, "fator": 1}, "perto": {"base": 194 - 70, "fator": fp},  # perto: 160 de altura
         "meio": {"base": 192 - 76, "fator": fm}, "frente": {"base": 216, "fator": ff},
-        "serras": {"base": 168, "fator": 0.08}, "paredao": {"base": 176 - 38, "fator": 0.2},
+        # (23/10) serras, paredão e morros andam juntos (um bloco só de fundo, sem deslizar entre si)
+        "serras": {"base": 168, "fator": 0.45}, "paredao": {"base": 176 - 38, "fator": 0.45},
     }
     dados["chao"] = {"hz": cl.HZ, "faixas": cl.faixas(), "descer": cl.DESCE}
     dados["pecas25"] = pecas25

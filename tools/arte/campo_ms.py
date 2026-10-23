@@ -435,11 +435,11 @@ def longe(p, escala, k):
 
 # ---------------------------------------------------------------- camadas
 def camada_paredao(h=130):
-    return va.camada_paredao(h, ate=limite(0.2))
+    return va.camada_paredao(h, ate=limite(0.45))
 
 
 def camada_frente(h=44):
-    return va.camada_frente(h, ate=limite(1.1))
+    return va.camada_frente(h, ate=limite(1.0))
 
 
 def camada_meio(h=124):
@@ -470,7 +470,7 @@ def camada_perto(h=160):
     """Plano de trás (0,75): atrás da pista, a caixa d'água de madeira (mais ao longe), o
     galpão de zinco, o mastro do rádio, árvores e mandacarus, moitas no pé. Nada de árvore
     nem casa no meio do campo."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     lim = limite(fator)
     q = va.camada_perto(h, ate=lim)
     chao = h - 1

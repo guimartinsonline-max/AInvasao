@@ -28,7 +28,7 @@ TODAS = np.concatenate([RGB[r] for r in AMB]).astype(int)
 # Câmera mais à direita ainda dentro da caatinga: a borda direita da tela chega no começo da vila.
 CAMERA_FIM = CAATINGA_FIM - TELA_W
 # Perto: para logo antes da 1ª casa antiga da vila (a borda dela só aparece no último pixel da tela).
-_LIMITE_FIXO = {0.75: 2360}
+_LIMITE_FIXO = {0.75: 2360, 1.0: 3146}
 
 
 def limite(fator):
@@ -817,7 +817,7 @@ def _xs(fator, margem=40):
 
 def camada_paredao(h=130, ate=None):
     """`ate`: até onde a camada vai (o trecho seguinte estende a mesma pintura)."""
-    return chapada((ate or limite(0.2)) + 200, h)
+    return chapada((ate or limite(0.45)) + 200, h)
 
 
 def _morros(q, base, alt, larg, sem, rampa_luz, desl=0.0, planos=None):
@@ -917,7 +917,7 @@ def camada_meio(h=90, ate=None, planos_extra=()):
 def camada_perto(h=160, ate=None):
     """Plano de trás (0,75): as duas casas de taipa grandes, o curral com o cata-vento,
     árvores e mandacarus grandes, pedras e moitas no pé."""
-    fator = 0.75
+    fator = 1.0   # (23/10) preso ao chão: nada desliza sobre o chão
     lim = limite(fator)
     q = Quadro((ate or lim) + 40, h)
     chao = h - 1
@@ -955,7 +955,7 @@ def camada_perto(h=160, ate=None):
 
 def camada_frente(h=44, ate=None):
     """Na frente do Lampião (1,1): touceiras escuras de xique-xique e capim nos cantos."""
-    fator = 1.1
+    fator = 1.0   # (23/10) preso ao chão
     lim = ate or limite(fator)
     q = Quadro(lim + 40, h)
     rng = np.random.default_rng(4)
