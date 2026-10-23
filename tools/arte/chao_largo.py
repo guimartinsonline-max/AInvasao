@@ -41,15 +41,16 @@ def textura_chao(sem=12):
     X, Y = q.xx, q.yy
     yb = h + 26
     d = np.clip(Y / yb, 0, 1)
-    n = ruido(h, TEX_W, (0.6, 7), sem) * d + ruido(h, TEX_W, (0.4, 3), sem + 1) * (1 - d)
-    lz = 0.58 + 0.08 * n - 0.06 * d + 0.03 * (1 - d)
+    # (23/10) o fundo do chão com a mesma textura da frente (só um pouco mais miúda)
+    n = ruido(h, TEX_W, (0.6, 7), sem) * (0.35 + 0.65 * d) + ruido(h, TEX_W, (0.5, 5), sem + 1) * 0.65 * (1 - d)
+    lz = 0.58 + 0.08 * n - 0.03 * d
     q.pinta(np.ones((h, TEX_W), bool), 'terra', np.clip(lz, 0, 0.999))
     rng = np.random.default_rng(sem)
     for _ in range(260):
         y = yb * rng.random() ** 0.7
         dd = y / yb
         x = rng.uniform(0, TEX_W)
-        r = 0.6 + 2.6 * dd
+        r = 1.3 + 1.9 * dd
         for xx in (x, x - TEX_W, x + TEX_W):          # a textura emenda nas pontas
             pe = ((X - xx) / r) ** 2 + ((Y - y) / (r * 0.5)) ** 2 < 1
             if pe.any():
@@ -57,7 +58,7 @@ def textura_chao(sem=12):
     # névoa: o longe clareia e perde contraste; perto do horizonte some no pé dos morros
     # (23/10: o fundo do chão na mesma cor da frente, só um pouco mais claro no horizonte)
     lon = d < 0.3
-    k = (0.3 - d[lon]) / 0.3 * 0.12
+    k = (0.3 - d[lon]) / 0.3 * 0.05
     alvo = cm.RGB['longe'][-2].astype(float)
     q.img[lon] = cm.encaixar((q.img[lon] * (1 - k[:, None]) + alvo * k[:, None]).reshape(-1, 1, 3).astype(np.uint8)).reshape(-1, 3)
     for k_ in (14, 5):
@@ -201,14 +202,14 @@ def pe_dos_morros(meio, base, chao, faixa=24, dy=92):
     a = np.array(meio.convert('RGBA'))
     h, w = a.shape[:2]
     r_hz = HZ - (base - h + dy)                     # linha da camada no horizonte do chão
-    c = np.array(chao.convert('RGB'))[4:4 + 6]     # o longe do chão, já enevoado
-    tira = np.tile(c, (1, w // c.shape[1] + 1, 1))[:, :w]
     y0 = max(0, r_hz - faixa)
     rr = np.arange(y0, h)
+    c = np.array(chao.convert('RGB'))[4:4 + len(rr)]   # a terra do chão, na ordem (sem faixa repetida)
+    tira = np.tile(c, (1, w // c.shape[1] + 1, 1))[:, :w]
     t = np.clip((rr - y0) / faixa, 0, 1)[:, None]
-    n = ruido(len(rr), w, (5, 18), 77)
+    n = ruido(len(rr), w, (10, 70), 77) * 0.6            # beira em ondas largas, sem pontas
     al = a[y0:, :, 3] > 0
-    alvo = tira[(rr - y0) % tira.shape[0]].astype(float)
+    alvo = tira[np.minimum(rr - y0, tira.shape[0] - 1)].astype(float)
     terra = ((t + 0.22 * n > 0.62) & al) | (rr >= r_hz - 4)[:, None]
     mist = al & ~terra
     k = (0.45 * t)[..., None] * np.ones((1, w, 1))

@@ -1006,7 +1006,7 @@ def camada_perto():
         pecas.append((lx(wx), ca.arvore(int(rng.integers(96, 138)), semente=k + 100, seca=float(rng.uniform(0.15, 0.6)),
                                         folhas=rng.random() > 0.2)))
     for k, wx in enumerate((150, 460, 880, 1240, 1880, 2250, 2600, 2950, 3820, 6820, 7600)):
-        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(60, 92)), semente=k + 200, bracos=int(rng.integers(1, 4)))))
+        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(60, 92) * 0.62), semente=k + 200, bracos=int(rng.integers(1, 4)))))
     for k, wx in enumerate((270, 1120, 2150, 640, 1700)):
         pecas.append((lx(wx), ca.pedra(int(rng.integers(44, 70)), int(rng.integers(26, 40)), semente=k + 300,
                                        rampa=ca.PEDRA if k % 2 else ca.PEDRA_Q)))
@@ -1034,7 +1034,7 @@ def camada_perto():
     import vila_campo as vca
     pecas.append((lx(5500), ca.tanque_gasolina(5)))
     for k, wx in enumerate((4950, 5380, 5700, 5900)):
-        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(56, 84)), semente=k + 220, bracos=2)))
+        pecas.append((lx(wx), ca.mandacaru(int(rng.integers(56, 84) * 0.62), semente=k + 220, bracos=2)))
     # Rio seco: carnaúbas na beira.
     for k, wx in enumerate((6080, 6180, 6330, 6480, 6620, 6740)):
         pecas.append((lx(wx), ca.carnauba(int(rng.integers(84, 120)), semente=k + 60)))
@@ -1223,6 +1223,8 @@ def exportar(saida, raiz):
         [(px, q.w, q.h) for q, px, py, *_ in pecas_lista]
     occ = cl.ocupacao(novas["f1_jogo"], topo, ocupantes, LARGURA_FASE)
     novas["f1_perto"] = cl.tirar_sobrepostos(novas["f1_perto"], fp, novas["f1_perto"].height - 1, occ)
+    for px, pq in cm.pedras_fundo():
+        novas["f1_perto"].alpha_composite(Image.fromarray(pq.rgba(), "RGBA"), (px - 8, novas["f1_perto"].height - pq.h + 2))
     # (23/10) os morros não perdem pedaços (os buracos mostravam o paredão por baixo) e o pé
     # deles vira a terra do chão, sem linha entre o chão e o fundo
     chao_tex = cl.textura_chao()

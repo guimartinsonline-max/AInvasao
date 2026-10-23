@@ -269,10 +269,23 @@ def arvore(alt=145, sem=0, folhas=True):
     return q
 
 
+ESCALA_CACTO = 0.62
+
+
+def pedras_fundo():
+    """Pedras grandes na beira de trás do chão no jeito novo (blocos, como a barreira da
+    frente): [(x do mundo, Quadro)]. Vão inteiras, mesmo atrás de outra peça."""
+    import pecas25 as p5
+    return [(100, p5.rochedo3(W=64, D=8, BAIXO=22, sem=300)[0]),
+            (1150, p5.rochedo3(W=80, D=9, BAIXO=26, sem=301)[0]),
+            (2170, p5.rochedo3(W=56, D=8, BAIXO=18, sem=302)[0])]
+
+
 def mandacaru(alt=78, sem=0, bracos=((-15, 34, 64), (15, 44, 70))):
     """Mandacaru roliço (23/10): cada coluna é um cilindro de gomos (aresta acesa, vale
     escuro, luz da esquerda), topo redondo, cotovelo do braço como um tubo deitado que vira
     para cima, espinhos claros nas arestas; o pé finca num montinho de terra com sombra."""
+    alt = int(round(alt * ESCALA_CACTO))   # (23/10) na escala do Lampião (~45 px de altura)
     s_ = alt / 78.0
     q = Quadro(int(58 * s_) + 12, alt + 4)
     x, chao = q.w // 2, q.h - 2
@@ -929,9 +942,8 @@ def camada_perto(h=160, ate=None):
     lx = lambda wx: int(wx * fator)  # noqa: E731
     pecas = []
     # (posição no mundo, peça): poucas e grandes
-    pecas.append((lx(100), pedra(64, 36, 300, topo=0.8)))
-    pecas.append((lx(1150), pedra(80, 42, 301, topo=0.8)))
-    pecas.append((lx(2180), pedra(56, 30, 302, topo=0.8)))
+    # (23/10) as pedras grandes do fundo agora são de blocos (pedras_fundo), coladas por cima
+    # depois da limpeza de sobrepostos, inteiras
     for k, (wx, alt) in enumerate(((20, 150), (400, 128), (1000, 156), (1700, 138), (2050, 150), (2700, 140))):
         pecas.append((lx(wx), arvore(alt, sem=100 + k, folhas=k != 3)))
     for k, (wx, alt, br) in enumerate(((250, 84, 2), (880, 96, 2), (1290, 70, 1), (1880, 92, 2), (2560, 80, 2))):
